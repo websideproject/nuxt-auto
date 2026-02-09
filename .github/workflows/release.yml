@@ -10,20 +10,23 @@ on:
         required: false
         type: string
 
-# Remove default permissions of GITHUB_TOKEN for security
-# https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -53,14 +56,10 @@ jobs:
         run: bun run build
 
       - name: Publish nuxt-auto-api to npm
-        run: npm publish --workspace=@websideproject/nuxt-auto-api --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: bunx npm publish --workspace=@websideproject/nuxt-auto-api --provenance --access public
 
       - name: Publish nuxt-auto-admin to npm
-        run: npm publish --workspace=@websideproject/nuxt-auto-admin --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: bunx npm publish --workspace=@websideproject/nuxt-auto-admin --provenance --access public
 
       - name: Commit version updates
         run: |
