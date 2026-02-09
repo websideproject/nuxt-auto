@@ -43,10 +43,14 @@ jobs:
         run: bun run build
 
       - name: Publish nuxt-auto-api to npm
-        run: npm publish --workspace=@websideproject/nuxt-auto-api
+        run: npm publish --workspace=@websideproject/nuxt-auto-api --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish nuxt-auto-admin to npm
-        run: npm publish --workspace=@websideproject/nuxt-auto-admin
+        run: npm publish --workspace=@websideproject/nuxt-auto-admin --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit version updates
         run: |
