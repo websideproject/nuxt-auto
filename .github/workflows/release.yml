@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Prepare modules
+        run: bun run dev:prepare
+
       - name: Build packages
         run: bun run build
 
