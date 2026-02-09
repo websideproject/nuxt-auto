@@ -22,7 +22,8 @@
     "lint:fix": "turbo run lint:fix",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "automd": "automd --config .github/automd.json"
+    "automd": "automd --config .github/automd.json",
+    "version": "scripts/update-version.sh"
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^1.11.0",
