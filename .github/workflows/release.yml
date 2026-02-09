@@ -7,7 +7,7 @@ on:
 # Remove default permissions of GITHUB_TOKEN for security
 # https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 jobs:
@@ -43,10 +43,10 @@ jobs:
         run: bun run build
 
       - name: Publish nuxt-auto-api to npm
-        run: npm publish --workspace=@websideproject/nuxt-auto-api --provenance --access public
+        run: npm publish --workspace=@websideproject/nuxt-auto-api
 
       - name: Publish nuxt-auto-admin to npm
-        run: npm publish --workspace=@websideproject/nuxt-auto-admin --provenance --access public
+        run: npm publish --workspace=@websideproject/nuxt-auto-admin
 
       - name: Commit version updates
         run: |
