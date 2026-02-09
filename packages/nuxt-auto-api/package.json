@@ -1,0 +1,50 @@
+{
+  "name": "@websideproject/nuxt-auto-api",
+  "version": "0.0.1",
+  "description": "Schema-driven API generation from Drizzle schema with auth and authz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/websideproject/nuxt-auto.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    }
+  },
+  "main": "./dist/module.mjs",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./dist/types.d.mts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "nuxt-module-build build",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare",
+    "release": "bun run lint && bun run test && bun run build && changelogen --release && npm publish && git push --follow-tags",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@nuxt/kit": "^4.3.0"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "^3.1.1",
+    "@nuxt/module-builder": "^1.0.2",
+    "@nuxt/schema": "^4.3.0",
+    "@nuxt/test-utils": "^3.23.0",
+    "typescript": "^5.9.3",
+    "changelogen": "^0.6.2",
+    "nuxt": "^4.3.0"
+  }
+}

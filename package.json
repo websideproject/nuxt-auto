@@ -1,0 +1,49 @@
+{
+  "name": "nuxt-auto-monorepo",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/websideproject/nuxt-auto.git"
+  },
+  "author": "Benjamin Gervan",
+  "license": "MIT",
+  "packageManager": "bun@1.2.4",
+  "scripts": {
+    "dev": "turbo run dev --filter=nuxt-auto-playground",
+    "dev:prepare": "turbo run dev:prepare",
+    "dev:docs": "turbo run dev --filter=nuxt-auto-docs",
+    "docs": "turbo run dev --filter=nuxt-auto-docs",
+    "build": "turbo run build",
+    "build:api": "turbo run build --filter=@websideproject/nuxt-auto-api",
+    "build:admin": "turbo run build --filter=@websideproject/nuxt-auto-admin",
+    "build:docs": "turbo run build --filter=nuxt-auto-docs",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "automd": "automd --config .github/automd.json"
+  },
+  "devDependencies": {
+    "@nuxt/eslint-config": "^1.11.0",
+    "@types/node": "latest",
+    "automd": "^0.4.0",
+    "eslint": "^9.39.1",
+    "turbo": "^2.6.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14",
+    "vue-tsc": "^3.1.5"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "trustedDependencies": [
+    "@parcel/watcher",
+    "better-sqlite3",
+    "esbuild",
+    "sharp",
+    "unrs-resolver",
+    "vue-demi"
+  ]
+}

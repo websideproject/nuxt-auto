@@ -1,0 +1,19 @@
+{
+  "private": true,
+  "name": "nuxt-auto-playground",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxi dev",
+    "dev:prepare": "nuxi prepare",
+    "build": "nuxi build",
+    "generate": "nuxi generate",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@websideproject/nuxt-auto-api": "workspace:*",
+    "@websideproject/nuxt-auto-admin": "workspace:*",
+    "nuxt": "^4.3.0"
+  }
+}

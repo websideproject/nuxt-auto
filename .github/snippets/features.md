@@ -1,0 +1,4 @@
+- 🎯 **Schema-Driven** - Generate API endpoints and admin UI from your Drizzle schema
+- 🔐 **Auth & AuthZ Built-in** - Authentication and authorization out of the box
+- 📦 **Reusable Admin Panel** - Auto-generated admin interface based on your schema
+- 🚀 **Type-Safe** - Full TypeScript support with type inference from your schema

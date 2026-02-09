@@ -1,0 +1,2 @@
+- **Issues**: [Open an issue](https://github.com/websideproject/nuxt-auto/issues) for bugs or feature requests
+- **Discussions**: [Join the discussion](https://github.com/websideproject/nuxt-auto/discussions) for questions and ideas

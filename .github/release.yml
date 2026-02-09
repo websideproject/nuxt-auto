@@ -1,0 +1,57 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+    authors:
+      - octocat
+  categories:
+    - title: Breaking Changes 💥
+      labels:
+        - breaking
+        - major
+    - title: Features 🚀
+      labels:
+        - feature
+    - title: API Module 📦
+      labels:
+        - nuxt-auto-api
+        - api
+    - title: Admin Module 🎨
+      labels:
+        - nuxt-auto-admin
+        - admin
+    - title: Enhancements 🌈
+      labels:
+        - enhancement
+    - title: Bug Fixes 🐞
+      labels:
+        - bug
+        - fix
+        - bugfix
+    - title: Build System 🛠
+      labels:
+        - build
+    - title: Continuous Integration 🔄
+      labels:
+        - ci
+    - title: Documentation 📚
+      labels:
+        - documentation
+    - title: Tests 🧪
+      labels:
+        - test
+    - title: Refactoring 🛠
+      labels:
+        - refactor
+    - title: Dependency Updates 📦
+      labels:
+        - dependencies
+    - title: Performance Improvements ⚡️
+      labels:
+        - performance
+    - title: Style 💅
+      labels:
+        - style
+    - title: Revert 🔄
+      labels:
+        - revert
