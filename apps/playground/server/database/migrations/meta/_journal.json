@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1769634404744,
+      "tag": "0000_goofy_shooting_star",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1769681116450,
+      "tag": "0001_odd_namora",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1769710212794,
+      "tag": "0002_deep_true_believers",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1769767808252,
+      "tag": "0003_calm_fabian_cortez",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1770409465328,
+      "tag": "0004_loving_bucky",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1770493676841,
+      "tag": "0005_common_karen_page",
+      "breakpoints": true
+    }
+  ]
+}

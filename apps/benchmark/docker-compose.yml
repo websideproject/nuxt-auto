@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: ../
+      dockerfile: benchmark/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NITRO_PRESET=node-server
+    volumes:
+      - ./.data:/workspace/benchmark/app/.data
+
+  app-bun:
+    build:
+      context: ../
+      dockerfile: benchmark/Dockerfile.bun
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./.data-bun:/workspace/benchmark/app/.data
+
+  app-fastify:
+    build:
+      context: ../
+      dockerfile: benchmark/Dockerfile.fastify
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./.data-fastify:/workspace/benchmark/fastify-app/.data
+
+  k6:
+    image: grafana/k6:latest
+    depends_on:
+      - app
+      - app-bun
+      - app-fastify
+    volumes:
+      - ./k6/script.js:/script.js
+    command: run /script.js
