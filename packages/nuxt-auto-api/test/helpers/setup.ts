@@ -62,6 +62,25 @@ async function createTablesFromSchema(db: any, sqlite: any, schema: any) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `)
+
+  // Create tags table
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE
+    )
+  `)
+
+  // Create post_tags junction table
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS post_tags (
+      post_id INTEGER NOT NULL,
+      tag_id INTEGER NOT NULL,
+      PRIMARY KEY (post_id, tag_id),
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    )
+  `)
 }
 
 /**

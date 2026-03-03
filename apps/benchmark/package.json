@@ -6,5 +6,8 @@
     "dev": "cd app && nuxt dev",
     "build": "cd app && nuxt build",
     "dev:fastify": "cd fastify-app && tsx src/index.ts"
+  },
+  "devDependencies": {
+    "@websideproject/nuxt-auto-api": "workspace:*"
   }
 }

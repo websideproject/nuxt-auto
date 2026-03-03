@@ -33,7 +33,7 @@ export async function m2mAddHandler(context: HandlerContext): Promise<M2MOperati
   }
 
   // Parse and validate request body
-  const body = await readBody(event)
+  const body = context.validated?.body || await readBody(event)
   const validation = validateM2MAddRequest(body)
 
   if (!validation.valid) {

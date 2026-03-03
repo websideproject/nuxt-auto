@@ -1,296 +1,228 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { setupTestDatabase, seedDatabase, cleanDatabase } from '../helpers/setup'
+import * as baseSchema from '../helpers/schema'
+import { m2mListHandler } from '../../src/runtime/server/handlers/m2m/list'
+import { m2mSyncHandler } from '../../src/runtime/server/handlers/m2m/sync'
+import { m2mAddHandler } from '../../src/runtime/server/handlers/m2m/add'
+import { m2mRemoveHandler } from '../../src/runtime/server/handlers/m2m/remove'
+import { createMockContext } from '../helpers/mocks'
 
-/**
- * M2M Integration Tests
- *
- * These tests demonstrate the full M2M workflow but are currently skipped
- * because they require a full Nuxt application context with:
- * - Database connection (Better-SQLite3 / Postgres / MySQL)
- * - Registry setup with actual Drizzle schema
- * - H3 event context
- * - Authentication/authorization setup
- *
- * To enable these tests:
- * 1. Set up a test database instance
- * 2. Initialize the schema with test tables
- * 3. Create a test Nuxt app context
- * 4. Remove .skip from the describe blocks
- *
- * For now, these serve as documentation of expected behavior.
- */
+// Stub useRuntimeConfig for tests
+vi.stubGlobal('useRuntimeConfig', () => ({
+  public: {},
+  autoApi: {}
+}))
 
-describe.skip('M2M Integration Workflow', () => {
+describe('M2M Integration Workflow', () => {
+  let db: any
+  let sqlite: any
+  let testData: any
+  let tags: any[]
+
+  beforeEach(async () => {
+    const setup = await setupTestDatabase(baseSchema)
+    db = setup.db
+    sqlite = setup.sqlite
+    testData = await seedDatabase(db, baseSchema)
+
+    // Mock transaction to support async callback (needed for better-sqlite3 in tests)
+    db.transaction = async (fn: any) => {
+      sqlite.prepare('SAVEPOINT test_tx').run()
+      try {
+        const result = await fn(db)
+        sqlite.prepare('RELEASE SAVEPOINT test_tx').run()
+        return result
+      } catch (error) {
+        sqlite.prepare('ROLLBACK TO SAVEPOINT test_tx').run()
+        throw error
+      }
+    }
+
+    // Seed tags
+    tags = await db.insert(baseSchema.tags).values([
+      { name: 'Vue' },
+      { name: 'Nuxt' },
+      { name: 'TypeScript' },
+      { name: 'Drizzle' }
+    ]).returning()
+
+    // Add initial relations: Post 1 has 'Vue' and 'Nuxt'
+    await db.insert(baseSchema.postTags).values([
+      { postId: testData.posts[0].id, tagId: tags[0].id },
+      { postId: testData.posts[0].id, tagId: tags[1].id }
+    ])
+  })
+
+  afterEach(async () => {
+    await db.delete(baseSchema.postTags)
+    await db.delete(baseSchema.tags)
+    await cleanDatabase(db, baseSchema)
+    sqlite.close()
+  })
+
   describe('Full M2M Sync Workflow', () => {
     it('should list → sync → verify relations', async () => {
+      const postId = testData.posts[0].id
+
       // 1. LIST: Get current relations
-      // GET /api/articles/1/relations/categories
-      // Expected: { ids: [1, 2], total: 2 }
+      const listContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'list', // Operation context
+        params: { id: postId, relation: 'tags' },
+        validated: { query: {} }
+      })
+
+      const initialList = await m2mListHandler(listContext as any)
+      expect(initialList.ids).toHaveLength(2)
+      expect(initialList.ids).toContain(tags[0].id)
+      expect(initialList.ids).toContain(tags[1].id)
 
       // 2. SYNC: Update relations
-      // POST /api/articles/1/relations/categories
-      // Body: { ids: [2, 3, 4] }
-      // Expected: { success: true, added: 2, removed: 1, total: 3 }
+      const syncContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'sync',
+        params: { id: postId, relation: 'tags' },
+        event: { method: 'POST' },
+        validated: { body: { ids: [tags[1].id, tags[2].id, tags[3].id] } }
+      })
+
+      const syncResult = await m2mSyncHandler(syncContext as any)
+      expect(syncResult.success).toBe(true)
+      expect(syncResult.added).toBe(2) // TypeScript, Drizzle
+      expect(syncResult.removed).toBe(1) // Vue
+      expect(syncResult.total).toBe(3)
 
       // 3. VERIFY: List again to confirm
-      // GET /api/articles/1/relations/categories
-      // Expected: { ids: [2, 3, 4], total: 3 }
+      const verifyContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'list',
+        params: { id: postId, relation: 'tags' },
+        validated: { query: {} }
+      })
 
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should handle optimistic updates correctly', async () => {
-      // 1. Initial state: [1, 2, 3]
-      // 2. Optimistic update: immediately show [2, 3, 4]
-      // 3. Server confirms: { success: true }
-      // 4. Final state: [2, 3, 4]
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should rollback optimistic update on error', async () => {
-      // 1. Initial state: [1, 2, 3]
-      // 2. Optimistic update: immediately show [2, 3, 4]
-      // 3. Server error: 403 Forbidden
-      // 4. Rollback: restore [1, 2, 3]
-
-      expect(true).toBe(true) // Placeholder
+      const finalList = await m2mListHandler(verifyContext as any)
+      expect(finalList.ids).toHaveLength(3)
+      expect(finalList.ids).toContain(tags[1].id)
+      expect(finalList.ids).toContain(tags[2].id)
+      expect(finalList.ids).toContain(tags[3].id)
     })
   })
 
-  describe('Permission Enforcement', () => {
-    it('should enforce left side (article) permissions', async () => {
-      // User without update permission on articles
-      // POST /api/articles/1/relations/categories
-      // Expected: 403 Forbidden
+  describe('Add/Remove Operations', () => {
+    it('should incrementally add new relations', async () => {
+      const postId = testData.posts[0].id
 
-      expect(true).toBe(true) // Placeholder
+      const addContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'add',
+        params: { id: postId, relation: 'tags' },
+        event: { method: 'POST' },
+        validated: { body: { ids: [tags[2].id] } }
+      })
+
+      const addResult = await m2mAddHandler(addContext as any)
+      expect(addResult.added).toBe(1)
+      expect(addResult.total).toBe(3)
+
+      const listContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'list',
+        params: { id: postId, relation: 'tags' },
+        validated: { query: {} }
+      })
+      const list = await m2mListHandler(listContext as any)
+      expect(list.ids).toContain(tags[2].id)
     })
 
-    it('should enforce right side (category) permissions', async () => {
-      // User can update articles but not categories
-      // POST /api/articles/1/relations/categories (with requireUpdateOnRelated)
-      // Expected: 403 Forbidden
+    it('should remove existing relations', async () => {
+      const postId = testData.posts[0].id
 
-      expect(true).toBe(true) // Placeholder
-    })
+      const removeContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'remove',
+        params: { id: postId, relation: 'tags' },
+        event: { method: 'DELETE' },
+        validated: { body: { ids: [tags[0].id] } }
+      })
 
-    it('should execute custom M2M permission checks', async () => {
-      // Custom check: only article author can manage relations
-      // POST /api/articles/1/relations/categories (not the author)
-      // Expected: 403 Forbidden with custom message
+      const removeResult = await m2mRemoveHandler(removeContext as any)
+      expect(removeResult.removed).toBe(1)
+      expect(removeResult.total).toBe(1)
 
-      expect(true).toBe(true) // Placeholder
-    })
-  })
-
-  describe('Batch Operations', () => {
-    it('should sync multiple relations atomically', async () => {
-      // POST /api/articles/1/relations/batch
-      // Body: {
-      //   relations: {
-      //     categories: { ids: [1, 2] },
-      //     tags: { ids: [5, 6, 7] }
-      //   }
-      // }
-      // Expected: All relations updated in single transaction
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should rollback all relations on error', async () => {
-      // POST /api/articles/1/relations/batch
-      // One relation fails due to permission error
-      // Expected: All relations rolled back, no partial updates
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should handle 500+ relations efficiently', async () => {
-      // POST /api/articles/1/relations/categories
-      // Body: { ids: [1, 2, 3, ..., 600] }
-      // Expected: Chunked processing, <10 queries total
-
-      expect(true).toBe(true) // Placeholder
-    })
-  })
-
-  describe('Cache Invalidation', () => {
-    it('should invalidate relation query cache on sync', async () => {
-      // 1. Query: GET /api/articles/1/relations/categories (cached)
-      // 2. Sync: POST /api/articles/1/relations/categories
-      // 3. Query again: Should fetch fresh data, not cached
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should invalidate main resource cache on M2M change', async () => {
-      // 1. Query: GET /api/articles/1 (cached)
-      // 2. Sync: POST /api/articles/1/relations/categories
-      // 3. Query: GET /api/articles/1 (should refetch)
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should invalidate related resource cache', async () => {
-      // 1. Query: GET /api/categories (cached)
-      // 2. Sync: POST /api/articles/1/relations/categories
-      // 3. Query: GET /api/categories (should refetch)
-
-      expect(true).toBe(true) // Placeholder
+      const listContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'list',
+        params: { id: postId, relation: 'tags' },
+        validated: { query: {} }
+      })
+      const list = await m2mListHandler(listContext as any)
+      expect(list.ids).not.toContain(tags[0].id)
     })
   })
 
-  describe('Metadata Handling', () => {
-    it('should store metadata in junction table', async () => {
-      // POST /api/articles/1/relations/categories
-      // Body: {
-      //   ids: [1, 2],
-      //   metadata: [{ sortOrder: 1 }, { sortOrder: 2 }]
-      // }
-      // Expected: Metadata stored in junction table
+  describe('List Operations with options', () => {
+    it('should include full records if requested', async () => {
+      const postId = testData.posts[0].id
 
-      expect(true).toBe(true) // Placeholder
-    })
+      const listContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'list',
+        params: { id: postId, relation: 'tags' },
+        validated: { query: { includeRecords: true } }
+      })
 
-    it('should retrieve metadata with includeMetadata flag', async () => {
-      // GET /api/articles/1/relations/categories?includeMetadata=true
-      // Expected: {
-      //   ids: [1, 2],
-      //   metadata: [{ sortOrder: 1 }, { sortOrder: 2 }]
-      // }
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should validate metadata against schema', async () => {
-      // POST /api/articles/1/relations/categories
-      // Body: {
-      //   ids: [1],
-      //   metadata: [{ invalidColumn: 'value' }]
-      // }
-      // Expected: 400 Bad Request with validation error
-
-      expect(true).toBe(true) // Placeholder
-    })
-  })
-
-  describe('Hook Execution', () => {
-    it('should execute beforeM2MSync hook', async () => {
-      // Configure hook to modify IDs before sync
-      // POST /api/articles/1/relations/categories
-      // Expected: Hook runs before database operation
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should execute afterM2MSync hook', async () => {
-      // Configure hook to send notification after sync
-      // POST /api/articles/1/relations/categories
-      // Expected: Hook runs after successful sync
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should not execute after hook on error', async () => {
-      // Configure after hook
-      // POST /api/articles/1/relations/categories (will fail)
-      // Expected: After hook NOT called on error
-
-      expect(true).toBe(true) // Placeholder
+      const listResult = await m2mListHandler(listContext as any)
+      expect(listResult.records).toBeDefined()
+      expect(listResult.records).toHaveLength(2)
+      expect(listResult.records![0]).toHaveProperty('name')
+      expect(listResult.records![0].name).toMatch(/Vue|Nuxt/)
     })
   })
 
   describe('Error Handling', () => {
-    it('should return 404 if left resource not found', async () => {
-      // POST /api/articles/999999/relations/categories
-      // Expected: 404 Not Found
+    it('should return 404 if left record does not exist', async () => {
+      const listContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'list',
+        params: { id: 9999, relation: 'tags' },
+        validated: { query: {} }
+      })
 
-      expect(true).toBe(true) // Placeholder
+      await expect(m2mListHandler(listContext as any)).rejects.toThrow(/not found/)
     })
 
-    it('should return 404 if related resources not found', async () => {
-      // POST /api/articles/1/relations/categories
-      // Body: { ids: [999, 1000] }
-      // Expected: 404 with missing IDs
+    it('should return 404 if right records do not exist on sync', async () => {
+      const postId = testData.posts[0].id
 
-      expect(true).toBe(true) // Placeholder
-    })
+      const syncContext = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'sync',
+        params: { id: postId, relation: 'tags' },
+        event: { method: 'POST' },
+        validated: { body: { ids: [9999] } }
+      })
 
-    it('should return 400 for invalid request body', async () => {
-      // POST /api/articles/1/relations/categories
-      // Body: { invalidField: true }
-      // Expected: 400 Bad Request
-
-      expect(true).toBe(true) // Placeholder
-    })
-
-    it('should return 400 for batch size exceeded', async () => {
-      // POST /api/articles/1/relations/categories
-      // Body: { ids: [1, 2, ..., 600] } (>500 max)
-      // Expected: 400 Batch size exceeds maximum
-
-      expect(true).toBe(true) // Placeholder
-    })
-  })
-
-  describe('Multi-Tenancy', () => {
-    it('should scope M2M operations by tenant', async () => {
-      // Tenant A: POST /api/articles/1/relations/categories
-      // Tenant B: Should not see Tenant A's relations
-      // Expected: Tenant isolation maintained
-
-      expect(true).toBe(true) // Placeholder
+      await expect(m2mSyncHandler(syncContext as any)).rejects.toThrow(/not found/)
     })
   })
 })
-
-describe('M2M Performance Benchmarks', () => {
-  it('should demonstrate 97% query reduction for 50 relations', () => {
-    // Old approach: 50 DELETE + 50 INSERT = 100 queries
-    // New approach: 1 SELECT + 1 DELETE + 1 INSERT = 3 queries
-    // Reduction: (100 - 3) / 100 = 97%
-
-    const oldQueries = 100
-    const newQueries = 3
-    const reduction = ((oldQueries - newQueries) / oldQueries) * 100
-
-    expect(reduction).toBeGreaterThanOrEqual(97)
-  })
-
-  it('should demonstrate 99% query reduction for 500 relations', () => {
-    // Old approach: 500 DELETE + 500 INSERT = 1000 queries
-    // New approach: 1 SELECT + 2 DELETE + 2 INSERT = 5 queries (with chunking)
-    // Reduction: (1000 - 5) / 1000 = 99.5%
-
-    const oldQueries = 1000
-    const newQueries = 5
-    const reduction = ((oldQueries - newQueries) / oldQueries) * 100
-
-    expect(reduction).toBeGreaterThanOrEqual(99)
-  })
-})
-
-/**
- * Example of how to set up and run these tests:
- *
- * ```typescript
- * import { setup, $fetch, createPage } from '@nuxt/test-utils'
- * import { beforeAll, afterAll } from 'vitest'
- *
- * describe('M2M E2E', async () => {
- *   await setup({
- *     rootDir: fileURLToPath(new URL('../playground', import.meta.url)),
- *   })
- *
- *   it('should sync relations', async () => {
- *     const response = await $fetch('/api/articles/1/relations/categories', {
- *       method: 'POST',
- *       body: { ids: [1, 2, 3] }
- *     })
- *
- *     expect(response.success).toBe(true)
- *     expect(response.total).toBe(3)
- *   })
- * })
- * ```
- */

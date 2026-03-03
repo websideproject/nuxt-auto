@@ -24,6 +24,8 @@ export function createMockH3Event(overrides: any = {}): Partial<H3Event> {
   } as any
 }
 
+export const createMockEvent = createMockH3Event
+
 /**
  * Create mock handler context
  */
@@ -34,8 +36,17 @@ export function createMockContext(overrides: any = {}): Partial<HandlerContext> 
     ? { ...defaultEvent, ...overrides.event, node: { ...defaultEvent.node, ...(overrides.event.node || {}) } }
     : defaultEvent
 
+  const db = overrides.db || null as any;
+  const adapter = overrides.adapter || (db ? {
+    atomic: async (cb: any) => {
+      if (db.transaction) return db.transaction((tx: any) => cb({ tx }));
+      return cb({ tx: db });
+    }
+  } : null as any);
+
   return {
-    db: null as any,
+    db,
+    adapter,
     schema: {} as any,
     user: null,
     permissions: [],
@@ -76,7 +87,16 @@ function getRolePermissions(role: string): string[] {
  * Mock database with spy functions
  */
 export function createMockDb() {
-  return {
+  const mockResult: any[] = []
+  
+  const mockQuery = {
+    where: vi.fn().mockReturnThis(),
+    groupBy: vi.fn().mockReturnThis(),
+    having: vi.fn().mockReturnThis(),
+    then: vi.fn((resolve) => resolve(mockResult))
+  }
+
+  const db = {
     query: {
       posts: {
         findMany: vi.fn(),
@@ -101,6 +121,15 @@ export function createMockDb() {
     })),
     delete: vi.fn(() => ({
       where: vi.fn()
-    }))
+    })),
+    select: vi.fn(() => ({
+      from: vi.fn(() => mockQuery)
+    })),
+    mockQueryResult: (result: any[]) => {
+      mockResult.splice(0, mockResult.length, ...result)
+    },
+    where: mockQuery.where
   }
+
+  return db
 }

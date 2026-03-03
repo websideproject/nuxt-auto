@@ -29,49 +29,55 @@ describe('nuxt-auto-api module', async () => {
   // ─── CRUD operations ──────────────────────────────────────────────────────
 
   it('creates a post via POST /api/posts', async () => {
-    const post = await $fetch('/api/posts', {
+    const res: any = await $fetch('/api/posts', {
       method: 'POST',
       body: { title: 'Hello World', content: 'Test content', userId: 1 },
       responseType: 'json',
     })
+    const post = res.data
     expect(post.id).toBeDefined()
     expect(post.title).toBe('Hello World')
   })
 
   it('reads a post via GET /api/posts/:id', async () => {
     // Create first
-    const created: any = await $fetch('/api/posts', {
+    const createdRes: any = await $fetch('/api/posts', {
       method: 'POST',
       body: { title: 'Read me', userId: 1 },
       responseType: 'json',
     })
+    const created = createdRes.data
 
-    const post: any = await $fetch(`/api/posts/${created.id}`, { responseType: 'json' })
+    const res: any = await $fetch(`/api/posts/${created.id}`, { responseType: 'json' })
+    const post = res.data
     expect(post.id).toBe(created.id)
     expect(post.title).toBe('Read me')
   })
 
   it('updates a post via PATCH /api/posts/:id', async () => {
-    const created: any = await $fetch('/api/posts', {
+    const createdRes: any = await $fetch('/api/posts', {
       method: 'POST',
       body: { title: 'Original', userId: 1 },
       responseType: 'json',
     })
+    const created = createdRes.data
 
-    const updated: any = await $fetch(`/api/posts/${created.id}`, {
+    const res: any = await $fetch(`/api/posts/${created.id}`, {
       method: 'PATCH',
       body: { title: 'Updated' },
       responseType: 'json',
     })
+    const updated = res.data
     expect(updated.title).toBe('Updated')
   })
 
   it('deletes a post via DELETE /api/posts/:id', async () => {
-    const created: any = await $fetch('/api/posts', {
+    const createdRes: any = await $fetch('/api/posts', {
       method: 'POST',
       body: { title: 'Delete me', userId: 1 },
       responseType: 'json',
     })
+    const created = createdRes.data
 
     await $fetch(`/api/posts/${created.id}`, { method: 'DELETE' })
 
@@ -96,7 +102,8 @@ describe('nuxt-auto-api module', async () => {
       responseType: 'json',
     })
 
-    const res: any = await $fetch('/api/posts?filter[published]=true', { responseType: 'json' })
+    const res: any = await $fetch('/api/posts?filter={"published":true}', { responseType: 'json' })
+    expect(res.data.length).toBeGreaterThan(0)
     expect(res.data.every((p: any) => p.published === true)).toBe(true)
   })
 
@@ -105,8 +112,8 @@ describe('nuxt-auto-api module', async () => {
   it('serves GET /api/posts/permissions', async () => {
     const res: any = await $fetch('/api/posts/permissions', { responseType: 'json' })
     expect(res).toMatchObject({
-      read: expect.any(Boolean),
-      create: expect.any(Boolean),
+      canRead: expect.any(Boolean),
+      canCreate: expect.any(Boolean),
     })
   })
 })

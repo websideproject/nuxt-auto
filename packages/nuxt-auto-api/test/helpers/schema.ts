@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
 
 /**
@@ -43,6 +43,22 @@ export const comments = sqliteTable('comments', {
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 })
 
+export const tags = sqliteTable('tags', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+})
+
+export const postTags = sqliteTable('post_tags', {
+  postId: integer('post_id')
+    .notNull()
+    .references(() => posts.id, { onDelete: 'cascade' }),
+  tagId: integer('tag_id')
+    .notNull()
+    .references(() => tags.id, { onDelete: 'cascade' }),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.postId, t.tagId] })
+}))
+
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
   comments: many(comments),
@@ -54,6 +70,7 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
     references: [users.id],
   }),
   comments: many(comments),
+  postTags: many(postTags),
 }))
 
 export const commentsRelations = relations(comments, ({ one }) => ({
@@ -67,6 +84,21 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   }),
 }))
 
+export const tagsRelations = relations(tags, ({ many }) => ({
+  postTags: many(postTags),
+}))
+
+export const postTagsRelations = relations(postTags, ({ one }) => ({
+  post: one(posts, {
+    fields: [postTags.postId],
+    references: [posts.id],
+  }),
+  tag: one(tags, {
+    fields: [postTags.tagId],
+    references: [tags.id],
+  }),
+}))
+
 /**
  * Convenience bundle used by tests that import `{ schema }`.
  * Includes relations so Drizzle relational queries (db.query.*) work correctly.
@@ -75,7 +107,11 @@ export const schema = {
   users,
   posts,
   comments,
+  tags,
+  postTags,
   usersRelations,
   postsRelations,
   commentsRelations,
+  tagsRelations,
+  postTagsRelations,
 }

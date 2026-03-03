@@ -6,8 +6,3 @@ import { defineValidationSchema as defineSchema } from '../validation/schemaGene
  * This is a convenience export for users
  */
 export { defineSchema as defineValidationSchema }
-
-/**
- * Re-export zod for convenience
- */
-export { z }

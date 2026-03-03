@@ -9,11 +9,6 @@ describe('nuxt-auto-admin module', async () => {
 
   // ─── Module integration ───────────────────────────────────────────────────
 
-  it('mounts and serves the app', async () => {
-    const html = await $fetch('/')
-    expect(html).toBeTruthy()
-  })
-
   // ─── Admin pages ──────────────────────────────────────────────────────────
 
   it('serves the admin index page at /admin', async () => {

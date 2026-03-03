@@ -33,7 +33,7 @@ export async function m2mRemoveHandler(context: HandlerContext): Promise<M2MOper
   }
 
   // Parse and validate request body
-  const body = await readBody(event)
+  const body = context.validated?.body || await readBody(event)
   const validation = validateM2MRemoveRequest(body)
 
   if (!validation.valid) {

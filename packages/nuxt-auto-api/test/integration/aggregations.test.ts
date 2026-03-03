@@ -1,7 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createMockEvent, createMockDb } from '../helpers/mocks'
 import { aggregateHandler } from '../../src/runtime/server/handlers/aggregate'
 import type { HandlerContext } from '../../src/types'
+
+vi.stubGlobal('useRuntimeConfig', () => ({
+  public: {},
+  autoApi: {}
+}))
 
 describe('Aggregations', () => {
   let mockDb: ReturnType<typeof createMockDb>

@@ -45,7 +45,7 @@ export async function createContextFromRegistry(
     // For routes without :id, resource is last part
     const hasId = getRouterParam(event, 'id') !== undefined
     const lastPart = pathParts[pathParts.length - 1]
-    const hasOperationSuffix = lastPart === 'bulk' || lastPart === 'aggregate'
+    const hasOperationSuffix = lastPart === 'bulk' || lastPart === 'aggregate' || lastPart === 'permissions'
 
     resourceName = hasId || hasOperationSuffix
       ? pathParts[pathParts.length - 2]
