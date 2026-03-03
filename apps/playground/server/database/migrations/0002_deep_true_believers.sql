@@ -1,0 +1,1 @@
+ALTER TABLE `posts` ADD `deleted_at` integer;

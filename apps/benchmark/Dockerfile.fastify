@@ -1,0 +1,26 @@
+FROM node:20-slim
+
+WORKDIR /workspace/benchmark/fastify-app
+
+# Copy package.json
+COPY benchmark/fastify-app/package.json .
+
+# Install dependencies
+RUN npm install
+
+# Copy source
+COPY benchmark/fastify-app .
+
+# Build
+RUN npm run build
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables
+ENV HOST=0.0.0.0
+ENV PORT=3000
+ENV NODE_ENV=production
+
+# Run migrations (create .data dir first), seed and start
+CMD mkdir -p .data && npx drizzle-kit push && npx tsx src/database/seed.ts && npm start

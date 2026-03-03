@@ -1,0 +1,42 @@
+FROM oven/bun:1
+
+WORKDIR /workspace
+
+# Install build dependencies for better-sqlite3
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+# Copy the package
+COPY packages/nuxt-auto-api ./packages/nuxt-auto-api
+
+# Remove better-sqlite3 from package dependencies to avoid build
+WORKDIR /workspace/packages/nuxt-auto-api
+RUN sed -i '/better-sqlite3/d' package.json
+RUN bun install
+RUN bun run prepack
+
+# Copy the app
+COPY benchmark/app /workspace/benchmark/app
+
+WORKDIR /workspace/benchmark/app
+
+# Remove better-sqlite3 and swap db.ts
+RUN sed -i '/better-sqlite3/d' package.json
+RUN cp server/database/db.bun.ts server/database/db.ts
+
+# Install dependencies
+RUN bun install
+
+# Build the application
+ENV NITRO_PRESET=bun
+RUN bun run build
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables
+ENV HOST=0.0.0.0
+ENV PORT=3000
+ENV NODE_ENV=production
+
+# Run migrations, seed and then start the server
+CMD mkdir -p .data && bun run ./server/database/init-bun.ts && bun run ./server/database/seed.ts && bun run .output/server/index.mjs

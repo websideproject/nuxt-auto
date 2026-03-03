@@ -9,11 +9,36 @@
     "generate": "nuxi generate",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:drop": "drizzle-kit drop",
+    "db:seed": "node --import tsx server/database/seed.ts"
   },
   "dependencies": {
-    "@websideproject/nuxt-auto-api": "workspace:*",
+    "@iconify-json/lucide": "^1.2.87",
+    "@iconify-json/simple-icons": "^1.2.68",
+    "@nuxt/content": "3.11.0",
+    "@nuxt/hints": "1.0.0-alpha.6",
+    "@nuxt/ui": "^4.4.0",
+    "@scalar/nuxt": "0.5.60",
     "@websideproject/nuxt-auto-admin": "workspace:*",
-    "nuxt": "^4.3.0"
+    "@websideproject/nuxt-auto-api": "workspace:*",
+    "better-sqlite3": "^12.6.2",
+    "drizzle-orm": "^0.45.1",
+    "drizzle-zod": "^0.8.3",
+    "nuxt": "^4.3.0",
+    "tailwindcss": "^4.1.18",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.13.0",
+    "drizzle-kit": "^0.31.8",
+    "eslint": "^9.39.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.2.4"
   }
 }

@@ -1,5 +1,10 @@
 import { defineNuxtPlugin } from '#app'
 
-export default defineNuxtPlugin((_nuxtApp) => {
-  console.log('Plugin injected by nuxt-auto-admin!')
+export default defineNuxtPlugin((nuxtApp) => {
+  // Plugin initialization
+  // Can be used for global setup, registering directives, etc.
+
+  if (process.client) {
+    console.log('[nuxt-auto-admin] Admin panel initialized')
+  }
 })

@@ -2,10 +2,32 @@
   "name": "@websideproject/nuxt-auto-api",
   "version": "0.0.3",
   "description": "Schema-driven API generation from Drizzle schema with auth and authz",
+  "homepage": "https://github.com/websideproject/nuxt-auto",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/websideproject/nuxt-auto.git"
+    "url": "git+https://github.com/websideproject/nuxt-auto.git",
+    "directory": "packages/nuxt-auto-api"
   },
+  "bugs": {
+    "url": "https://github.com/websideproject/nuxt-auto/issues"
+  },
+  "keywords": [
+    "nuxt",
+    "nuxt-module",
+    "api",
+    "drizzle",
+    "drizzle-orm",
+    "schema-driven",
+    "authentication",
+    "authorization",
+    "rest-api",
+    "vue"
+  ],
+  "author": {
+    "name": "Benjamin Gervan",
+    "url": "https://github.com/bgervan"
+  },
+  "funding": "https://github.com/sponsors/bgervan",
   "license": "MIT",
   "type": "module",
   "publishConfig": {
@@ -15,6 +37,18 @@
     ".": {
       "types": "./dist/types.d.mts",
       "import": "./dist/module.mjs"
+    },
+    "./utils": {
+      "types": "./dist/runtime/server/utils/index.d.ts",
+      "import": "./dist/runtime/server/utils/index.js"
+    },
+    "./plugins": {
+      "types": "./dist/runtime/plugins/index.d.ts",
+      "import": "./dist/runtime/plugins/index.js"
+    },
+    "./database": {
+      "types": "./dist/runtime/server/database/index.d.ts",
+      "import": "./dist/runtime/server/database/index.js"
     }
   },
   "main": "./dist/module.mjs",
@@ -31,20 +65,34 @@
   "scripts": {
     "build": "nuxt-module-build build",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare",
+    "release": "bun run lint && bun run test && bun run build && changelogen --release && npm publish && git push --follow-tags",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest watch",
+    "test:unit": "vitest run test/unit",
+    "test:integration": "vitest run test/integration",
+    "test:e2e": "vitest run test/e2e",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@nuxt/kit": "^4.3.0"
+    "@nuxt/kit": "^4.3.0",
+    "@tanstack/vue-query": "^5.0.0",
+    "drizzle-orm": "^0.45.1",
+    "drizzle-zod": "^0.8.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",
     "@nuxt/module-builder": "^1.0.2",
     "@nuxt/schema": "^4.3.0",
     "@nuxt/test-utils": "^3.23.0",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "latest",
+    "better-sqlite3": "^11.0.0",
+    "changelogen": "^0.6.2",
+    "drizzle-kit": "^0.31.8",
+    "h3": "^1.15.5",
     "typescript": "^5.9.3",
     "nuxt": "^4.3.0"
   }
