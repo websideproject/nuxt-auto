@@ -1,6 +1,6 @@
 {
   "name": "@websideproject/nuxt-auto-api",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "description": "Schema-driven API generation from Drizzle schema with auth and authz",
   "homepage": "https://github.com/websideproject/nuxt-auto",
   "repository": {

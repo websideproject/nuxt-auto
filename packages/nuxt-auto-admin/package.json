@@ -1,6 +1,6 @@
 {
   "name": "@websideproject/nuxt-auto-admin",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "description": "Auto-generated admin panel from Drizzle schema",
   "homepage": "https://github.com/websideproject/nuxt-auto",
   "repository": {
