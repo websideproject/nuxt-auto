@@ -82,6 +82,19 @@ bun add -D @websideproject/nuxt-auto-api @websideproject/nuxt-auto-admin
 
 📖 **[Full Documentation →](https://github.com/websideproject/nuxt-auto)**
 
+## 🤖 Claude Code Skills
+
+If you use [Claude Code](https://claude.ai/code), install the skill plugin to give Claude accurate knowledge of both `nuxt-auto-api` and `nuxt-auto-admin` APIs.
+
+```bash
+/plugin marketplace add websideproject/nuxt-auto
+/plugin install nuxt-auto-skills
+```
+
+The plugin provides two skills:
+- **`nuxt-auto-api`** — resource registration, CRUD composables, authorization, hooks, bulk ops, M2M, aggregation, plugins, multi-tenancy, and module authoring patterns
+- **`nuxt-auto-admin`** — admin config, resource display, form field widgets, custom actions, permissions, composables, and module authoring patterns
+
 ## 🔍 PR Previews
 
 <!-- automd:file src=".github/snippets/pr-preview.md" -->

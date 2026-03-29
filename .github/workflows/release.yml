@@ -63,11 +63,54 @@ jobs:
             fi
           done
 
+      - name: Replace workspace:* with actual versions for publish
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          node -e '
+            const fs = require("fs");
+            const version = process.argv[1];
+            const dirs = ["packages/nuxt-auto-api", "packages/nuxt-auto-admin"];
+            for (const dir of dirs) {
+              const p = dir + "/package.json";
+              const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
+              for (const section of ["dependencies", "peerDependencies", "devDependencies"]) {
+                if (!pkg[section]) continue;
+                for (const [key, val] of Object.entries(pkg[section])) {
+                  if (val === "workspace:*") pkg[section][key] = "^" + version;
+                }
+              }
+              fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + "\n");
+            }
+          ' "$VERSION"
+
       - name: Publish nuxt-auto-api to npm
         run: bunx npm publish --workspace=@websideproject/nuxt-auto-api --provenance --access public
 
       - name: Publish nuxt-auto-admin to npm
         run: bunx npm publish --workspace=@websideproject/nuxt-auto-admin --provenance --access public
+
+      - name: Restore workspace:* after publish
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          node -e '
+            const fs = require("fs");
+            const version = process.argv[1];
+            const dirs = ["packages/nuxt-auto-api", "packages/nuxt-auto-admin"];
+            for (const dir of dirs) {
+              const p = dir + "/package.json";
+              const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
+              for (const section of ["dependencies", "peerDependencies", "devDependencies"]) {
+                if (!pkg[section]) continue;
+                const workspacePkgs = ["@websideproject/nuxt-auto-api", "@websideproject/nuxt-auto-admin"];
+                for (const [key, val] of Object.entries(pkg[section])) {
+                  if (workspacePkgs.includes(key) && val === "^" + version) {
+                    pkg[section][key] = "workspace:*";
+                  }
+                }
+              }
+              fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + "\n");
+            }
+          ' "$VERSION"
 
       - name: Commit version updates
         run: |
