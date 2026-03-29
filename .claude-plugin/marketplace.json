@@ -1,0 +1,21 @@
+{
+  "name": "nuxt-auto-skills",
+  "owner": {
+    "name": "websideproject"
+  },
+  "metadata": {
+    "description": "Claude Code skills for @websideproject/nuxt-auto-api and @websideproject/nuxt-auto-admin — schema-driven REST API and admin panel generation for Nuxt 4",
+    "version": "0.0.7"
+  },
+  "plugins": [
+    {
+      "name": "nuxt-auto-skills",
+      "description": "Skills for nuxt-auto-api and nuxt-auto-admin: resource registration, CRUD composables, authorization, hooks, M2M, aggregation, admin config, widgets, and module authoring",
+      "source": "./",
+      "skills": [
+        "./.claude/skills/nuxt-auto-api",
+        "./.claude/skills/nuxt-auto-admin"
+      ]
+    }
+  ]
+}
