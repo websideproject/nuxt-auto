@@ -10,7 +10,7 @@ export function formatFieldLabel(fieldName: string): string {
   return fieldName
     .replace(/_/g, ' ')
     .replace(/([A-Z])/g, ' $1')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\b\w/g, char => char.toUpperCase())
     .trim()
 }
 
@@ -45,35 +45,35 @@ export function mapColumnTypeToWidget(column: any): string {
 
   // Numeric fields
   if (
-    lowerType.includes('integer') ||
-    lowerType.includes('number') ||
-    lowerType.includes('decimal') ||
-    lowerType.includes('float') ||
-    lowerType.includes('real') ||
-    lowerType.includes('numeric')
+    lowerType.includes('integer')
+    || lowerType.includes('number')
+    || lowerType.includes('decimal')
+    || lowerType.includes('float')
+    || lowerType.includes('real')
+    || lowerType.includes('numeric')
   ) {
     return 'NumberInput'
   }
 
   // Date/time fields
   if (
-    lowerType.includes('timestamp') ||
-    lowerType.includes('datetime') ||
-    lowerType.includes('date') ||
-    name.toLowerCase().endsWith('at') ||
-    name.toLowerCase().endsWith('date')
+    lowerType.includes('timestamp')
+    || lowerType.includes('datetime')
+    || lowerType.includes('date')
+    || name.toLowerCase().endsWith('at')
+    || name.toLowerCase().endsWith('date')
   ) {
     return 'DateTimePicker'
   }
 
   // Text area for longer text fields
   if (
-    lowerType === 'text' ||
-    name.toLowerCase().includes('description') ||
-    name.toLowerCase().includes('content') ||
-    name.toLowerCase().includes('body') ||
-    name.toLowerCase().includes('bio') ||
-    name.toLowerCase().includes('notes')
+    lowerType === 'text'
+    || name.toLowerCase().includes('description')
+    || name.toLowerCase().includes('content')
+    || name.toLowerCase().includes('body')
+    || name.toLowerCase().includes('bio')
+    || name.toLowerCase().includes('notes')
   ) {
     return 'TextareaInput'
   }

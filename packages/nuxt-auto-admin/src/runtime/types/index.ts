@@ -275,32 +275,32 @@ export interface FieldConfig {
 /**
  * Available widget types
  */
-export type WidgetType =
-  | 'TextInput'
-  | 'NumberInput'
-  | 'TextareaInput'
-  | 'CheckboxInput'
-  | 'SelectInput'
-  | 'DateTimePicker'
-  | 'PasswordInput'
-  | 'RelationSelect'
-  | 'MultiRelationSelect'
-  | 'FileUpload'
-  | 'ImageUpload'
-  | 'RichTextEditor'
-  | 'MarkdownEditor'
-  | 'CodeEditor'
-  | 'ColorPicker'
-  | 'JsonEditor'
-  | 'TagsInput'
-  | 'SlugInput'
+export type WidgetType
+  = | 'TextInput'
+    | 'NumberInput'
+    | 'TextareaInput'
+    | 'CheckboxInput'
+    | 'SelectInput'
+    | 'DateTimePicker'
+    | 'PasswordInput'
+    | 'RelationSelect'
+    | 'MultiRelationSelect'
+    | 'FileUpload'
+    | 'ImageUpload'
+    | 'RichTextEditor'
+    | 'MarkdownEditor'
+    | 'CodeEditor'
+    | 'ColorPicker'
+    | 'JsonEditor'
+    | 'TagsInput'
+    | 'SlugInput'
 
 /**
  * Widget-specific options
  */
 export interface WidgetOptions {
   // SelectInput
-  options?: Array<{ label: string; value: any }>
+  options?: Array<{ label: string, value: any }>
   enumValues?: string[]
 
   // RelationSelect

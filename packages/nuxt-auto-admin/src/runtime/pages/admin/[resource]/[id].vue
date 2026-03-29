@@ -42,12 +42,20 @@
     </div>
 
     <!-- Permission Denied -->
-    <UCard v-if="!isLoadingPermissions && !canRead" class="border-gray-200/60 dark:border-gray-800/60">
+    <UCard
+      v-if="!isLoadingPermissions && !canRead"
+      class="border-gray-200/60 dark:border-gray-800/60"
+    >
       <div class="p-6">
         <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <UIcon name="i-heroicons-exclamation-circle" class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+          <UIcon
+            name="i-heroicons-exclamation-circle"
+            class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+          />
           <div>
-            <h3 class="font-semibold text-red-900 dark:text-red-200">Permission Denied</h3>
+            <h3 class="font-semibold text-red-900 dark:text-red-200">
+              Permission Denied
+            </h3>
             <p class="text-sm text-red-700 dark:text-red-300 mt-1">
               {{ getPermissionDeniedMessage('read') }}
             </p>
@@ -57,27 +65,53 @@
     </UCard>
 
     <!-- Content -->
-    <UCard v-else class="border-gray-200/60 dark:border-gray-800/60">
+    <UCard
+      v-else
+      class="border-gray-200/60 dark:border-gray-800/60"
+    >
       <!-- Loading state -->
-      <div v-if="isLoading || isLoadingPermissions" class="flex flex-col items-center justify-center p-12">
-        <UIcon name="i-heroicons-arrow-path" class="animate-spin h-8 w-8 text-primary-500 mb-4" />
+      <div
+        v-if="isLoading || isLoadingPermissions"
+        class="flex flex-col items-center justify-center p-12"
+      >
+        <UIcon
+          name="i-heroicons-arrow-path"
+          class="animate-spin h-8 w-8 text-primary-500 mb-4"
+        />
         <span class="text-gray-600 dark:text-gray-400">Loading...</span>
       </div>
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-6">
+      <div
+        v-else-if="error"
+        class="p-6"
+      >
         <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <UIcon name="i-heroicons-exclamation-circle" class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+          <UIcon
+            name="i-heroicons-exclamation-circle"
+            class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+          />
           <div>
-            <h3 class="font-semibold text-red-900 dark:text-red-200">Error Loading Data</h3>
-            <p class="text-sm text-red-700 dark:text-red-300 mt-1">{{ error }}</p>
+            <h3 class="font-semibold text-red-900 dark:text-red-200">
+              Error Loading Data
+            </h3>
+            <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+              {{ error }}
+            </p>
           </div>
         </div>
       </div>
 
       <!-- Data display -->
-      <div v-else-if="data" class="divide-y divide-gray-200/60 dark:divide-gray-800/60">
-        <div v-for="column in visibleColumns" :key="column.name" class="py-3 px-6">
+      <div
+        v-else-if="data"
+        class="divide-y divide-gray-200/60 dark:divide-gray-800/60"
+      >
+        <div
+          v-for="column in visibleColumns"
+          :key="column.name"
+          class="py-3 px-6"
+        >
           <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             {{ formatFieldLabel(column.name) }}
           </dt>
@@ -88,9 +122,17 @@
       </div>
 
       <!-- Empty state -->
-      <div v-else class="p-12 text-center">
-        <UIcon name="i-heroicons-inbox" class="h-10 w-10 text-gray-400 mx-auto mb-2" />
-        <p class="text-sm text-gray-500 dark:text-gray-400">No data available</p>
+      <div
+        v-else
+        class="p-12 text-center"
+      >
+        <UIcon
+          name="i-heroicons-inbox"
+          class="h-10 w-10 text-gray-400 mx-auto mb-2"
+        />
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          No data available
+        </p>
       </div>
     </UCard>
 
@@ -100,10 +142,15 @@
         <div class="p-6">
           <div class="flex items-start gap-4">
             <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-              <UIcon name="i-heroicons-exclamation-triangle" class="h-6 w-6 text-red-600 dark:text-red-400" />
+              <UIcon
+                name="i-heroicons-exclamation-triangle"
+                class="h-6 w-6 text-red-600 dark:text-red-400"
+              />
             </div>
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Confirm Delete</h3>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Confirm Delete
+              </h3>
               <p class="text-gray-600 dark:text-gray-400">
                 Are you sure you want to delete this {{ resourceName }}? This action cannot be undone.
               </p>
@@ -114,10 +161,23 @@
 
       <template #footer="{ close }">
         <div class="flex justify-end gap-3 p-4 bg-gray-50 dark:bg-gray-800/50">
-          <UButton variant="ghost" @click="close">Cancel</UButton>
-          <UButton color="error" :loading="isDeleting" @click="confirmDelete">
-            <template v-if="!isDeleting">Delete</template>
-            <template v-else>Deleting...</template>
+          <UButton
+            variant="ghost"
+            @click="close"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            color="error"
+            :loading="isDeleting"
+            @click="confirmDelete"
+          >
+            <template v-if="!isDeleting">
+              Delete
+            </template>
+            <template v-else>
+              Deleting...
+            </template>
           </UButton>
         </div>
       </template>
@@ -146,7 +206,7 @@ const {
   canUpdate,
   canDelete,
   isLoading: isLoadingPermissions,
-  getPermissionDeniedMessage
+  getPermissionDeniedMessage,
 } = useAdminPermissions(resourceName.value)
 const { goToList, goToEdit, handleDelete, isDeleting } = useAdminActions(resourceName.value)
 
@@ -187,7 +247,8 @@ async function confirmDelete() {
   try {
     await handleDelete(id.value, { redirect: true })
     deleteModalOpen.value = false
-  } catch (error) {
+  }
+  catch (error) {
     // Error is handled by useAdminActions
   }
 }

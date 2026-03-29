@@ -34,7 +34,7 @@ const selectOptions = computed(() => {
 
   // If enum values are provided
   if (props.options?.enumValues) {
-    return props.options.enumValues.map((value) => ({
+    return props.options.enumValues.map(value => ({
       label: value,
       value: value,
     }))

@@ -14,9 +14,9 @@ export function useAdminRegistry() {
 
   // Lazy load registry on first use
   if (!registryCache && !registryPromise) {
-    registryPromise =
+    registryPromise
       // @ts-ignore - virtual module
-      import('#nuxt-auto-admin-registry')
+      = import('#nuxt-auto-admin-registry')
         .then((mod) => {
           registryCache = mod.registry
           registry.value = mod.registry
@@ -27,7 +27,8 @@ export function useAdminRegistry() {
           console.error('[nuxt-auto-admin] Failed to load registry:', err)
           isLoading.value = false
         })
-  } else if (registryPromise && !registryCache) {
+  }
+  else if (registryPromise && !registryCache) {
     // Wait for existing promise
     registryPromise.then(() => {
       registry.value = registryCache || {}

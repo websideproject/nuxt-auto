@@ -89,7 +89,7 @@ describe('mapColumnTypeToWidget', () => {
 
   it('foreign key check takes precedence over enum', () => {
     expect(
-      mapColumnTypeToWidget(col({ foreignKey: { table: 'roles', column: 'id' } as any, enumValues: ['a'] }))
+      mapColumnTypeToWidget(col({ foreignKey: { table: 'roles', column: 'id' } as any, enumValues: ['a'] })),
     ).toBe('RelationSelect')
   })
 })

@@ -1,5 +1,8 @@
 <template>
-  <UForm :state="formData" @submit="handleSubmit">
+  <UForm
+    :state="formData"
+    @submit="handleSubmit"
+  >
     <div class="w-full p-6">
       <!-- Form Fields -->
       <div class="space-y-5 max-w-3xl">
@@ -78,13 +81,16 @@ watch(
     props.fields.forEach((field) => {
       if (props.initialData && field.name in props.initialData) {
         data[field.name] = props.initialData[field.name]
-      } else {
+      }
+      else {
         // Set default values
         if (field.widget === 'CheckboxInput') {
           data[field.name] = false
-        } else if (field.widget === 'NumberInput') {
+        }
+        else if (field.widget === 'NumberInput') {
           data[field.name] = field.options?.min || 0
-        } else {
+        }
+        else {
           data[field.name] = ''
         }
       }
@@ -92,7 +98,7 @@ watch(
 
     formData.value = data
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // Filter fields based on conditions
@@ -129,12 +135,15 @@ function resetForm() {
       props.fields.forEach((field) => {
         if (props.initialData && field.name in props.initialData) {
           data[field.name] = props.initialData[field.name]
-        } else {
+        }
+        else {
           if (field.widget === 'CheckboxInput') {
             data[field.name] = false
-          } else if (field.widget === 'NumberInput') {
+          }
+          else if (field.widget === 'NumberInput') {
             data[field.name] = field.options?.min || 0
-          } else {
+          }
+          else {
             data[field.name] = ''
           }
         }
@@ -142,7 +151,7 @@ function resetForm() {
 
       formData.value = data
     },
-    { immediate: true }
+    { immediate: true },
   )
 
   errors.value = {}
@@ -179,7 +188,8 @@ async function handleSubmit() {
     }
 
     emit('submit', dataToSubmit)
-  } finally {
+  }
+  finally {
     isSubmitting.value = false
   }
 }

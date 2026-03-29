@@ -1,11 +1,20 @@
 <template>
   <div>
-    <div v-if="isLoadingResource || (mode === 'edit' && isLoadingData)" class="flex items-center justify-center p-8">
-      <UIcon name="i-heroicons-arrow-path" class="animate-spin h-6 w-6" />
+    <div
+      v-if="isLoadingResource || (mode === 'edit' && isLoadingData)"
+      class="flex items-center justify-center p-8"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="animate-spin h-6 w-6"
+      />
       <span class="ml-2">Loading...</span>
     </div>
 
-    <div v-else-if="loadError" class="p-4 bg-red-50 text-red-600 rounded">
+    <div
+      v-else-if="loadError"
+      class="p-4 bg-red-50 text-red-600 rounded"
+    >
       {{ loadError }}
     </div>
 
@@ -82,9 +91,10 @@ function handleSubmit(data: Record<string, any>) {
         onError: (error: any) => {
           console.error('Failed to update:', error)
         },
-      }
+      },
     )
-  } else {
+  }
+  else {
     createResource(data, {
       onSuccess: (result) => {
         emit('success', result)

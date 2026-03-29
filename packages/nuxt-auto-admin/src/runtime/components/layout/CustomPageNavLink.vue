@@ -9,10 +9,13 @@
         ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60'
         : isActive
           ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
-          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white',
     ]"
   >
-    <UIcon :name="page.icon" class="h-4 w-4 flex-shrink-0" />
+    <UIcon
+      :name="page.icon"
+      class="h-4 w-4 flex-shrink-0"
+    />
     <span>{{ page.label }}</span>
   </component>
 </template>
@@ -42,10 +45,12 @@ onMounted(async () => {
     try {
       // TODO: Get actual user from auth context
       hasAccess.value = await props.page.canAccess(null)
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error checking custom page access:', error)
       hasAccess.value = false
-    } finally {
+    }
+    finally {
       isCheckingAccess.value = false
     }
   }

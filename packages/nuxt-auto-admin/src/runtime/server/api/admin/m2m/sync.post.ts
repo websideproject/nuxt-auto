@@ -34,9 +34,9 @@ export default defineEventHandler(async (event) => {
   // Log deprecation warning (only in development)
   if (process.env.NODE_ENV === 'development') {
     console.warn(
-      '[nuxt-auto-admin] DEPRECATION WARNING: /api/admin/m2m/sync is deprecated.\n' +
-      'Please migrate to the new M2M endpoints: POST /api/{resource}/{id}/relations/{relation}\n' +
-      'See MIGRATION_M2M_V2.md for migration guide.'
+      '[nuxt-auto-admin] DEPRECATION WARNING: /api/admin/m2m/sync is deprecated.\n'
+      + 'Please migrate to the new M2M endpoints: POST /api/{resource}/{id}/relations/{relation}\n'
+      + 'See MIGRATION_M2M_V2.md for migration guide.',
     )
   }
   const body = await readBody(event)
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   if (!junctionTable || !leftKey || !rightKey || !leftId) {
     throw createError({
       statusCode: 400,
-      message: 'Missing required fields: junctionTable, leftKey, rightKey, leftId'
+      message: 'Missing required fields: junctionTable, leftKey, rightKey, leftId',
     })
   }
 
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
   if (!db) {
     throw createError({
       statusCode: 500,
-      message: 'Database not initialized. Make sure to set globalThis.__autoApiDb in a server plugin'
+      message: 'Database not initialized. Make sure to set globalThis.__autoApiDb in a server plugin',
     })
   }
 
@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
   if (!resourceConfig) {
     throw createError({
       statusCode: 404,
-      message: `Junction table "${junctionTable}" not found in registry`
+      message: `Junction table "${junctionTable}" not found in registry`,
     })
   }
 
@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
   if (!schema) {
     throw createError({
       statusCode: 500,
-      message: `Schema not found for junction table "${junctionTable}"`
+      message: `Schema not found for junction table "${junctionTable}"`,
     })
   }
 
@@ -100,8 +100,8 @@ export default defineEventHandler(async (event) => {
           .where(
             and(
               eq(schema[leftKey], leftId),
-              eq(schema[rightKey], rightId)
-            )
+              eq(schema[rightKey], rightId),
+            ),
           )
       }
     }
@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
       for (const rightId of toAdd) {
         await db.insert(schema).values({
           [leftKey]: leftId,
-          [rightKey]: rightId
+          [rightKey]: rightId,
         })
       }
     }
@@ -120,12 +120,13 @@ export default defineEventHandler(async (event) => {
       success: true,
       added: toAdd.length,
       removed: toRemove.length,
-      total: newRightIds.length
+      total: newRightIds.length,
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     throw createError({
       statusCode: 500,
-      message: `Failed to sync M2M relations: ${error.message}`
+      message: `Failed to sync M2M relations: ${error.message}`,
     })
   }
 })

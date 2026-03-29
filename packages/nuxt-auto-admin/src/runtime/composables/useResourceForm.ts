@@ -14,7 +14,7 @@ export function useResourceForm(resourceName: string, mode: 'create' | 'edit' = 
 
     // Filter out M2M fields (MultiRelationSelect with junctionTable)
     // These are handled separately in M2MRelationCard components
-    return formFields.filter(field => {
+    return formFields.filter((field) => {
       if (field.widget === 'MultiRelationSelect' && field.options?.junctionTable) {
         return false
       }
@@ -31,11 +31,14 @@ export function useResourceForm(resourceName: string, mode: 'create' | 'edit' = 
       // Set default values based on field type
       if (field.widget === 'CheckboxInput') {
         data[field.name] = false
-      } else if (field.widget === 'NumberInput') {
+      }
+      else if (field.widget === 'NumberInput') {
         data[field.name] = field.options?.min || 0
-      } else if (field.widget === 'SelectInput' && field.options?.enumValues) {
+      }
+      else if (field.widget === 'SelectInput' && field.options?.enumValues) {
         data[field.name] = field.options.enumValues[0]
-      } else {
+      }
+      else {
         data[field.name] = ''
       }
     })

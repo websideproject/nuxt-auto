@@ -103,7 +103,7 @@ describe('useM2MDetection', () => {
 
       const result = mergeM2MFields(autoDetected, manualConfig)
       expect(result[0].name).toBe('categories') // manual first
-      expect(result[1].name).toBe('tags')        // auto-detected appended
+      expect(result[1].name).toBe('tags') // auto-detected appended
     })
   })
 })

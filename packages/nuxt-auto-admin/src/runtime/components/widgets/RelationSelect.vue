@@ -49,9 +49,9 @@ const filterParams = computed(() => {
   return {
     filter: {
       [searchField.value]: {
-        $like: debouncedSearchTerm.value
-      }
-    }
+        $like: debouncedSearchTerm.value,
+      },
+    },
   }
 })
 
@@ -61,21 +61,21 @@ const { data: relationData, isLoading } = useAutoApiList(
   filterParams,
   {
     enabled: computed(() => !!relationResource.value),
-  }
+  },
 )
 
 // Fetch the currently selected item if not in the list
 // This ensures we can display the selected value even if it's not in search results
 const {
   data: selectedItemData,
-  isLoading: isLoadingSelected
+  isLoading: isLoadingSelected,
 } = useAutoApiGet(
   relationResource.value || '',
   computed(() => props.modelValue!),
   undefined,
   {
     enabled: computed(() => !!relationResource.value && !!props.modelValue),
-  }
+  },
 )
 
 // Transform search results into select options

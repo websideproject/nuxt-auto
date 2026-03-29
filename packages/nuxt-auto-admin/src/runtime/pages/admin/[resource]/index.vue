@@ -41,18 +41,18 @@
 
     <ResourceViewModal
       v-if="viewModalId"
+      :id="viewModalId"
       v-model:open="viewModalOpen"
       :resource-name="resourceName"
-      :id="viewModalId"
       @edit="openEditModalFromView"
       @delete="openDeleteModalFromView"
     />
 
     <ResourceEditModal
       v-if="editModalId"
+      :id="editModalId"
       v-model:open="editModalOpen"
       :resource-name="resourceName"
-      :id="editModalId"
       @success="handleEditSuccess"
     />
 
@@ -62,10 +62,15 @@
         <div class="p-6">
           <div class="flex items-start gap-4">
             <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-              <UIcon name="i-heroicons-exclamation-triangle" class="h-6 w-6 text-red-600 dark:text-red-400" />
+              <UIcon
+                name="i-heroicons-exclamation-triangle"
+                class="h-6 w-6 text-red-600 dark:text-red-400"
+              />
             </div>
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Confirm Delete</h3>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Confirm Delete
+              </h3>
               <p class="text-gray-600 dark:text-gray-400">
                 Are you sure you want to delete this {{ resourceName }}? This action cannot be undone.
               </p>
@@ -76,8 +81,17 @@
 
       <template #footer="{ close }">
         <div class="flex justify-end gap-3 p-4 bg-gray-50 dark:bg-gray-800/50">
-          <UButton variant="ghost" @click="close">Cancel</UButton>
-          <UButton color="error" :loading="isDeleting" @click="confirmDelete">
+          <UButton
+            variant="ghost"
+            @click="close"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            color="error"
+            :loading="isDeleting"
+            @click="confirmDelete"
+          >
             Delete
           </UButton>
         </div>
@@ -130,7 +144,8 @@ function openViewModal(id: string | number) {
   // Check config to decide between modal or page
   if (viewMode.value === 'page') {
     goToDetail(id)
-  } else {
+  }
+  else {
     viewModalId.value = id
     viewModalOpen.value = true
   }
@@ -140,7 +155,8 @@ function openEditModal(id: string | number) {
   // Check config to decide between modal or page
   if (editMode.value === 'page') {
     goToEdit(id)
-  } else {
+  }
+  else {
     editModalId.value = id
     editModalOpen.value = true
   }
@@ -163,7 +179,7 @@ function handleCreateSuccess(data: any) {
     title: 'Success',
     description: `${resource.value?.displayName || resourceName.value} created successfully`,
     icon: 'i-heroicons-check-circle',
-    color: 'success'
+    color: 'success',
   })
   // Table will auto-refresh via query invalidation
 }
@@ -173,7 +189,7 @@ function handleEditSuccess(data: any) {
     title: 'Success',
     description: `${resource.value?.displayName || resourceName.value} updated successfully`,
     icon: 'i-heroicons-check-circle',
-    color: 'success'
+    color: 'success',
   })
   // Table will auto-refresh via query invalidation
 }
@@ -190,9 +206,10 @@ async function confirmDelete() {
       title: 'Success',
       description: `${resource.value?.displayName || resourceName.value} deleted successfully`,
       icon: 'i-heroicons-check-circle',
-      color: 'success'
+      color: 'success',
     })
-  } catch (error) {
+  }
+  catch (error) {
     // Error is handled by useAdminActions
   }
 }

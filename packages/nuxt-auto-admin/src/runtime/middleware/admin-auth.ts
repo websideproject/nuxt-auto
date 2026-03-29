@@ -33,7 +33,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
       // Redirect to login or home page
       return navigateTo('/login')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('[nuxt-auto-admin] Access control error:', error)
     return navigateTo('/login')
   }

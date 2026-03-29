@@ -1,8 +1,8 @@
 <template>
   <DefineTemplate>
     <ResourceForm
-      :resource-name="resourceName"
       :id="id"
+      :resource-name="resourceName"
       mode="edit"
       show-cancel
       @success="handleSuccess"
@@ -10,9 +10,14 @@
     />
 
     <!-- M2M Relations as additional sections if needed -->
-    <div v-if="m2mFields.length > 0" class="px-6 pb-6 space-y-4">
+    <div
+      v-if="m2mFields.length > 0"
+      class="px-6 pb-6 space-y-4"
+    >
       <div class="border-t border-gray-200 dark:border-gray-800 pt-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Relationships</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Relationships
+        </h3>
         <div class="space-y-4">
           <M2MRelationCard
             v-for="m2mField in m2mFields"
@@ -68,14 +73,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  success: [data: any]
+  'success': [data: any]
 }>()
 
 const { resource } = useAdminResource(props.resourceName)
 
 const isOpen = computed({
   get: () => props.open ?? false,
-  set: (value) => emit('update:open', value),
+  set: value => emit('update:open', value),
 })
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -96,7 +101,7 @@ const manualM2MFields = computed(() => {
   if (!resource.value?.formFields?.edit) return []
 
   return resource.value.formFields.edit.filter(
-    field => field.widget === 'MultiRelationSelect' && field.options?.junctionTable
+    field => field.widget === 'MultiRelationSelect' && field.options?.junctionTable,
   )
 })
 

@@ -48,9 +48,9 @@ const filterParams = computed(() => {
   return {
     filter: {
       [searchField.value]: {
-        $like: debouncedSearchTerm.value
-      }
-    }
+        $like: debouncedSearchTerm.value,
+      },
+    },
   }
 })
 
@@ -60,7 +60,7 @@ const { data: relationData, isLoading } = useAutoApiList(
   filterParams,
   {
     enabled: computed(() => !!relationResource.value),
-  }
+  },
 )
 
 // Fetch currently selected items to display them
@@ -70,14 +70,16 @@ const selectedIds = computed(() => props.modelValue || [])
 // For now, we assume they're in the search results or initial load
 const { data: initialData, isLoading: isLoadingSelected } = useAutoApiList(
   relationResource.value || '',
-  computed(() => selectedIds.value.length > 0 ? {
-    filter: {
-      id: { $in: selectedIds.value.join(',') }
-    }
-  } : undefined),
+  computed(() => selectedIds.value.length > 0
+    ? {
+        filter: {
+          id: { $in: selectedIds.value.join(',') },
+        },
+      }
+    : undefined),
   {
     enabled: computed(() => !!relationResource.value && selectedIds.value.length > 0),
-  }
+  },
 )
 
 // Transform search results into select options
@@ -105,7 +107,7 @@ const allOptions = computed(() => {
   const options = [...searchOptions.value]
 
   // Add selected options if not already in search results
-  selectedOptions.value.forEach(selectedOption => {
+  selectedOptions.value.forEach((selectedOption) => {
     if (!options.some(opt => opt.value === selectedOption.value)) {
       options.unshift(selectedOption)
     }
@@ -118,7 +120,8 @@ const allOptions = computed(() => {
 function handleUpdate(values: any) {
   if (Array.isArray(values)) {
     emit('update:modelValue', values)
-  } else {
+  }
+  else {
     emit('update:modelValue', [])
   }
 }

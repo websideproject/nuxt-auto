@@ -7,11 +7,20 @@
           :to="adminPrefix"
           class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1"
         >
-          <UIcon name="i-heroicons-home" class="h-4 w-4" />
+          <UIcon
+            name="i-heroicons-home"
+            class="h-4 w-4"
+          />
         </NuxtLink>
         <template v-if="breadcrumbs.length > 0">
-          <UIcon name="i-heroicons-chevron-right" class="h-3.5 w-3.5 text-gray-400 dark:text-gray-600 flex-shrink-0" />
-          <template v-for="(crumb, index) in breadcrumbs" :key="index">
+          <UIcon
+            name="i-heroicons-chevron-right"
+            class="h-3.5 w-3.5 text-gray-400 dark:text-gray-600 flex-shrink-0"
+          />
+          <template
+            v-for="(crumb, index) in breadcrumbs"
+            :key="index"
+          >
             <NuxtLink
               v-if="crumb.to"
               :to="crumb.to"
@@ -19,7 +28,10 @@
             >
               {{ crumb.label }}
             </NuxtLink>
-            <span v-else class="text-gray-900 dark:text-white font-medium truncate">{{ crumb.label }}</span>
+            <span
+              v-else
+              class="text-gray-900 dark:text-white font-medium truncate"
+            >{{ crumb.label }}</span>
             <UIcon
               v-if="index < breadcrumbs.length - 1"
               name="i-heroicons-chevron-right"
@@ -46,7 +58,7 @@ const adminPrefix = config.public.autoAdmin?.prefix || '/admin'
 const route = useRoute()
 
 const breadcrumbs = computed(() => {
-  const crumbs: Array<{ label: string; to?: string }> = []
+  const crumbs: Array<{ label: string, to?: string }> = []
 
   // Parse path segments
   const pathSegments = route.path
@@ -68,9 +80,11 @@ const breadcrumbs = computed(() => {
     const segment = pathSegments[1]
     if (segment === 'new') {
       crumbs.push({ label: 'Create' })
-    } else if (pathSegments.length === 2) {
+    }
+    else if (pathSegments.length === 2) {
       crumbs.push({ label: `#${segment}` })
-    } else {
+    }
+    else {
       // Has ID and action (edit, etc)
       crumbs.push({
         label: `#${segment}`,
@@ -91,7 +105,7 @@ const breadcrumbs = computed(() => {
 function formatResourceName(name: string): string {
   return name
     .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (str) => str.toUpperCase())
+    .replace(/^./, str => str.toUpperCase())
     .trim()
 }
 

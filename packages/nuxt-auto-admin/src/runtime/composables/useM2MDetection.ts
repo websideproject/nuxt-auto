@@ -60,7 +60,8 @@ export function useM2MDetection() {
           junctionRightKey: rel.junction.rightKey,
         },
       }))
-    } catch (error) {
+    }
+    catch (error) {
       console.warn(`[useM2MDetection] Failed to detect M2M fields for ${resourceName}:`, error)
       return []
     }
@@ -73,7 +74,7 @@ export function useM2MDetection() {
    */
   function mergeM2MFields(
     autoDetected: M2MFieldConfig[],
-    manualConfig: FieldConfig[] = []
+    manualConfig: FieldConfig[] = [],
   ): FieldConfig[] {
     const result: FieldConfig[] = [...manualConfig]
     const manualFieldNames = new Set(manualConfig.map(f => f.name))
@@ -117,10 +118,11 @@ export function useM2MDetection() {
 export async function isJunctionTable(resourceName: string): Promise<boolean> {
   try {
     const response = await $fetch<{ isJunction: boolean }>(
-      `/api/_m2m/is-junction/${resourceName}`
+      `/api/_m2m/is-junction/${resourceName}`,
     )
     return response.isJunction
-  } catch (error) {
+  }
+  catch (error) {
     return false
   }
 }
@@ -132,7 +134,8 @@ export async function getJunctionTableNames(): Promise<string[]> {
   try {
     const response = await $fetch<{ junctions: string[] }>('/api/_m2m/junctions')
     return response.junctions
-  } catch (error) {
+  }
+  catch (error) {
     console.warn('[useM2MDetection] Failed to get junction tables:', error)
     return []
   }

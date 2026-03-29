@@ -7,11 +7,11 @@ export default defineNuxtConfig({
     AdminModule,
     './modules/base',
   ],
+  autoAdmin: {
+    prefix: '/admin',
+  },
   autoApi: {
     prefix: '/api',
     database: { client: 'better-sqlite3' },
-  },
-  autoAdmin: {
-    prefix: '/admin',
   },
 })

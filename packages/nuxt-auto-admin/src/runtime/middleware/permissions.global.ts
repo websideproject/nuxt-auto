@@ -41,10 +41,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
       // No permission to access this resource
       return abortNavigation({
         statusCode: 403,
-        statusMessage: `You don't have permission to access ${resource.displayName || resourceOrPage}`
+        statusMessage: `You don't have permission to access ${resource.displayName || resourceOrPage}`,
       })
     }
-  } else {
+  }
+  else {
     // Check if it's a custom page
     const customPages = config.public.autoAdmin?.customPages || []
     const customPage = customPages.find((p: any) => {
@@ -60,10 +61,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
         if (!hasAccess) {
           return abortNavigation({
             statusCode: 403,
-            statusMessage: `You don't have permission to access ${customPage.label}`
+            statusMessage: `You don't have permission to access ${customPage.label}`,
           })
         }
-      } else if (customPage.permissions) {
+      }
+      else if (customPage.permissions) {
         // TODO: Implement permission string/array checking
         // For now, allow access
       }

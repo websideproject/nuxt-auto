@@ -48,14 +48,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  success: [data: any]
+  'success': [data: any]
 }>()
 
 const { resource } = useAdminResource(props.resourceName)
 
 const isOpen = computed({
   get: () => props.open ?? false,
-  set: (value) => emit('update:open', value),
+  set: value => emit('update:open', value),
 })
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')

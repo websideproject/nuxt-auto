@@ -34,11 +34,13 @@ const formattedValue = computed(() => {
     if (showTime.value) {
       // Format for datetime-local input: YYYY-MM-DDThh:mm
       return date.toISOString().slice(0, 16)
-    } else {
+    }
+    else {
       // Format for date input: YYYY-MM-DD
       return date.toISOString().slice(0, 10)
     }
-  } catch {
+  }
+  catch {
     return ''
   }
 })

@@ -38,33 +38,33 @@ export function mapColumnTypeToWidget(column: ColumnMetadata): WidgetType {
 
   // Numeric fields
   if (
-    lowerType.includes('integer') ||
-    lowerType.includes('number') ||
-    lowerType.includes('decimal') ||
-    lowerType.includes('float') ||
-    lowerType.includes('real') ||
-    lowerType.includes('numeric')
+    lowerType.includes('integer')
+    || lowerType.includes('number')
+    || lowerType.includes('decimal')
+    || lowerType.includes('float')
+    || lowerType.includes('real')
+    || lowerType.includes('numeric')
   ) {
     return 'NumberInput'
   }
 
   // Date/time fields by type
   if (
-    lowerType.includes('timestamp') ||
-    lowerType.includes('datetime') ||
-    lowerType.includes('date')
+    lowerType.includes('timestamp')
+    || lowerType.includes('datetime')
+    || lowerType.includes('date')
   ) {
     return 'DateTimePicker'
   }
 
   // Text area for longer text fields
   if (
-    lowerType === 'text' ||
-    name.toLowerCase().includes('description') ||
-    name.toLowerCase().includes('content') ||
-    name.toLowerCase().includes('body') ||
-    name.toLowerCase().includes('bio') ||
-    name.toLowerCase().includes('notes')
+    lowerType === 'text'
+    || name.toLowerCase().includes('description')
+    || name.toLowerCase().includes('content')
+    || name.toLowerCase().includes('body')
+    || name.toLowerCase().includes('bio')
+    || name.toLowerCase().includes('notes')
   ) {
     return 'TextareaInput'
   }
@@ -90,7 +90,7 @@ export function formatFieldLabel(fieldName: string): string {
       // Handle camelCase
       .replace(/([A-Z])/g, ' $1')
       // Capitalize first letter of each word
-      .replace(/\b\w/g, (char) => char.toUpperCase())
+      .replace(/\b\w/g, char => char.toUpperCase())
       .trim()
   )
 }
@@ -110,14 +110,15 @@ export function formatDisplayValue(value: any, column: ColumnMetadata): string {
 
   // Date/time values
   if (
-    column.type?.includes('timestamp') ||
-    column.type?.includes('date') ||
-    column.name.toLowerCase().endsWith('at')
+    column.type?.includes('timestamp')
+    || column.type?.includes('date')
+    || column.name.toLowerCase().endsWith('at')
   ) {
     try {
       const date = new Date(value)
       return date.toLocaleString()
-    } catch {
+    }
+    catch {
       return String(value)
     }
   }
@@ -151,16 +152,16 @@ export function shouldExcludeFromList(column: ColumnMetadata): boolean {
   ]
 
   // Exclude by name (case-insensitive comparison)
-  if (excludeNames.some((name) => column.name.toLowerCase().includes(name.toLowerCase()))) {
+  if (excludeNames.some(name => column.name.toLowerCase().includes(name.toLowerCase()))) {
     return true
   }
 
   // Exclude large text fields
   if (
-    column.type === 'text' &&
-    (column.name.toLowerCase().includes('content') ||
-      column.name.toLowerCase().includes('body') ||
-      column.name.toLowerCase().includes('description'))
+    column.type === 'text'
+    && (column.name.toLowerCase().includes('content')
+      || column.name.toLowerCase().includes('body')
+      || column.name.toLowerCase().includes('description'))
   ) {
     return true
   }
@@ -179,7 +180,7 @@ export function shouldExcludeFromList(column: ColumnMetadata): boolean {
 export function isSensitiveField(fieldName: string): boolean {
   const sensitivePatterns = ['password', 'token', 'secret', 'apikey', 'key', 'salt', 'hash']
 
-  return sensitivePatterns.some((pattern) => fieldName.toLowerCase().includes(pattern))
+  return sensitivePatterns.some(pattern => fieldName.toLowerCase().includes(pattern))
 }
 
 /**
@@ -202,9 +203,9 @@ export function getValidationRules(column: ColumnMetadata): any {
 
   // Add min/max for numeric fields
   if (
-    column.type?.includes('integer') ||
-    column.type?.includes('number') ||
-    column.type?.includes('decimal')
+    column.type?.includes('integer')
+    || column.type?.includes('number')
+    || column.type?.includes('decimal')
   ) {
     // These would come from column constraints if available
     if (column.constraints) {

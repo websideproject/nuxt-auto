@@ -92,7 +92,7 @@ export default defineNuxtModule<ModuleOptions>({
       // Register virtual module alias
       nuxt.options.alias['#nuxt-auto-admin-registry'] = resolver.resolve(
         nuxt.options.buildDir,
-        'nuxt-auto-admin-registry.mjs'
+        'nuxt-auto-admin-registry.mjs',
       )
 
       console.log('[nuxt-auto-admin] ✓ Generated admin registry')
@@ -306,7 +306,7 @@ function buildResourceSchemaEntry(
   resource: any,
   config: any,
   varName: string,
-  allResourceNames: string[]
+  allResourceNames: string[],
 ): string {
   const displayName = config.displayName || formatResourceName(resource.name)
   const icon = config.icon || 'i-heroicons-table-cells'
@@ -498,7 +498,7 @@ function buildResourceSchemaEntry(
       group: ${config.group ? `'${config.group}'` : 'undefined'},
       order: ${config.order || 0},
       disabled: false,
-      type: ${config.type ? `'${config.type}'` : "'resource'"},
+      type: ${config.type ? `'${config.type}'` : '\'resource\''},
     }
   })()`
 }
@@ -509,7 +509,7 @@ function buildResourceSchemaEntry(
 function formatResourceName(name: string): string {
   return name
     .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (str) => str.toUpperCase())
+    .replace(/^./, str => str.toUpperCase())
     .trim()
 }
 

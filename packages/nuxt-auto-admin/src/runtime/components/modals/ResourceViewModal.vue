@@ -1,26 +1,49 @@
 <template>
   <DefineTemplate>
     <!-- Loading state -->
-    <div v-if="isLoading" class="flex flex-col items-center justify-center p-12">
-      <UIcon name="i-heroicons-arrow-path" class="animate-spin h-8 w-8 text-primary-500 mb-4" />
+    <div
+      v-if="isLoading"
+      class="flex flex-col items-center justify-center p-12"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="animate-spin h-8 w-8 text-primary-500 mb-4"
+      />
       <span class="text-gray-600 dark:text-gray-400">Loading...</span>
     </div>
 
     <!-- Error state -->
-    <div v-else-if="error" class="p-6">
+    <div
+      v-else-if="error"
+      class="p-6"
+    >
       <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-        <UIcon name="i-heroicons-exclamation-circle" class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+        <UIcon
+          name="i-heroicons-exclamation-circle"
+          class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+        />
         <div>
-          <h3 class="font-semibold text-red-900 dark:text-red-200">Error Loading Data</h3>
-          <p class="text-sm text-red-700 dark:text-red-300 mt-1">{{ error }}</p>
+          <h3 class="font-semibold text-red-900 dark:text-red-200">
+            Error Loading Data
+          </h3>
+          <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+            {{ error }}
+          </p>
         </div>
       </div>
     </div>
 
     <!-- Data display -->
-    <div v-else-if="data" class="p-6">
+    <div
+      v-else-if="data"
+      class="p-6"
+    >
       <dl class="grid grid-cols-1 gap-4">
-        <div v-for="column in visibleColumns" :key="column.name" class="border-b border-gray-200 dark:border-gray-800 pb-4 last:border-b-0 last:pb-0">
+        <div
+          v-for="column in visibleColumns"
+          :key="column.name"
+          class="border-b border-gray-200 dark:border-gray-800 pb-4 last:border-b-0 last:pb-0"
+        >
           <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
             {{ formatFieldLabel(column.name) }}
           </dt>
@@ -31,8 +54,13 @@
       </dl>
 
       <!-- M2M Relations (read-only) -->
-      <div v-if="m2mFields.length > 0" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800 space-y-4">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Relationships</h3>
+      <div
+        v-if="m2mFields.length > 0"
+        class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800 space-y-4"
+      >
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Relationships
+        </h3>
         <M2MRelationCard
           v-for="m2mField in m2mFields"
           :key="m2mField.name"
@@ -136,8 +164,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  edit: [id: string | number]
-  delete: [id: string | number]
+  'edit': [id: string | number]
+  'delete': [id: string | number]
 }>()
 
 const { resource } = useAdminResource(props.resourceName)
@@ -148,7 +176,7 @@ const showButtonBehavior = computed(() => permissionConfig.unauthorizedButtons |
 
 const isOpen = computed({
   get: () => props.open ?? false,
-  set: (value) => emit('update:open', value),
+  set: value => emit('update:open', value),
 })
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -193,7 +221,7 @@ const manualM2MFields = computed(() => {
   if (!resource.value?.formFields?.edit) return []
 
   return resource.value.formFields.edit.filter(
-    field => field.widget === 'MultiRelationSelect' && field.options?.junctionTable
+    field => field.widget === 'MultiRelationSelect' && field.options?.junctionTable,
   )
 })
 
