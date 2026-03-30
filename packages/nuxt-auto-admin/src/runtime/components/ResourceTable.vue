@@ -144,6 +144,7 @@ import type { CellContext } from '@tanstack/vue-table'
 import { formatDisplayValue, formatFieldLabel } from '../utils/fieldTypeMapping'
 import PermissionDeniedPage from './PermissionDeniedPage.vue'
 import { useAdminResource } from '../composables/useAdminResource'
+import { usePermissions, useAutoApiList } from '@websideproject/nuxt-auto-api/composables'
 import { useAdminActions } from '../composables/useAdminActions'
 
 const UButton = resolveComponent('UButton')

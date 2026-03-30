@@ -193,6 +193,7 @@ import { useAdminResource } from '../../../composables/useAdminResource'
 import { useAdminPermissions } from '../../../composables/useAdminPermissions'
 import { useAdminActions } from '../../../composables/useAdminActions'
 import { useAdminConfig } from '../../../composables/useAdminConfig'
+import { useAutoApiGet } from '@websideproject/nuxt-auto-api/composables'
 
 defineOptions({ name: 'AdminResourceDetailPage' })
 

@@ -1,4 +1,5 @@
 import { computed, unref, type MaybeRef } from 'vue'
+import { usePermissions } from '@websideproject/nuxt-auto-api/composables'
 
 /**
  * Composable for checking permissions in admin UI

@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { defineEventHandler, getMethod, createError } from 'h3'
 import { bulkCreateHandler, bulkUpdateHandler, bulkDeleteHandler } from './bulk'
 import { createContextFromRegistry } from './createContextFromRegistry'

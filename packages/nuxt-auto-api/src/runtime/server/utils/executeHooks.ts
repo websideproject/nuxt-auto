@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nitropack/runtime'
 import type { HandlerContext, ResourceHooks } from '../../types'
 import { getPluginHooks } from '../plugins/pluginRegistry'
 

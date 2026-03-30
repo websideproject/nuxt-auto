@@ -96,6 +96,8 @@ import { ref, computed, watch } from 'vue'
 import type { FieldConfig } from '../types'
 import { formatFieldLabel } from '../utils/fieldTypeMapping'
 import MultiRelationSelect from './widgets/MultiRelationSelect.vue'
+import { useM2MRelation, useM2MSync } from '@websideproject/nuxt-auto-api/composables'
+import { useToast } from '@nuxt/ui/runtime/composables/useToast'
 // useM2MRelation and useM2MSync are auto-imported from nuxt-auto-api
 
 const props = defineProps<{

@@ -157,6 +157,7 @@ import type { M2MFieldConfig } from '../../composables/useM2MDetection'
 import { useAdminResource } from '../../composables/useAdminResource'
 import { useAdminPermissions } from '../../composables/useAdminPermissions'
 import { useAdminConfig } from '../../composables/useAdminConfig'
+import { useAutoApiGet } from '@websideproject/nuxt-auto-api/composables'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 

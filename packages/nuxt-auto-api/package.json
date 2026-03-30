@@ -48,6 +48,10 @@
     "./database": {
       "types": "./dist/runtime/server/database/index.d.ts",
       "import": "./dist/runtime/server/database/index.js"
+    },
+    "./composables": {
+      "types": "./dist/runtime/composables/index.d.ts",
+      "import": "./dist/runtime/composables/index.js"
     }
   },
   "main": "./dist/module.mjs",

@@ -1,4 +1,4 @@
-import { inject } from '#imports'
+import { inject } from 'vue'
 import type { ToastProvider } from '../types/toast'
 
 export function useAutoApiToast() {

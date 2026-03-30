@@ -1,3 +1,4 @@
+import { defineNitroPlugin } from 'nitropack/runtime'
 /**
  * Initialize global hook registry
  * This plugin runs early to ensure __autoApiHooks is available

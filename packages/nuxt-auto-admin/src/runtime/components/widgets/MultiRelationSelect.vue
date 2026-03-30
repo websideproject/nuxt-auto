@@ -19,6 +19,7 @@
 import { computed, ref } from 'vue'
 import { refDebounced } from '@vueuse/core'
 import type { WidgetOptions } from '../../types'
+import { useAutoApiList } from '@websideproject/nuxt-auto-api/composables'
 
 const props = defineProps<{
   modelValue?: (string | number)[]

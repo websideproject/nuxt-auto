@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { count, sum, avg, min, max, sql } from 'drizzle-orm'
 import type { AggregationQuery, AggregationFunction } from '../../types'
 import { buildWhereClause } from './buildWhereClause'

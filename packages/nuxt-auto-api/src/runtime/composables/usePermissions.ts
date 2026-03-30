@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/vue-query'
 import type { UseQueryOptions } from '@tanstack/vue-query'
+import { computed, unref } from 'vue'
 import type { MaybeRef } from 'vue'
 import type { PermissionQueryResponse, PermissionCheckResult } from '../types'
 

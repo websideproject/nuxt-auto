@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { defineEventHandler, getRouterParam, createError } from 'h3'
 import { getM2MRelationshipsForResource } from '../../utils/m2m/detectJunctions'
 

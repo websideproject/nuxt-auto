@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nitropack/runtime'
 import type { NestedRelationConfig } from '../../types'
 import { buildWhereClause } from './buildWhereClause'
 

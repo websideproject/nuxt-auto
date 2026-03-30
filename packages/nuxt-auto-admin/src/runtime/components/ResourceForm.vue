@@ -38,6 +38,7 @@ import { computed } from 'vue'
 import AutoForm from './AutoForm.vue'
 import { useAdminResource } from '../composables/useAdminResource'
 import { useResourceForm } from '../composables/useResourceForm'
+import { useAutoApiGet, useAutoApiCreate, useAutoApiUpdate } from '@websideproject/nuxt-auto-api/composables'
 
 const props = defineProps<{
   resourceName: string

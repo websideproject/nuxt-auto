@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { eq, and, inArray } from 'drizzle-orm'
 import { createError } from 'h3'
 import type { HandlerContext, BulkOperationResponse } from '../../types'
