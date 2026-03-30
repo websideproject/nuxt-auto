@@ -86,8 +86,8 @@ const { data: initialData, isLoading: isLoadingSelected } = useAutoApiList(
 const searchOptions = computed(() => {
   if (!relationData.value?.data) return []
 
-  return relationData.value.data.map((item: any) => ({
-    label: item[displayField.value] || item.id || 'Unknown',
+  return relationData.value.data.map((item: Record<string, unknown>) => ({
+    label: (item[displayField.value] as string) || (item.id as string) || 'Unknown',
     value: item.id,
   }))
 })
@@ -96,8 +96,8 @@ const searchOptions = computed(() => {
 const selectedOptions = computed(() => {
   if (!initialData.value?.data) return []
 
-  return initialData.value.data.map((item: any) => ({
-    label: item[displayField.value] || item.id || 'Unknown',
+  return initialData.value.data.map((item: Record<string, unknown>) => ({
+    label: (item[displayField.value] as string) || (item.id as string) || 'Unknown',
     value: item.id,
   }))
 })
@@ -117,7 +117,7 @@ const allOptions = computed(() => {
 })
 
 // Handle update - USelectMenu with multiple returns array of IDs when value-key is set
-function handleUpdate(values: any) {
+function handleUpdate(values: unknown) {
   if (Array.isArray(values)) {
     emit('update:modelValue', values)
   }

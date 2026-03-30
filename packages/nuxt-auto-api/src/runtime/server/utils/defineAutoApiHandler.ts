@@ -41,7 +41,7 @@ export interface AutoApiHandlerOptions {
  * })
  */
 export function defineAutoApiHandler(
-  options: AutoApiHandlerOptions
+  options: AutoApiHandlerOptions,
 ): EventHandler {
   return defineEventHandler(async (event: H3Event) => {
     // Extract resource from URL (e.g., /api/users/123/stats -> users)

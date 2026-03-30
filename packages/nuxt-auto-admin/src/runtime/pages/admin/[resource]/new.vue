@@ -83,6 +83,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+defineOptions({ name: 'AdminResourceNewPage' })
+
 definePageMeta({
   layout: 'admin',
 })
@@ -101,8 +103,9 @@ const {
 const { permissions: permissionConfig } = useAdminConfig()
 const showButtonBehavior = computed(() => permissionConfig.unauthorizedButtons || 'disable')
 
-function handleSuccess(data: any) {
+function handleSuccess(data: unknown) {
   const idField = resource.value?.primaryKey || 'id'
-  goToDetail(data[idField])
+  const record = data as Record<string, unknown>
+  goToDetail(record[idField] as string | number)
 }
 </script>

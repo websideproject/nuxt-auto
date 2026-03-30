@@ -8,7 +8,7 @@ import { createMockContext } from '../helpers/mocks'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('Bulk Operations Integration', () => {
@@ -30,7 +30,8 @@ describe('Bulk Operations Integration', () => {
         const result = await fn(db)
         sqlite.prepare('RELEASE SAVEPOINT test_tx').run()
         return result
-      } catch (error) {
+      }
+      catch (error) {
         sqlite.prepare('ROLLBACK TO SAVEPOINT test_tx').run()
         throw error
       }
@@ -59,23 +60,23 @@ describe('Bulk Operations Integration', () => {
                 title: 'Bulk Post 1',
                 content: 'Content 1',
                 userId: user.id,
-                published: true
+                published: true,
               },
               {
                 title: 'Bulk Post 2',
                 content: 'Content 2',
                 userId: user.id,
-                published: false
+                published: false,
               },
               {
                 title: 'Bulk Post 3',
                 content: 'Content 3',
                 userId: user.id,
-                published: true
-              }
-            ]
-          }
-        }
+                published: true,
+              },
+            ],
+          },
+        },
       })
 
       const result = await bulkCreateHandler(context as any)
@@ -103,9 +104,9 @@ describe('Bulk Operations Integration', () => {
         query: {},
         validated: {
           body: {
-            items: []
-          }
-        }
+            items: [],
+          },
+        },
       })
 
       const result = await bulkCreateHandler(context as any)
@@ -122,7 +123,7 @@ describe('Bulk Operations Integration', () => {
         title: `Post ${i}`,
         content: `Content ${i}`,
         userId: user.id,
-        published: true
+        published: true,
       }))
 
       const context = createMockContext({
@@ -132,8 +133,8 @@ describe('Bulk Operations Integration', () => {
         operation: 'bulk',
         query: {},
         validated: {
-          body: { items }
-        }
+          body: { items },
+        },
       })
 
       // Should throw error if batch exceeds max (default 100)
@@ -156,15 +157,15 @@ describe('Bulk Operations Integration', () => {
             items: [
               {
                 id: posts[0].id,
-                data: { title: 'Updated Title 1', published: true }
+                data: { title: 'Updated Title 1', published: true },
               },
               {
                 id: posts[1].id,
-                data: { title: 'Updated Title 2', published: false }
-              }
-            ]
-          }
-        }
+                data: { title: 'Updated Title 2', published: false },
+              },
+            ],
+          },
+        },
       })
 
       const result = await bulkUpdateHandler(context as any)
@@ -192,11 +193,11 @@ describe('Bulk Operations Integration', () => {
             items: [
               {
                 id: 999999,
-                data: { title: 'This should fail' }
-              }
-            ]
-          }
-        }
+                data: { title: 'This should fail' },
+              },
+            ],
+          },
+        },
       })
 
       // With transactional mode (default), this should throw
@@ -213,10 +214,10 @@ describe('Bulk Operations Integration', () => {
         validated: {
           body: {
             items: [
-              { title: 'Missing id and data' } as any
-            ]
-          }
-        }
+              { title: 'Missing id and data' } as any,
+            ],
+          },
+        },
       })
 
       await expect(bulkUpdateHandler(context as any)).rejects.toThrow(/id.*data/i)
@@ -235,9 +236,9 @@ describe('Bulk Operations Integration', () => {
         query: {},
         validated: {
           body: {
-            ids: [posts[0].id, posts[1].id]
-          }
-        }
+            ids: [posts[0].id, posts[1].id],
+          },
+        },
       })
 
       const result = await bulkDeleteHandler(context as any)
@@ -258,7 +259,7 @@ describe('Bulk Operations Integration', () => {
         schema: baseSchema,
         resource: 'posts',
         operation: 'list',
-        query: {}
+        query: {},
       })
 
       const listResult = await listHandler(listContext as any)
@@ -276,9 +277,9 @@ describe('Bulk Operations Integration', () => {
         query: {},
         validated: {
           body: {
-            ids: []
-          }
-        }
+            ids: [],
+          },
+        },
       })
 
       const result = await bulkDeleteHandler(context as any)
@@ -303,15 +304,15 @@ describe('Bulk Operations Integration', () => {
             items: [
               {
                 id: posts[0].id,
-                data: { title: 'Valid Update' }
+                data: { title: 'Valid Update' },
               },
               {
                 id: 999999, // Non-existent ID
-                data: { title: 'Invalid Update' }
-              }
-            ]
-          }
-        }
+                data: { title: 'Invalid Update' },
+              },
+            ],
+          },
+        },
       })
 
       // Should fail and rollback everything
@@ -323,7 +324,7 @@ describe('Bulk Operations Integration', () => {
         schema: baseSchema,
         resource: 'posts',
         operation: 'list',
-        query: {}
+        query: {},
       })
 
       const listResult = await listHandler(listContext as any)
@@ -347,10 +348,10 @@ describe('Bulk Operations Integration', () => {
           body: {
             items: [
               { title: 'Post 1', content: 'Content', userId: user.id, published: true },
-              { title: 'Post 2', content: 'Content', userId: user.id, published: true }
-            ]
-          }
-        }
+              { title: 'Post 2', content: 'Content', userId: user.id, published: true },
+            ],
+          },
+        },
       })
 
       const result = await bulkCreateHandler(context as any)
@@ -379,15 +380,15 @@ describe('Bulk Operations Integration', () => {
           body: {
             items: [
               { title: 'Post 1', content: 'Content', userId: user.id, published: true },
-              { title: 'Post 2', content: 'Content', userId: user.id, published: true }
-            ]
-          }
+              { title: 'Post 2', content: 'Content', userId: user.id, published: true },
+            ],
+          },
         },
         tenant: {
           id: 'org-123',
           field: 'organizationId',
-          canAccessAllTenants: false
-        }
+          canAccessAllTenants: false,
+        },
       })
 
       const result = await bulkCreateHandler(context as any)

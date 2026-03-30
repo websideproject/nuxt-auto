@@ -39,13 +39,14 @@ export default defineEventHandler(async (event) => {
         foreignKeys: foreignKeys.map(([fkName, fkCol]: [string, any]) => ({
           name: fkName,
           hasReferences: !!fkCol.references,
-          hasForeignKeys: !!fkCol.foreignKeys
+          hasForeignKeys: !!fkCol.foreignKeys,
         })),
         hasStandaloneId,
       }
-    } catch (error: any) {
+    }
+    catch (error: any) {
       registryInfo[name] = {
-        error: error.message
+        error: error.message,
       }
     }
   }
@@ -63,7 +64,7 @@ export default defineEventHandler(async (event) => {
       rightResource: j.rightResource,
       leftKey: j.leftKey,
       rightKey: j.rightKey,
-      metadataColumns: j.metadataColumns
+      metadataColumns: j.metadataColumns,
     })),
     detectedCount: detectedJunctions.length,
   }

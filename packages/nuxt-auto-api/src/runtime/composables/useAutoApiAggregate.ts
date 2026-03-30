@@ -49,7 +49,7 @@ export interface AggregateResult {
 export function useAutoApiAggregate<T = AggregateResult>(
   resource: MaybeRef<string>,
   aggregateOptions: MaybeRef<AggregateOptions>,
-  queryOptions?: Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>
+  queryOptions?: Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>,
 ) {
   const resourceRef = computed(() => unref(resource))
   const optionsRef = computed(() => unref(aggregateOptions))
@@ -59,7 +59,7 @@ export function useAutoApiAggregate<T = AggregateResult>(
       'autoapi',
       resourceRef.value,
       'aggregate',
-      optionsRef.value
+      optionsRef.value,
     ]),
     queryFn: async () => {
       const params = new URLSearchParams()
@@ -70,7 +70,8 @@ export function useAutoApiAggregate<T = AggregateResult>(
       if (opts.aggregate) {
         if (Array.isArray(opts.aggregate)) {
           params.append('aggregate', opts.aggregate.join(','))
-        } else {
+        }
+        else {
           params.append('aggregate', opts.aggregate)
         }
       }
@@ -84,7 +85,8 @@ export function useAutoApiAggregate<T = AggregateResult>(
       if (opts.groupBy) {
         if (Array.isArray(opts.groupBy)) {
           params.append('groupBy', opts.groupBy.join(','))
-        } else {
+        }
+        else {
           params.append('groupBy', opts.groupBy)
         }
       }
@@ -103,6 +105,6 @@ export function useAutoApiAggregate<T = AggregateResult>(
 
       return await $fetch<T>(url)
     },
-    ...queryOptions
+    ...queryOptions,
   } as any)
 }

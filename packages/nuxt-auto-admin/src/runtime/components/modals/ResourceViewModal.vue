@@ -153,6 +153,7 @@ import { createReusableTemplate, useMediaQuery } from '@vueuse/core'
 import { formatFieldLabel, formatDisplayValue } from '../../utils/fieldTypeMapping'
 import M2MRelationCard from '../M2MRelationCard.vue'
 import { useM2MDetection } from '../../composables/useM2MDetection'
+import type { M2MFieldConfig } from '../../composables/useM2MDetection'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 
@@ -207,7 +208,7 @@ const visibleColumns = computed(() => {
 
 // Auto-detect M2M fields
 const { detectM2MFields, mergeM2MFields } = useM2MDetection()
-const autoM2MFields = ref<any[]>([])
+const autoM2MFields = ref<M2MFieldConfig[]>([])
 
 // Detect M2M fields when modal opens
 watch(() => props.open, async (isOpen) => {

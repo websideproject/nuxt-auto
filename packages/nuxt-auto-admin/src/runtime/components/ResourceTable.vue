@@ -139,8 +139,8 @@
 <script setup lang="ts">
 import { h, computed, reactive, resolveComponent, unref } from 'vue'
 import type { MaybeRef } from 'vue'
-import { useRouter } from 'vue-router'
 import type { TableColumn } from '@nuxt/ui'
+import type { CellContext } from '@tanstack/vue-table'
 import { formatDisplayValue, formatFieldLabel } from '../utils/fieldTypeMapping'
 import PermissionDeniedPage from './PermissionDeniedPage.vue'
 
@@ -158,10 +158,6 @@ const emit = defineEmits<{
   view: [id: string | number]
   edit: [id: string | number]
 }>()
-
-const router = useRouter()
-const config = useRuntimeConfig()
-const adminPrefix = config.public.autoAdmin?.prefix || '/admin'
 
 // Unwrap the resource name in case it's a ref
 const resourceNameValue = computed(() => unref(props.resourceName))
@@ -187,17 +183,23 @@ const { data: response, isLoading, error, refetch } = useAutoApiList(
 const data = computed(() => response.value?.data || [])
 const meta = computed(() => response.value?.meta)
 
+interface ApiError {
+  statusCode?: number
+  message?: string
+  response?: { status: number }
+}
+
 // Check if error is a permission error (401 or 403)
 const isPermissionError = computed(() => {
   if (!error.value) return false
-  const errorObj = error.value as any
+  const errorObj = error.value as ApiError
   const statusCode = errorObj?.statusCode || errorObj?.response?.status
   return statusCode === 401 || statusCode === 403
 })
 
 const permissionErrorMessage = computed(() => {
   if (!error.value) return ''
-  const errorObj = error.value as any
+  const errorObj = error.value as ApiError
   const statusCode = errorObj?.statusCode || errorObj?.response?.status
   if (statusCode === 401) {
     return errorObj?.message || 'Authentication required. Please log in to access this resource.'
@@ -214,10 +216,10 @@ const deleteModal = reactive({
 })
 
 // Build columns dynamically from resource schema
-const columns = computed<TableColumn<any>[]>(() => {
+const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
   if (!resource.value) return []
 
-  const cols: TableColumn<any>[] = []
+  const cols: TableColumn<Record<string, unknown>>[] = []
 
   // Add data columns based on listFields
   resource.value.listFields.forEach((fieldName) => {
@@ -226,7 +228,7 @@ const columns = computed<TableColumn<any>[]>(() => {
     cols.push({
       accessorKey: fieldName,
       header: formatFieldLabel(fieldName),
-      cell: ({ row }: any) => {
+      cell: ({ row }: CellContext<Record<string, unknown>, unknown>) => {
         const value = row.getValue(fieldName)
 
         // Handle boolean values with badges
@@ -279,7 +281,7 @@ const columns = computed<TableColumn<any>[]>(() => {
         td: 'text-right',
       },
     },
-    cell: ({ row }: any) => {
+    cell: ({ row }: CellContext<Record<string, unknown>, unknown>) => {
       // Create items array as a computed to ensure reactivity
       const items = computed(() => [
         [
@@ -335,19 +337,19 @@ function handleCreate() {
   emit('create')
 }
 
-function handleView(item: any) {
+function handleView(item: Record<string, unknown>) {
   const idField = resource.value?.primaryKey || 'id'
-  emit('view', item[idField])
+  emit('view', item[idField] as string | number)
 }
 
-function handleEdit(item: any) {
+function handleEdit(item: Record<string, unknown>) {
   const idField = resource.value?.primaryKey || 'id'
-  emit('edit', item[idField])
+  emit('edit', item[idField] as string | number)
 }
 
-function openDeleteModal(item: any) {
+function openDeleteModal(item: Record<string, unknown>) {
   const idField = resource.value?.primaryKey || 'id'
-  deleteModal.itemId = item[idField]
+  deleteModal.itemId = item[idField] as string | number
   deleteModal.open = true
 }
 
@@ -360,7 +362,7 @@ async function confirmDelete() {
     deleteModal.itemId = null
     refetch()
   }
-  catch (error) {
+  catch {
     // Error is handled by useAdminActions
   }
 }

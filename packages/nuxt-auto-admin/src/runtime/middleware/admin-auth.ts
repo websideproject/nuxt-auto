@@ -14,7 +14,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   // Get access control function from module options
-  // @ts-ignore
+  // @ts-expect-error - private runtime config
   const accessControl = config.autoAdmin?.access
 
   if (!accessControl) {

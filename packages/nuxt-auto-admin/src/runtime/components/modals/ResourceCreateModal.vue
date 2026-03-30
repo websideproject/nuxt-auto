@@ -48,7 +48,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'success': [data: any]
+  'success': [data: unknown]
 }>()
 
 const { resource } = useAdminResource(props.resourceName)
@@ -64,7 +64,7 @@ function close() {
   emit('update:open', false)
 }
 
-function handleSuccess(data: any) {
+function handleSuccess(data: unknown) {
   emit('success', data)
   close()
 }

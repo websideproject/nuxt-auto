@@ -115,14 +115,32 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { getJunctionTableNames } from '../../composables/useM2MDetection'
+import type { ResourceSchema } from '../../types'
+
+interface SidebarItem {
+  name: string
+  type: 'resource' | 'page'
+  order?: number
+  group?: string
+  [key: string]: unknown
+}
+
+interface CustomPage {
+  name: string
+  path: string
+  label: string
+  icon: string
+  group?: string
+  order?: number
+  [key: string]: unknown
+}
 
 const config = useRuntimeConfig()
 const adminPrefix = config.public.autoAdmin?.prefix || '/admin'
 const branding = computed(() => config.public.autoAdmin?.branding || { title: 'Admin Panel' })
 const customPages = computed(() => config.public.autoAdmin?.customPages || [])
 
-const { permissions: permissionConfig } = useAdminConfig()
-const sidebarBehavior = computed(() => permissionConfig.unauthorizedSidebarItems || 'hide')
+const { permissions: _permissionConfig } = useAdminConfig()
 
 // Load all resources from registry
 const { allResources, getResourcesByGroup, isLoading } = useAdminRegistry()
@@ -134,15 +152,8 @@ onMounted(async () => {
   junctionTables.value = await getJunctionTableNames()
 })
 
-// Helper to check if item should be shown based on permission config
-function shouldShowItem(hasPermission: boolean): boolean {
-  if (hasPermission) return true
-  // If no permission, show only if behavior is 'disable' (not 'hide')
-  return sidebarBehavior.value === 'disable'
-}
-
 // Helper to check if a resource should be filtered as a junction table
-function isJunctionResource(resource: any): boolean {
+function isJunctionResource(resource: ResourceSchema): boolean {
   // Filter if manually marked as junction in config
   if (resource.type === 'junction') {
     return true
@@ -158,39 +169,39 @@ function isJunctionResource(resource: any): boolean {
 
 // Merge resources and custom pages
 const ungroupedItems = computed(() => {
-  const items: any[] = []
+  const items: SidebarItem[] = []
 
   // Add ungrouped resources (filter out junction tables)
   const ungroupedRes = allResources.value.filter(r => !r.group && !isJunctionResource(r))
-  items.push(...ungroupedRes.map(r => ({ ...r, type: 'resource' })))
+  items.push(...ungroupedRes.map(r => ({ ...r, type: 'resource' as const })))
 
   // Add ungrouped custom pages
-  const ungroupedPages = customPages.value.filter((p: any) => !p.group)
-  items.push(...ungroupedPages.map((p: any) => ({ ...p, type: 'page' })))
+  const ungroupedPages = (customPages.value as CustomPage[]).filter(p => !p.group)
+  items.push(...ungroupedPages.map(p => ({ ...p, type: 'page' as const })))
 
   // Sort by order
   return items.sort((a, b) => (a.order || 0) - (b.order || 0))
 })
 
 const groupedItems = computed(() => {
-  const groups: Record<string, any[]> = {}
+  const groups: Record<string, SidebarItem[]> = {}
 
   // Add grouped resources (filter out junction tables)
   const resourceGroups = getResourcesByGroup.value
   // Filter out Default group as it's shown separately as ungrouped
-  const { Default, ...rest } = resourceGroups
+  const { Default: _default, ...rest } = resourceGroups
 
   Object.entries(rest).forEach(([group, resources]) => {
     if (!groups[group]) groups[group] = []
-    const filteredResources = (resources as any[]).filter(r => !isJunctionResource(r))
-    groups[group].push(...filteredResources.map(r => ({ ...r, type: 'resource' })))
+    const filteredResources = resources.filter(r => !isJunctionResource(r))
+    groups[group].push(...filteredResources.map(r => ({ ...r, type: 'resource' as const })))
   })
 
   // Add grouped custom pages
-  const groupedPages = customPages.value.filter((p: any) => p.group)
-  groupedPages.forEach((page: any) => {
-    if (!groups[page.group]) groups[page.group] = []
-    groups[page.group].push({ ...page, type: 'page' })
+  const groupedPages = (customPages.value as CustomPage[]).filter(p => p.group)
+  groupedPages.forEach((page) => {
+    if (!groups[page.group!]) groups[page.group!] = []
+    groups[page.group!].push({ ...page, type: 'page' as const })
   })
 
   // Sort items within each group by order

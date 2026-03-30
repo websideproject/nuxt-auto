@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('Cursor Pagination Integration', () => {
@@ -309,7 +309,7 @@ describe('Cursor Pagination Integration', () => {
 
       // Create one post
       await PostFactory.create(db, baseSchema, testData.users[0].id, {
-        title: 'Single Post'
+        title: 'Single Post',
       })
 
       const context = createMockContext({

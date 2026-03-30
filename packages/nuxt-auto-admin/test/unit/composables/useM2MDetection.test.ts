@@ -56,7 +56,7 @@ describe('useM2MDetection', () => {
           label: 'Custom Categories Label',
           widget: 'MultiRelationSelect',
           options: { resource: 'categories', displayField: 'title' },
-        } as any,
+        },
       ]
 
       const result = mergeM2MFields(autoDetected, manualConfig)
@@ -72,7 +72,7 @@ describe('useM2MDetection', () => {
           label: 'Custom Categories Label',
           widget: 'MultiRelationSelect',
           options: { resource: 'categories', displayField: 'title' },
-        } as any,
+        },
       ]
 
       const result = mergeM2MFields(autoDetected, manualConfig)
@@ -89,7 +89,7 @@ describe('useM2MDetection', () => {
 
     it('returns manual config as-is when no auto-detected fields', () => {
       const manualConfig: FieldConfig[] = [
-        { name: 'roles', label: 'Roles', widget: 'MultiRelationSelect' } as any,
+        { name: 'roles', label: 'Roles', widget: 'MultiRelationSelect' },
       ]
 
       const result = mergeM2MFields([], manualConfig)
@@ -98,7 +98,7 @@ describe('useM2MDetection', () => {
 
     it('preserves order: manual fields first, then auto-detected additions', () => {
       const manualConfig: FieldConfig[] = [
-        { name: 'categories', label: 'C', widget: 'MultiRelationSelect' } as any,
+        { name: 'categories', label: 'C', widget: 'MultiRelationSelect' },
       ]
 
       const result = mergeM2MFields(autoDetected, manualConfig)

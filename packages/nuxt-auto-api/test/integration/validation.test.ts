@@ -227,7 +227,7 @@ describe('Validation Integration', () => {
           {
             message: 'Admin users must use company email',
             path: ['email'],
-          }
+          },
         ),
       }
 
@@ -279,7 +279,7 @@ describe('Validation Integration', () => {
           {
             message: 'Published posts must have a publish date',
             path: ['publishedAt'],
-          }
+          },
         ),
       }
 

@@ -13,7 +13,7 @@ export const articles = sqliteTable('articles', {
   published: integer('published', { mode: 'boolean' }).default(false),
   authorId: integer('author_id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 /**
@@ -24,7 +24,7 @@ export const categories = sqliteTable('categories', {
   name: text('name').notNull().unique(),
   slug: text('slug').notNull().unique(),
   description: text('description'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 /**
@@ -34,7 +34,7 @@ export const tags = sqliteTable('tags', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull().unique(),
   slug: text('slug').notNull().unique(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 /**
@@ -52,10 +52,10 @@ export const articleCategories = sqliteTable('article_categories', {
     .references(() => articles.id, { onDelete: 'cascade' }),
   categoryId: integer('category_id')
     .notNull()
-    .references(() => categories.id, { onDelete: 'cascade' }),
+    .references(() => categories.id, { onDelete: 'cascade' })
   // Optional metadata column (still auto-detected as junction)
   // sortOrder: integer('sort_order').default(0),
-}, (table) => ({
+}, table => ({
   // Composite primary key - required for auto-detection
   pk: primaryKey({ columns: [table.articleId, table.categoryId] })
 }))
@@ -75,8 +75,8 @@ export const articleTags = sqliteTable('article_tags', {
     .references(() => articles.id, { onDelete: 'cascade' }),
   tagId: integer('tag_id')
     .notNull()
-    .references(() => tags.id, { onDelete: 'cascade' }),
-}, (table) => ({
+    .references(() => tags.id, { onDelete: 'cascade' })
+}, table => ({
   // Composite primary key - required for auto-detection
   pk: primaryKey({ columns: [table.articleId, table.tagId] })
 }))
@@ -87,38 +87,38 @@ export const articleTags = sqliteTable('article_tags', {
 export const articlesRelations = relations(articles, ({ one, many }) => ({
   author: one(users, {
     fields: [articles.authorId],
-    references: [users.id],
+    references: [users.id]
   }),
   articleCategories: many(articleCategories),
-  articleTags: many(articleTags),
+  articleTags: many(articleTags)
 }))
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
-  articleCategories: many(articleCategories),
+  articleCategories: many(articleCategories)
 }))
 
 export const tagsRelations = relations(tags, ({ many }) => ({
-  articleTags: many(articleTags),
+  articleTags: many(articleTags)
 }))
 
 export const articleCategoriesRelations = relations(articleCategories, ({ one }) => ({
   article: one(articles, {
     fields: [articleCategories.articleId],
-    references: [articles.id],
+    references: [articles.id]
   }),
   category: one(categories, {
     fields: [articleCategories.categoryId],
-    references: [categories.id],
-  }),
+    references: [categories.id]
+  })
 }))
 
 export const articleTagsRelations = relations(articleTags, ({ one }) => ({
   article: one(articles, {
     fields: [articleTags.articleId],
-    references: [articles.id],
+    references: [articles.id]
   }),
   tag: one(tags, {
     fields: [articleTags.tagId],
-    references: [tags.id],
-  }),
+    references: [tags.id]
+  })
 }))

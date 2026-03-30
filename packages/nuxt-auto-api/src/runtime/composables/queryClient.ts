@@ -10,11 +10,11 @@ export function createAutoApiQueryClient() {
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
         refetchOnWindowFocus: false,
-        retry: 1
+        retry: 1,
       },
       mutations: {
-        retry: 0
-      }
-    }
+        retry: 0,
+      },
+    },
   })
 }

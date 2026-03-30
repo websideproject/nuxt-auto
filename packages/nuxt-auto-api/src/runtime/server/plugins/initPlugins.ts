@@ -18,7 +18,8 @@ export default defineNitroPlugin(async () => {
     console.log('[nuxt-auto-api:initPlugins] Virtual module imported, keys:', Object.keys(mod))
     console.log('[nuxt-auto-api:initPlugins] mod.plugins type:', typeof mod.plugins, 'isArray:', Array.isArray(mod.plugins), 'length:', mod.plugins?.length)
     plugins = mod.plugins || []
-  } catch (err) {
+  }
+  catch (err) {
     console.error('[nuxt-auto-api:initPlugins] Failed to import virtual module #nuxt-auto-api-plugins:', err)
     markInitialized()
     return
@@ -44,7 +45,8 @@ export default defineNitroPlugin(async () => {
   try {
     const { useRuntimeConfig } = await import('#imports')
     runtimeConfig = useRuntimeConfig()
-  } catch {
+  }
+  catch {
     // Runtime config might not be available
   }
 
@@ -78,7 +80,8 @@ export default defineNitroPlugin(async () => {
     try {
       await plugin.runtimeSetup(runtimeContext)
       logger.info(`Plugin "${plugin.name}" initialized successfully`)
-    } catch (error) {
+    }
+    catch (error) {
       logger.error(`Failed to initialize plugin "${plugin.name}":`, error)
     }
   }

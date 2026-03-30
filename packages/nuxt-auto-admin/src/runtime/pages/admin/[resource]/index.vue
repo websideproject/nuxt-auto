@@ -108,6 +108,8 @@ import ResourceEditModal from '../../../components/modals/ResourceEditModal.vue'
 
 // Composables are auto-imported
 
+defineOptions({ name: 'AdminResourceListPage' })
+
 definePageMeta({
   layout: 'admin',
 })
@@ -174,7 +176,7 @@ function openDeleteModalFromView(id: string | number) {
   deleteModalOpen.value = true
 }
 
-function handleCreateSuccess(data: any) {
+function handleCreateSuccess(_data: unknown) {
   toast.add({
     title: 'Success',
     description: `${resource.value?.displayName || resourceName.value} created successfully`,
@@ -184,7 +186,7 @@ function handleCreateSuccess(data: any) {
   // Table will auto-refresh via query invalidation
 }
 
-function handleEditSuccess(data: any) {
+function handleEditSuccess(_data: unknown) {
   toast.add({
     title: 'Success',
     description: `${resource.value?.displayName || resourceName.value} updated successfully`,
@@ -209,7 +211,7 @@ async function confirmDelete() {
       color: 'success',
     })
   }
-  catch (error) {
+  catch {
     // Error is handled by useAdminActions
   }
 }

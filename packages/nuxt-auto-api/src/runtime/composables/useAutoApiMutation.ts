@@ -23,7 +23,7 @@ import { useAutoApiToast } from './useAutoApiToast'
  */
 export function useAutoApiCreate<T = any, TBody = any>(
   resource: MaybeRef<string>,
-  options?: Omit<UseMutationOptions<GetResponse<T>, Error, TBody>, 'mutationFn'> & { toast?: AutoApiToastOptions }
+  options?: Omit<UseMutationOptions<GetResponse<T>, Error, TBody>, 'mutationFn'> & { toast?: AutoApiToastOptions },
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -36,13 +36,13 @@ export function useAutoApiCreate<T = any, TBody = any>(
     mutationFn: async (body: TBody) => {
       return await $fetch<GetResponse<T>>(`/api/${resourceRef.value}`, {
         method: 'POST',
-        body
+        body,
       })
     },
     onSuccess: (data, variables, context) => {
       // Invalidate list queries
       queryClient.invalidateQueries({
-        queryKey: ['autoapi', resourceRef.value, 'list']
+        queryKey: ['autoapi', resourceRef.value, 'list'],
       })
 
       // Show toast if enabled
@@ -62,7 +62,7 @@ export function useAutoApiCreate<T = any, TBody = any>(
       // Call user's onError
       mutationOptions?.onError?.(error, variables, context)
     },
-    ...mutationOptions
+    ...mutationOptions,
   } as any)
 }
 
@@ -84,7 +84,7 @@ export function useAutoApiUpdate<T = any, TBody = any>(
   options?: Omit<
     UseMutationOptions<GetResponse<T>, Error, TBody & { id: string | number }>,
     'mutationFn'
-  > & { toast?: AutoApiToastOptions }
+  > & { toast?: AutoApiToastOptions },
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -98,18 +98,18 @@ export function useAutoApiUpdate<T = any, TBody = any>(
       const { id, ...body } = variables
       return await $fetch<GetResponse<T>>(`/api/${resourceRef.value}/${id}`, {
         method: 'PATCH',
-        body
+        body,
       })
     },
     onSuccess: (data, variables, context) => {
       // Invalidate specific item cache
       queryClient.invalidateQueries({
-        queryKey: ['autoapi', resourceRef.value, 'get', variables.id]
+        queryKey: ['autoapi', resourceRef.value, 'get', variables.id],
       })
 
       // Invalidate list cache
       queryClient.invalidateQueries({
-        queryKey: ['autoapi', resourceRef.value, 'list']
+        queryKey: ['autoapi', resourceRef.value, 'list'],
       })
 
       // Show toast if enabled
@@ -129,7 +129,7 @@ export function useAutoApiUpdate<T = any, TBody = any>(
       // Call user's onError
       mutationOptions?.onError?.(error, variables, context)
     },
-    ...mutationOptions
+    ...mutationOptions,
   } as any)
 }
 
@@ -148,7 +148,7 @@ export function useAutoApiUpdate<T = any, TBody = any>(
  */
 export function useAutoApiDelete(
   resource: MaybeRef<string>,
-  options?: Omit<UseMutationOptions<{ success: boolean }, Error, string | number>, 'mutationFn'> & { toast?: AutoApiToastOptions }
+  options?: Omit<UseMutationOptions<{ success: boolean }, Error, string | number>, 'mutationFn'> & { toast?: AutoApiToastOptions },
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -160,18 +160,18 @@ export function useAutoApiDelete(
   return useMutation({
     mutationFn: async (id: string | number) => {
       return await $fetch<{ success: boolean }>(`/api/${resourceRef.value}/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
     },
     onSuccess: (data, id, context) => {
       // Remove specific item from cache
       queryClient.removeQueries({
-        queryKey: ['autoapi', resourceRef.value, 'get', id]
+        queryKey: ['autoapi', resourceRef.value, 'get', id],
       })
 
       // Invalidate list cache
       queryClient.invalidateQueries({
-        queryKey: ['autoapi', resourceRef.value, 'list']
+        queryKey: ['autoapi', resourceRef.value, 'list'],
       })
 
       // Show toast if enabled
@@ -191,7 +191,7 @@ export function useAutoApiDelete(
       // Call user's onError
       mutationOptions?.onError?.(error, id, context)
     },
-    ...mutationOptions
+    ...mutationOptions,
   } as any)
 }
 
@@ -212,7 +212,7 @@ export function useAutoApiDelete(
 export function useAutoApiOptimisticUpdate<T = any>(
   resource: string,
   id: string | number,
-  updates: Partial<T>
+  updates: Partial<T>,
 ) {
   const queryClient = useQueryClient()
   const queryKey = ['autoapi', resource, 'get', id]
@@ -226,7 +226,7 @@ export function useAutoApiOptimisticUpdate<T = any>(
   // Optimistically update
   if (previousData) {
     queryClient.setQueryData<GetResponse<T>>(queryKey, {
-      data: { ...previousData.data, ...updates }
+      data: { ...previousData.data, ...updates },
     })
   }
 
@@ -247,13 +247,15 @@ export function useAutoApiOptimisticUpdate<T = any>(
 export function useAutoApiMutation<T = any, TBody = any>(
   resource: MaybeRef<string>,
   action: 'create' | 'update' | 'delete',
-  options?: any
+  options?: any,
 ) {
   if (action === 'create') {
     return useAutoApiCreate<T, TBody>(resource, options)
-  } else if (action === 'update') {
+  }
+  else if (action === 'update') {
     return useAutoApiUpdate<T, TBody>(resource, options)
-  } else if (action === 'delete') {
+  }
+  else if (action === 'delete') {
     return useAutoApiDelete(resource, options)
   }
 

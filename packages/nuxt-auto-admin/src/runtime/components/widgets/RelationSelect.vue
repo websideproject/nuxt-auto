@@ -82,8 +82,8 @@ const {
 const searchOptions = computed(() => {
   if (!relationData.value?.data) return []
 
-  return relationData.value.data.map((item: any) => ({
-    label: item[displayField.value] || item.id || 'Unknown',
+  return relationData.value.data.map((item: Record<string, unknown>) => ({
+    label: (item[displayField.value] as string) || (item.id as string) || 'Unknown',
     value: item.id,
   }))
 })

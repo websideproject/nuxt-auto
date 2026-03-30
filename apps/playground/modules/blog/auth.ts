@@ -73,7 +73,7 @@ export const articlesAuth: ResourceAuthConfig = {
 
     // For update/delete, must be editor or admin (already checked in permissions)
     return ctx.user?.role === 'editor' || ctx.user?.role === 'admin'
-  },
+  }
 }
 
 /**
@@ -90,9 +90,9 @@ export const categoriesAuth: ResourceAuthConfig = {
 
     // M2M permissions: prevent users from linking categories they can't update
     m2m: {
-      requireUpdateToLink: true, // Users must have update permission to link categories
+      requireUpdateToLink: true // Users must have update permission to link categories
     }
-  },
+  }
 }
 
 /**
@@ -104,10 +104,10 @@ export const categoriesAuth: ResourceAuthConfig = {
 export const tagsAuth: ResourceAuthConfig = {
   permissions: {
     read: () => true, // Public read access
-    create: (ctx) => !!ctx.user, // Any authenticated user can create tags
+    create: ctx => !!ctx.user, // Any authenticated user can create tags
     update: ['editor', 'admin'], // Only editors/admins can update
-    delete: ['editor', 'admin'], // Only editors/admins can delete
-  },
+    delete: ['editor', 'admin'] // Only editors/admins can delete
+  }
 }
 
 /**
@@ -117,9 +117,9 @@ export const tagsAuth: ResourceAuthConfig = {
 export const articleCategoriesAuth: ResourceAuthConfig = {
   permissions: {
     read: () => true, // Public read access
-    create: (ctx) => !!ctx.user, // Must be authenticated
-    delete: (ctx) => !!ctx.user, // Must be authenticated
-  },
+    create: ctx => !!ctx.user, // Must be authenticated
+    delete: ctx => !!ctx.user // Must be authenticated
+  }
   // Note: In a real app, you'd want to check if the user owns the article
 }
 
@@ -130,8 +130,8 @@ export const articleCategoriesAuth: ResourceAuthConfig = {
 export const articleTagsAuth: ResourceAuthConfig = {
   permissions: {
     read: () => true, // Public read access
-    create: (ctx) => !!ctx.user, // Must be authenticated
-    delete: (ctx) => !!ctx.user, // Must be authenticated
-  },
+    create: ctx => !!ctx.user, // Must be authenticated
+    delete: ctx => !!ctx.user // Must be authenticated
+  }
   // Note: In a real app, you'd want to check if the user owns the article
 }

@@ -22,7 +22,7 @@ export function createResourceHandlers(
     authorization?: ResourceAuthConfig
     validation?: ValidationSchema
     hooks?: ResourceHooks
-  }
+  },
 ) {
   // Get the table for this resource
   // Handle both legacy (schema[resource]) and new (schema is already the table)
@@ -30,12 +30,14 @@ export function createResourceHandlers(
   if (options.schema[resource]) {
     // Legacy: schema is full schema object
     table = options.schema[resource]
-  } else if (options.schema[Symbol.for('drizzle:Name')]) {
+  }
+  else if (options.schema[Symbol.for('drizzle:Name')]) {
     // New: schema is already the table
     table = options.schema
     // Update schema to be object with resource key for compatibility
     options.schema = { [resource]: table }
-  } else {
+  }
+  else {
     console.warn(`[nuxt-auto-api] Could not find table for resource: ${resource}`)
   }
 
@@ -45,10 +47,12 @@ export function createResourceHandlers(
   // Use custom validation if provided, otherwise generate from table
   if (options.validation) {
     validationSchemas = options.validation as any
-  } else if (table) {
+  }
+  else if (table) {
     try {
       validationSchemas = generateSchemas(table)
-    } catch (error) {
+    }
+    catch (error) {
       console.warn(`[nuxt-auto-api] Failed to generate validation schemas for ${resource}`, error)
     }
   }

@@ -97,7 +97,7 @@ describe('softDelete utilities', () => {
       const result = supportsSoftDelete(
         'posts',
         tableWithSoftDelete,
-        { softDelete: false }
+        { softDelete: false },
       )
       expect(result).toBe(false)
     })
@@ -106,7 +106,7 @@ describe('softDelete utilities', () => {
       const result = supportsSoftDelete(
         'posts',
         tableWithSoftDelete,
-        { softDelete: ['posts', 'users'] }
+        { softDelete: ['posts', 'users'] },
       )
       expect(result).toBe(true)
     })
@@ -115,7 +115,7 @@ describe('softDelete utilities', () => {
       const result = supportsSoftDelete(
         'comments',
         tableWithSoftDelete,
-        { softDelete: ['posts', 'users'] }
+        { softDelete: ['posts', 'users'] },
       )
       expect(result).toBe(false)
     })

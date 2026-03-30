@@ -82,7 +82,8 @@ export function createActivityFeedPlugin(options: ActivityFeedPluginOptions = {}
         message: entry.message,
         timestamp: new Date(),
       })
-    } catch (err) {
+    }
+    catch (err) {
       console.error('[autoApi:activity] Failed to write activity:', err)
     }
   }

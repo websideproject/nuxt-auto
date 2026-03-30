@@ -48,11 +48,13 @@
 <script setup lang="ts">
 import PermissionDeniedPage from '../../components/PermissionDeniedPage.vue'
 
+defineOptions({ name: 'AdminErrorPage' })
+
 definePageMeta({
   layout: 'admin',
 })
 
-const props = defineProps<{
+defineProps<{
   error: {
     statusCode?: number
     statusMessage?: string

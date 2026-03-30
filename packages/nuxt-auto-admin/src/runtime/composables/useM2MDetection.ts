@@ -122,7 +122,7 @@ export async function isJunctionTable(resourceName: string): Promise<boolean> {
     )
     return response.isJunction
   }
-  catch (error) {
+  catch {
     return false
   }
 }

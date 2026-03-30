@@ -32,7 +32,10 @@
       All Users
     </h2>
 
-    <div v-if="isLoading" class="space-y-4">
+    <div
+      v-if="isLoading"
+      class="space-y-4"
+    >
       <USkeleton class="h-24" />
       <USkeleton class="h-24" />
     </div>
@@ -46,7 +49,10 @@
       :description="String(error)"
     />
 
-    <div v-else-if="users" class="space-y-4">
+    <div
+      v-else-if="users"
+      class="space-y-4"
+    >
       <UCard
         v-for="userItem in users.data"
         :key="userItem.id"
@@ -91,7 +97,10 @@
                   >
                     {{ userItem.email }}
                   </span>
-                  <div v-else class="flex items-center gap-2">
+                  <div
+                    v-else
+                    class="flex items-center gap-2"
+                  >
                     <span class="text-sm text-gray-400">
                       [Hidden]
                     </span>
@@ -138,7 +147,7 @@ interface User {
 const { user: currentUser, isAdmin } = useAuth()
 
 const { data: users, isLoading, error } = useAutoApiList<User>('users', {
-  sort: 'id',
+  sort: 'id'
 })
 
 function isCurrentUser(userItem: User): boolean {

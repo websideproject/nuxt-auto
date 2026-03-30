@@ -1,4 +1,4 @@
-import type { Extension, ExtensionContext } from '../types'
+import type { Extension } from '../types'
 import { createError } from 'h3'
 
 /**
@@ -63,7 +63,7 @@ export interface RateLimitStore {
  * In-memory rate limit store
  */
 class MemoryStore implements RateLimitStore {
-  private store: Map<string, { count: number; resetAt: number }> = new Map()
+  private store: Map<string, { count: number, resetAt: number }> = new Map()
   private windowMs: number
 
   constructor(windowMs: number) {
@@ -205,13 +205,14 @@ export async function checkRateLimit(event: any): Promise<void> {
   let key: string
   if (config.keyGenerator) {
     key = config.keyGenerator(event)
-  } else {
+  }
+  else {
     const parts: string[] = []
 
     if (config.byIp) {
-      const ip = event.node?.req?.headers?.['x-forwarded-for'] ||
-                 event.node?.req?.socket?.remoteAddress ||
-                 'unknown'
+      const ip = event.node?.req?.headers?.['x-forwarded-for']
+        || event.node?.req?.socket?.remoteAddress
+        || 'unknown'
       parts.push(`ip:${ip}`)
     }
 

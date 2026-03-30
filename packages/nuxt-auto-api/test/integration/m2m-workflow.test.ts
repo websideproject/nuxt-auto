@@ -10,7 +10,7 @@ import { createMockContext } from '../helpers/mocks'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('M2M Integration Workflow', () => {
@@ -32,7 +32,8 @@ describe('M2M Integration Workflow', () => {
         const result = await fn(db)
         sqlite.prepare('RELEASE SAVEPOINT test_tx').run()
         return result
-      } catch (error) {
+      }
+      catch (error) {
         sqlite.prepare('ROLLBACK TO SAVEPOINT test_tx').run()
         throw error
       }
@@ -43,13 +44,13 @@ describe('M2M Integration Workflow', () => {
       { name: 'Vue' },
       { name: 'Nuxt' },
       { name: 'TypeScript' },
-      { name: 'Drizzle' }
+      { name: 'Drizzle' },
     ]).returning()
 
     // Add initial relations: Post 1 has 'Vue' and 'Nuxt'
     await db.insert(baseSchema.postTags).values([
       { postId: testData.posts[0].id, tagId: tags[0].id },
-      { postId: testData.posts[0].id, tagId: tags[1].id }
+      { postId: testData.posts[0].id, tagId: tags[1].id },
     ])
   })
 
@@ -71,7 +72,7 @@ describe('M2M Integration Workflow', () => {
         resource: 'posts',
         operation: 'list', // Operation context
         params: { id: postId, relation: 'tags' },
-        validated: { query: {} }
+        validated: { query: {} },
       })
 
       const initialList = await m2mListHandler(listContext as any)
@@ -87,7 +88,7 @@ describe('M2M Integration Workflow', () => {
         operation: 'sync',
         params: { id: postId, relation: 'tags' },
         event: { method: 'POST' },
-        validated: { body: { ids: [tags[1].id, tags[2].id, tags[3].id] } }
+        validated: { body: { ids: [tags[1].id, tags[2].id, tags[3].id] } },
       })
 
       const syncResult = await m2mSyncHandler(syncContext as any)
@@ -103,7 +104,7 @@ describe('M2M Integration Workflow', () => {
         resource: 'posts',
         operation: 'list',
         params: { id: postId, relation: 'tags' },
-        validated: { query: {} }
+        validated: { query: {} },
       })
 
       const finalList = await m2mListHandler(verifyContext as any)
@@ -125,7 +126,7 @@ describe('M2M Integration Workflow', () => {
         operation: 'add',
         params: { id: postId, relation: 'tags' },
         event: { method: 'POST' },
-        validated: { body: { ids: [tags[2].id] } }
+        validated: { body: { ids: [tags[2].id] } },
       })
 
       const addResult = await m2mAddHandler(addContext as any)
@@ -138,7 +139,7 @@ describe('M2M Integration Workflow', () => {
         resource: 'posts',
         operation: 'list',
         params: { id: postId, relation: 'tags' },
-        validated: { query: {} }
+        validated: { query: {} },
       })
       const list = await m2mListHandler(listContext as any)
       expect(list.ids).toContain(tags[2].id)
@@ -154,7 +155,7 @@ describe('M2M Integration Workflow', () => {
         operation: 'remove',
         params: { id: postId, relation: 'tags' },
         event: { method: 'DELETE' },
-        validated: { body: { ids: [tags[0].id] } }
+        validated: { body: { ids: [tags[0].id] } },
       })
 
       const removeResult = await m2mRemoveHandler(removeContext as any)
@@ -167,7 +168,7 @@ describe('M2M Integration Workflow', () => {
         resource: 'posts',
         operation: 'list',
         params: { id: postId, relation: 'tags' },
-        validated: { query: {} }
+        validated: { query: {} },
       })
       const list = await m2mListHandler(listContext as any)
       expect(list.ids).not.toContain(tags[0].id)
@@ -184,7 +185,7 @@ describe('M2M Integration Workflow', () => {
         resource: 'posts',
         operation: 'list',
         params: { id: postId, relation: 'tags' },
-        validated: { query: { includeRecords: true } }
+        validated: { query: { includeRecords: true } },
       })
 
       const listResult = await m2mListHandler(listContext as any)
@@ -203,7 +204,7 @@ describe('M2M Integration Workflow', () => {
         resource: 'posts',
         operation: 'list',
         params: { id: 9999, relation: 'tags' },
-        validated: { query: {} }
+        validated: { query: {} },
       })
 
       await expect(m2mListHandler(listContext as any)).rejects.toThrow(/not found/)
@@ -219,7 +220,7 @@ describe('M2M Integration Workflow', () => {
         operation: 'sync',
         params: { id: postId, relation: 'tags' },
         event: { method: 'POST' },
-        validated: { body: { ids: [9999] } }
+        validated: { body: { ids: [9999] } },
       })
 
       await expect(m2mSyncHandler(syncContext as any)).rejects.toThrow(/not found/)

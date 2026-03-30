@@ -1,6 +1,10 @@
 <template>
   <div class="space-y-4">
-    <div v-for="(item, index) in data" :key="index" class="space-y-2">
+    <div
+      v-for="(item, index) in data"
+      :key="index"
+      class="space-y-2"
+    >
       <div class="flex items-center justify-between text-sm">
         <span class="font-medium text-gray-700 dark:text-gray-300">
           {{ formatLabel(item.label) }}
@@ -16,7 +20,10 @@
         />
       </div>
     </div>
-    <div v-if="data.length === 0" class="text-center py-8 text-gray-500">
+    <div
+      v-if="data.length === 0"
+      class="text-center py-8 text-gray-500"
+    >
       No data to display
     </div>
   </div>

@@ -29,7 +29,7 @@ import type { MiddlewareStage } from '../../types/plugin'
  * ```
  */
 export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
-  options: EndpointOptions<TBody, TQuery, TResponse>
+  options: EndpointOptions<TBody, TQuery, TResponse>,
 ): EventHandler {
   return defineEventHandler(async (event: H3Event) => {
     let context: HandlerContext
@@ -61,14 +61,16 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       if (!options.skipValidation) {
         await result.validate(context)
       }
-    } else {
+    }
+    else {
       // Standalone endpoint: lightweight context
       let adapter
       let db
       try {
         adapter = getDatabaseAdapter()
         db = adapter.db
-      } catch {
+      }
+      catch {
         db = (globalThis as any).__autoApiDb
       }
 

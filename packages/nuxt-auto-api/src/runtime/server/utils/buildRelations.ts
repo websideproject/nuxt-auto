@@ -61,7 +61,7 @@ export function buildRelations(
   include: string | string[] | undefined,
   schema: any,
   resourceName?: string,
-  db?: any
+  db?: any,
 ): Record<string, any> | undefined {
   if (!include) {
     return undefined
@@ -109,10 +109,12 @@ export function buildRelations(
       if (!current[part]) {
         if (isLast) {
           current[part] = true
-        } else {
+        }
+        else {
           current[part] = { with: {} }
         }
-      } else if (current[part] === true && !isLast) {
+      }
+      else if (current[part] === true && !isLast) {
         // If it was previously a leaf but now we need to go deeper
         current[part] = { with: {} }
       }

@@ -1,4 +1,5 @@
-import { SQL, and, or, eq, ne, gt, gte, lt, lte, like, inArray, isNull, isNotNull } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
+import { and, or, eq, ne, gt, gte, lt, lte, like, inArray, isNull, isNotNull } from 'drizzle-orm'
 
 /**
  * Build a WHERE clause from a filter object
@@ -64,13 +65,15 @@ export function buildWhereClause(filter: Record<string, any>, table: any): SQL |
           case '$null':
             if (operatorValue === true || operatorValue === 'true') {
               conditions.push(isNull(column))
-            } else {
+            }
+            else {
               conditions.push(isNotNull(column))
             }
             break
         }
       }
-    } else {
+    }
+    else {
       // Simple equality
       conditions.push(eq(column, value))
     }

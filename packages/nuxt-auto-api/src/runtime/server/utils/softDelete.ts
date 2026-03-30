@@ -21,7 +21,7 @@ export function getSoftDeleteColumn(table: any): string | null {
 export function supportsSoftDelete(
   resource: string,
   table: any,
-  config?: { softDelete?: boolean | string[] }
+  config?: { softDelete?: boolean | string[] },
 ): boolean {
   // Explicit config overrides
   if (config?.softDelete === false) return false

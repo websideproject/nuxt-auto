@@ -32,7 +32,9 @@
       <!-- Bulk Create -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Bulk Create</h2>
+          <h2 class="text-xl font-semibold">
+            Bulk Create
+          </h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             POST <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
           </p>
@@ -47,7 +49,10 @@
           @submit="handleBulkCreate"
         />
 
-        <div v-if="createResult" class="mt-4">
+        <div
+          v-if="createResult"
+          class="mt-4"
+        >
           <p class="text-sm font-medium text-green-600 dark:text-green-400 mb-2">
             ✓ Successfully created {{ createResult.data?.length }} posts
           </p>
@@ -58,7 +63,9 @@
       <!-- Bulk Update -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Bulk Update</h2>
+          <h2 class="text-xl font-semibold">
+            Bulk Update
+          </h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             PATCH <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
           </p>
@@ -68,11 +75,17 @@
           <USkeleton class="h-48" />
         </div>
 
-        <div v-else-if="postsError" class="text-red-600">
+        <div
+          v-else-if="postsError"
+          class="text-red-600"
+        >
           Error: {{ postsError }}
         </div>
 
-        <div v-else class="space-y-4">
+        <div
+          v-else
+          class="space-y-4"
+        >
           <p class="text-sm text-gray-600 dark:text-gray-400">
             Select posts to update, modify their titles, then click Update Selected:
           </p>
@@ -96,16 +109,19 @@
           </div>
 
           <UButton
-            @click="handleBulkUpdate"
             :loading="bulkUpdateMutation.isPending.value"
             :disabled="selectedForUpdate.length === 0"
             icon="i-heroicons-pencil"
             color="green"
+            @click="handleBulkUpdate"
           >
             Update Selected ({{ selectedForUpdate.length }})
           </UButton>
 
-          <div v-if="updateResult" class="mt-4">
+          <div
+            v-if="updateResult"
+            class="mt-4"
+          >
             <p class="text-sm font-medium text-green-600 dark:text-green-400 mb-2">
               ✓ Successfully updated {{ updateResult.data?.length }} posts
             </p>
@@ -117,7 +133,9 @@
       <!-- Bulk Delete -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Bulk Delete</h2>
+          <h2 class="text-xl font-semibold">
+            Bulk Delete
+          </h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             DELETE <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
           </p>
@@ -127,11 +145,17 @@
           <USkeleton class="h-48" />
         </div>
 
-        <div v-else-if="postsError" class="text-red-600">
+        <div
+          v-else-if="postsError"
+          class="text-red-600"
+        >
           Error: {{ postsError }}
         </div>
 
-        <div v-else class="space-y-4">
+        <div
+          v-else
+          class="space-y-4"
+        >
           <p class="text-sm text-gray-600 dark:text-gray-400">
             Select posts to delete (this action cannot be undone):
           </p>
@@ -147,22 +171,29 @@
                 :value="post.id"
               />
               <div class="flex-1 min-w-0">
-                <p class="font-medium text-sm">{{ post.title }}</p>
-                <p class="text-xs text-gray-500">ID: {{ post.id }}</p>
+                <p class="font-medium text-sm">
+                  {{ post.title }}
+                </p>
+                <p class="text-xs text-gray-500">
+                  ID: {{ post.id }}
+                </p>
               </div>
             </div>
           </div>
 
           <UButton
-            @click="confirmDelete"
             :disabled="selectedForDelete.length === 0"
             icon="i-heroicons-trash"
             color="error"
+            @click="confirmDelete"
           >
             Delete Selected ({{ selectedForDelete.length }})
           </UButton>
 
-          <div v-if="deleteResult" class="mt-4">
+          <div
+            v-if="deleteResult"
+            class="mt-4"
+          >
             <p class="text-sm font-medium text-green-600 dark:text-green-400 mb-2">
               ✓ Successfully deleted {{ deleteResult.deleted }} posts
             </p>
@@ -176,7 +207,9 @@
     <UModal v-model="showDeleteModal">
       <UCard>
         <template #header>
-          <h3 class="text-lg font-semibold">Confirm Bulk Delete</h3>
+          <h3 class="text-lg font-semibold">
+            Confirm Bulk Delete
+          </h3>
         </template>
 
         <p class="text-gray-600 dark:text-gray-400">
@@ -226,7 +259,7 @@ const bulkCreateMutation = useAutoApiBulkCreate('posts', {
   }
 })
 
-const handleBulkCreate = (data: any[]) => {
+const handleBulkCreate = (data: Record<string, string>[]) => {
   // Add userId and published fields
   const postsData = data.map(item => ({
     ...item,
@@ -253,7 +286,7 @@ const bulkUpdateMutation = useAutoApiBulkUpdate('posts', {
 const handleBulkUpdate = () => {
   const updates = selectedForUpdate.value.map(id => ({
     id,
-    title: updateTitles.value[id] || posts.value?.data?.find((p: any) => p.id === id)?.title
+    title: updateTitles.value[id] || posts.value?.data?.find((p: { id: number, title: string }) => p.id === id)?.title
   }))
   bulkUpdateMutation.mutate(updates)
 }
@@ -283,7 +316,7 @@ const handleBulkDelete = () => {
 // Initialize update titles when posts load
 watch(posts, (newPosts) => {
   if (newPosts?.data) {
-    newPosts.data.forEach((post: any) => {
+    newPosts.data.forEach((post: { id: number, title: string }) => {
       if (!updateTitles.value[post.id]) {
         updateTitles.value[post.id] = post.title
       }

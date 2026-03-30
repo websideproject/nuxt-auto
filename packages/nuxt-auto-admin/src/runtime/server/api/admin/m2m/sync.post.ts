@@ -49,8 +49,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  interface DrizzleDb {
+    select: () => { from: (schema: unknown) => { where: (condition: unknown) => Promise<Record<string, unknown>[]> } }
+    delete: (schema: unknown) => { where: (condition: unknown) => Promise<unknown> }
+    insert: (schema: unknown) => { values: (data: Record<string, unknown>) => Promise<unknown> }
+  }
   // Get DB from globalThis (same pattern as auto-api)
-  const db = (globalThis as any).__autoApiDb
+  const db = (globalThis as { __autoApiDb?: DrizzleDb }).__autoApiDb
   if (!db) {
     throw createError({
       statusCode: 500,
@@ -59,7 +64,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Import registry to get schema
-  const { registry } = await import('#nuxt-auto-api-registry') as any
+  const { registry } = await import('#nuxt-auto-api-registry') as { registry: Record<string, { schema: unknown }> }
 
   // Get the junction table schema from registry
   const resourceConfig = registry[junctionTable]
@@ -85,12 +90,12 @@ export default defineEventHandler(async (event) => {
       .from(schema)
       .where(eq(schema[leftKey], leftId))
 
-    const currentRightIds = currentRecords.map((r: any) => r[rightKey])
+    const currentRightIds = currentRecords.map((r: Record<string, unknown>) => r[rightKey])
 
     // 2. Calculate diff
-    const newRightIds = Array.isArray(rightIds) ? rightIds : []
-    const toAdd = newRightIds.filter((id: any) => !currentRightIds.includes(id))
-    const toRemove = currentRightIds.filter((id: any) => !newRightIds.includes(id))
+    const newRightIds: unknown[] = Array.isArray(rightIds) ? rightIds : []
+    const toAdd = newRightIds.filter(id => !currentRightIds.includes(id))
+    const toRemove = currentRightIds.filter(id => !newRightIds.includes(id))
 
     // 3. Remove old relations
     if (toRemove.length > 0) {
@@ -123,10 +128,10 @@ export default defineEventHandler(async (event) => {
       total: newRightIds.length,
     }
   }
-  catch (error: any) {
+  catch (error: unknown) {
     throw createError({
       statusCode: 500,
-      message: `Failed to sync M2M relations: ${error.message}`,
+      message: `Failed to sync M2M relations: ${(error as Error).message}`,
     })
   }
 })

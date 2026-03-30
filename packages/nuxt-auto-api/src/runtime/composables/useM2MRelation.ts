@@ -25,7 +25,7 @@ export function useM2MRelation<T = any>(
   id: MaybeRef<string | number>,
   relation: MaybeRef<string>,
   params?: MaybeRef<M2MListQuery>,
-  options?: Omit<UseQueryOptions<M2MListResponse<T>>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<M2MListResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
   const resourceRef = computed(() => unref(resource))
   const idRef = computed(() => unref(id))
@@ -64,12 +64,12 @@ export function useM2MRelation<T = any>(
 
   return useQuery({
     queryKey: computed(() =>
-      autoApiKeys.m2mRelation(resourceRef.value, idRef.value, relationRef.value, paramsRef.value)
+      autoApiKeys.m2mRelation(resourceRef.value, idRef.value, relationRef.value, paramsRef.value),
     ),
     queryFn: async () => {
       const response = await $fetch<M2MListResponse<T>>(
         `/api/${resourceRef.value}/${idRef.value}/relations/${relationRef.value}`,
-        { query: queryParams.value }
+        { query: queryParams.value },
       )
       return response
     },

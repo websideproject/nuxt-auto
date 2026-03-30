@@ -168,7 +168,7 @@ export interface M2MPermissionContext {
  * M2M permission check function
  */
 export type M2MPermissionFunction = (
-  context: M2MPermissionContext
+  context: M2MPermissionContext,
 ) => boolean | Promise<boolean>
 
 /**

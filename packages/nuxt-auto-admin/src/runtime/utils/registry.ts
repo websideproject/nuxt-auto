@@ -14,10 +14,18 @@ export function formatFieldLabel(fieldName: string): string {
     .trim()
 }
 
+interface RegistryColumn {
+  name: string
+  type?: string
+  dataType?: string
+  enumValues?: string[]
+  foreignKey?: unknown
+}
+
 /**
  * Map column type to widget component name
  */
-export function mapColumnTypeToWidget(column: any): string {
+export function mapColumnTypeToWidget(column: RegistryColumn): string {
   const { name, type, dataType, enumValues, foreignKey } = column
 
   // Check for foreign keys first

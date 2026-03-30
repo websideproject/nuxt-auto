@@ -98,7 +98,7 @@ export function formatFieldLabel(fieldName: string): string {
 /**
  * Format value for display in table or detail view
  */
-export function formatDisplayValue(value: any, column: ColumnMetadata): string {
+export function formatDisplayValue(value: unknown, column: ColumnMetadata): string {
   if (value === null || value === undefined) {
     return '-'
   }
@@ -186,8 +186,8 @@ export function isSensitiveField(fieldName: string): boolean {
 /**
  * Get validation rules based on column metadata
  */
-export function getValidationRules(column: ColumnMetadata): any {
-  const rules: any = {}
+export function getValidationRules(column: ColumnMetadata): Record<string, boolean> | undefined {
+  const rules: Record<string, boolean> = {}
 
   if (!column.isNullable && !column.defaultValue) {
     rules.required = true

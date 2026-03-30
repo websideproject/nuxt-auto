@@ -4,7 +4,7 @@ import type { AutoApiPlugin } from '../types/plugin'
 
 /** Any object implementing the Standard Schema .safeParse() interface (Zod, Valibot, etc.) */
 interface ParseableSchema {
-  safeParse: (data: any) => { success: boolean; error?: any; data?: any }
+  safeParse: (data: any) => { success: boolean, error?: any, data?: any }
 }
 
 export interface SchemaValidationPluginOptions {

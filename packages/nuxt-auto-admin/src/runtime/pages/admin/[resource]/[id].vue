@@ -191,6 +191,8 @@ import { formatFieldLabel, formatDisplayValue } from '../../../utils/fieldTypeMa
 
 // Composables are auto-imported
 
+defineOptions({ name: 'AdminResourceDetailPage' })
+
 definePageMeta({
   layout: 'admin',
 })
@@ -248,7 +250,7 @@ async function confirmDelete() {
     await handleDelete(id.value, { redirect: true })
     deleteModalOpen.value = false
   }
-  catch (error) {
+  catch {
     // Error is handled by useAdminActions
   }
 }

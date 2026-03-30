@@ -20,7 +20,8 @@ export function decodeCursor(cursor: string): Record<string, any> {
   try {
     const decoded = Buffer.from(cursor, 'base64url').toString('utf8')
     return JSON.parse(decoded)
-  } catch {
+  }
+  catch {
     throw createError({ statusCode: 400, message: 'Invalid cursor' })
   }
 }
@@ -33,7 +34,7 @@ export function buildCursorWhere(
   table: any,
   cursor: string,
   cursorFields: string[],
-  direction: 'asc' | 'desc' = 'asc'
+  direction: 'asc' | 'desc' = 'asc',
 ) {
   const cursorData = decodeCursor(cursor)
 
@@ -44,7 +45,8 @@ export function buildCursorWhere(
 
     if (direction === 'asc') {
       return gt(table[field], value)
-    } else {
+    }
+    else {
       return lt(table[field], value)
     }
   }
@@ -57,7 +59,8 @@ export function buildCursorWhere(
 
   if (direction === 'asc') {
     return gt(table[field], value)
-  } else {
+  }
+  else {
     return lt(table[field], value)
   }
 }

@@ -4,35 +4,35 @@ import type { ToastProvider } from '../types/toast'
 export function useAutoApiToast() {
   const toastProvider = inject<ToastProvider>('autoApiToastProvider', null)
 
-  const errorMessages: Record<number, { title: string; description: string }> = {
+  const errorMessages: Record<number, { title: string, description: string }> = {
     400: {
       title: 'Validation Error',
-      description: 'Please check your input and try again.'
+      description: 'Please check your input and try again.',
     },
     401: {
       title: 'Authentication Required',
-      description: 'You need to be logged in to perform this action.'
+      description: 'You need to be logged in to perform this action.',
     },
     403: {
       title: 'Access Denied',
-      description: 'You do not have permission to perform this action.'
+      description: 'You do not have permission to perform this action.',
     },
     404: {
       title: 'Not Found',
-      description: 'The requested resource could not be found.'
+      description: 'The requested resource could not be found.',
     },
     409: {
       title: 'Conflict',
-      description: 'This action conflicts with existing data.'
+      description: 'This action conflicts with existing data.',
     },
     422: {
       title: 'Unprocessable Entity',
-      description: 'The request was valid but contains semantic errors.'
+      description: 'The request was valid but contains semantic errors.',
     },
     500: {
       title: 'Server Error',
-      description: 'An unexpected error occurred. Please try again later.'
-    }
+      description: 'An unexpected error occurred. Please try again later.',
+    },
   }
 
   const handleSuccess = (message: string, description?: string) => {
@@ -71,6 +71,6 @@ export function useAutoApiToast() {
     handleError,
     handleWarning,
     handleInfo,
-    isAvailable: !!toastProvider
+    isAvailable: !!toastProvider,
   }
 }

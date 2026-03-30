@@ -12,7 +12,7 @@ describe('buildPagination', () => {
   it('should use custom limit', () => {
     const result = buildPagination(
       { limit: 10 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.limit).toBe(10)
@@ -21,7 +21,7 @@ describe('buildPagination', () => {
   it('should calculate offset from page', () => {
     const result = buildPagination(
       { page: 3, limit: 10 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.limit).toBe(10)
@@ -31,7 +31,7 @@ describe('buildPagination', () => {
   it('should enforce max limit', () => {
     const result = buildPagination(
       { limit: 500 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.limit).toBe(100)
@@ -40,7 +40,7 @@ describe('buildPagination', () => {
   it('should handle negative limit', () => {
     const result = buildPagination(
       { limit: -5 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.limit).toBe(20) // Falls back to default
@@ -49,7 +49,7 @@ describe('buildPagination', () => {
   it('should handle zero limit', () => {
     const result = buildPagination(
       { limit: 0 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.limit).toBe(20) // Falls back to default
@@ -58,7 +58,7 @@ describe('buildPagination', () => {
   it('should handle cursor-based pagination', () => {
     const result = buildPagination(
       { cursor: 'eyJpZCI6MTAwfQ==', limit: 20 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.cursor).toBe('eyJpZCI6MTAwfQ==')
@@ -68,7 +68,7 @@ describe('buildPagination', () => {
   it('should handle page 1', () => {
     const result = buildPagination(
       { page: 1, limit: 10 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.offset).toBe(0)
@@ -77,7 +77,7 @@ describe('buildPagination', () => {
   it('should handle page 0 as page 1', () => {
     const result = buildPagination(
       { page: 0, limit: 10 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.offset).toBe(0)
@@ -86,7 +86,7 @@ describe('buildPagination', () => {
   it('should handle negative page as page 1', () => {
     const result = buildPagination(
       { page: -5, limit: 10 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.offset).toBe(0)
@@ -101,7 +101,7 @@ describe('buildPagination', () => {
   it('should parse string limit', () => {
     const result = buildPagination(
       { limit: '15' as any },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.limit).toBe(15)
@@ -110,7 +110,7 @@ describe('buildPagination', () => {
   it('should parse string page', () => {
     const result = buildPagination(
       { page: '2' as any, limit: 10 },
-      { defaultLimit: 20, maxLimit: 100 }
+      { defaultLimit: 20, maxLimit: 100 },
     )
 
     expect(result.offset).toBe(10)

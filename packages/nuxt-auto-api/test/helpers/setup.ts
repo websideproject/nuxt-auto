@@ -91,13 +91,13 @@ export async function seedDatabase(db: any, schema: any) {
   const users = await db.insert(schema.users).values([
     { email: 'admin@test.com', name: 'Admin', role: 'admin', password: 'hashed_password_123', apiKey: 'sk_live_admin123' },
     { email: 'user@test.com', name: 'User', role: 'user', password: 'hashed_password_456', apiKey: 'sk_live_user456' },
-    { email: 'editor@test.com', name: 'Editor', role: 'editor', password: 'hashed_password_789', apiKey: 'sk_live_editor789' }
+    { email: 'editor@test.com', name: 'Editor', role: 'editor', password: 'hashed_password_789', apiKey: 'sk_live_editor789' },
   ]).returning()
 
   // Insert test posts
   const posts = await db.insert(schema.posts).values([
     { title: 'Post 1', content: 'Content 1', userId: users[0].id, published: true },
-    { title: 'Post 2', content: 'Content 2', userId: users[1].id, published: false }
+    { title: 'Post 2', content: 'Content 2', userId: users[1].id, published: false },
   ]).returning()
 
   return { users, posts }

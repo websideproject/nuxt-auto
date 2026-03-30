@@ -12,9 +12,9 @@ vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
   autoApi: {
     relations: {
-      maxDepth: 3
-    }
-  }
+      maxDepth: 3,
+    },
+  },
 }))
 
 describe('Relation Error Handling Integration', () => {
@@ -63,15 +63,16 @@ describe('Relation Error Handling Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'nonExistentRelation'
-        }
+          include: 'nonExistentRelation',
+        },
       })
 
       try {
         await listHandler(context as any)
         // If we reach here, test should fail
         expect(true).toBe(false)
-      } catch (error: any) {
+      }
+      catch (error: any) {
         // Should catch and provide helpful error
         expect(error.message).toBeDefined()
         // Error message might vary based on Drizzle version
@@ -87,14 +88,15 @@ describe('Relation Error Handling Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'invalidRelation'
-        }
+          include: 'invalidRelation',
+        },
       })
 
       try {
         await listHandler(context as any)
         expect(true).toBe(false) // Should not reach here
-      } catch (error: any) {
+      }
+      catch (error: any) {
         // Error should be caught and handled
         expect(error).toBeDefined()
       }
@@ -109,8 +111,8 @@ describe('Relation Error Handling Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          include: 'author'
-        }
+          include: 'author',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -129,8 +131,8 @@ describe('Relation Error Handling Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts.comments'
-        }
+          include: 'posts.comments',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -151,8 +153,8 @@ describe('Relation Error Handling Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          include: 'author'
-        }
+          include: 'author',
+        },
       })
 
       // Can throw either error depending on how the mock is interpreted, but both indicate failure to query relations
@@ -170,14 +172,15 @@ describe('Relation Error Handling Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'invalidRelation[id,name]'
-        }
+          include: 'invalidRelation[id,name]',
+        },
       })
 
       try {
         await listHandler(context as any)
         expect(true).toBe(false)
-      } catch (error: any) {
+      }
+      catch (error: any) {
         expect(error).toBeDefined()
       }
     })
@@ -189,14 +192,15 @@ describe('Relation Error Handling Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'invalidRelation{filter:{active:true}}'
-        }
+          include: 'invalidRelation{filter:{active:true}}',
+        },
       })
 
       try {
         await listHandler(context as any)
         expect(true).toBe(false)
-      } catch (error: any) {
+      }
+      catch (error: any) {
         expect(error).toBeDefined()
       }
     })
@@ -213,14 +217,15 @@ describe('Relation Error Handling Integration', () => {
         operation: 'get',
         params: { id: user.id },
         query: {
-          include: 'nonExistentRelation'
-        }
+          include: 'nonExistentRelation',
+        },
       })
 
       try {
         await getHandler(context as any)
         expect(true).toBe(false)
-      } catch (error: any) {
+      }
+      catch (error: any) {
         expect(error).toBeDefined()
       }
     })
@@ -235,8 +240,8 @@ describe('Relation Error Handling Integration', () => {
         operation: 'get',
         params: { id: post.id },
         query: {
-          include: 'author'
-        }
+          include: 'author',
+        },
       })
 
       const result = await getHandler(context as any)
@@ -255,14 +260,15 @@ describe('Relation Error Handling Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts,invalidRelation'
-        }
+          include: 'posts,invalidRelation',
+        },
       })
 
       try {
         await listHandler(context as any)
         expect(true).toBe(false)
-      } catch (error: any) {
+      }
+      catch (error: any) {
         expect(error).toBeDefined()
       }
     })

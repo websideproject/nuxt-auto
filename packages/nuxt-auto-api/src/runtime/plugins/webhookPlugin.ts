@@ -15,9 +15,9 @@ export interface WebhookPluginOptions {
   /** Webhook endpoint configurations */
   endpoints: WebhookEndpoint[]
   /** HMAC signing configuration */
-  signing?: { secret: string; algorithm?: string }
+  signing?: { secret: string, algorithm?: string }
   /** Retry configuration */
-  retry?: { attempts?: number; backoffMs?: number }
+  retry?: { attempts?: number, backoffMs?: number }
 }
 
 function matchEvent(pattern: string, event: string): boolean {
@@ -49,10 +49,12 @@ async function sendWithRetry(
       if (attempt < attempts) {
         await new Promise(resolve => setTimeout(resolve, backoffMs * Math.pow(2, attempt - 1)))
       }
-    } catch (err) {
+    }
+    catch (err) {
       if (attempt === attempts) {
         console.error(`[autoApi:webhook] Failed to deliver to ${url} after ${attempts} attempts:`, err)
-      } else {
+      }
+      else {
         await new Promise(resolve => setTimeout(resolve, backoffMs * Math.pow(2, attempt - 1)))
       }
     }

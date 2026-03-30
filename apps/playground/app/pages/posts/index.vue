@@ -28,9 +28,9 @@
           />
 
           <UButton
-            @click="resetFilters"
             color="neutral"
             variant="outline"
+            @click="resetFilters"
           >
             Reset
           </UButton>
@@ -46,8 +46,15 @@
       </UCard>
 
       <!-- Loading State -->
-      <div v-if="isLoading" class="space-y-4">
-        <USkeleton class="h-32 w-full" v-for="i in 3" :key="i" />
+      <div
+        v-if="isLoading"
+        class="space-y-4"
+      >
+        <USkeleton
+          v-for="i in 3"
+          :key="i"
+          class="h-32 w-full"
+        />
       </div>
 
       <!-- Error State -->
@@ -60,14 +67,22 @@
         :description="error.message"
       >
         <template #actions>
-          <UButton @click="refetch" size="xs" color="error" variant="subtle">
+          <UButton
+            size="xs"
+            color="error"
+            variant="subtle"
+            @click="refetch"
+          >
             Retry
           </UButton>
         </template>
       </UAlert>
 
       <!-- Posts List -->
-      <div v-else-if="data" class="space-y-4">
+      <div
+        v-else-if="data"
+        class="space-y-4"
+      >
         <UCard
           v-for="post in data.data"
           :key="post.id"
@@ -97,8 +112,14 @@
                 {{ post.content }}
               </p>
 
-              <div v-if="post.author" class="flex items-center gap-2 text-sm text-gray-500">
-                <UIcon name="i-lucide-user" class="w-4 h-4" />
+              <div
+                v-if="post.author"
+                class="flex items-center gap-2 text-sm text-gray-500"
+              >
+                <UIcon
+                  name="i-lucide-user"
+                  class="w-4 h-4"
+                />
                 <span>{{ post.author.name || post.author.email }}</span>
                 <span>•</span>
                 <span>{{ formatDate(post.createdAt) }}</span>
@@ -139,8 +160,13 @@
         <!-- Empty State -->
         <UCard v-if="data.data.length === 0">
           <div class="text-center py-12">
-            <UIcon name="i-lucide-file-text" class="w-12 h-12 mx-auto text-gray-400 mb-4" />
-            <h3 class="text-lg font-semibold mb-2">No posts found</h3>
+            <UIcon
+              name="i-lucide-file-text"
+              class="w-12 h-12 mx-auto text-gray-400 mb-4"
+            />
+            <h3 class="text-lg font-semibold mb-2">
+              No posts found
+            </h3>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
               {{ searchQuery ? 'Try adjusting your filters' : 'Get started by creating your first post' }}
             </p>
@@ -167,7 +193,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 
 const filters = computed(() => {
-  const result: any = {}
+  const result: Record<string, unknown> = {}
 
   if (selectedStatus.value === 'published') {
     result.published = true

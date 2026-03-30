@@ -82,7 +82,8 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
         ip: entry.ip || null,
         timestamp: new Date(),
       })
-    } catch (err) {
+    }
+    catch (err) {
       console.error('[autoApi:audit] Failed to write audit log:', err)
     }
   }
@@ -143,7 +144,7 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
           // Snapshot current state for diff
           const table = context.schema[context.resource]
           if (table) {
-            const parsedId = /^\d+$/.test(String(id)) ? parseInt(String(id), 10) : id
+            const parsedId = /^\d+$/.test(String(id)) ? Number.parseInt(String(id), 10) : id
             const [current] = await context.db.select().from(table).where(eq(table.id, parsedId))
             ;(context as any)._auditBefore = current || null
           }
@@ -153,7 +154,7 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
           if (!shouldAudit(context.resource)) return
           const table = context.schema[context.resource]
           if (table) {
-            const parsedId = /^\d+$/.test(String(id)) ? parseInt(String(id), 10) : id
+            const parsedId = /^\d+$/.test(String(id)) ? Number.parseInt(String(id), 10) : id
             const [current] = await context.db.select().from(table).where(eq(table.id, parsedId))
             ;(context as any)._auditBefore = current || null
           }

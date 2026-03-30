@@ -11,7 +11,7 @@ import { checkPermission } from '../permissions'
  * 3. CUSTOM: Runs custom M2M permission function if provided
  */
 export async function checkM2MPermissions(
-  context: M2MPermissionContext
+  context: M2MPermissionContext,
 ): Promise<void> {
   const { left, right, handlerContext } = context
 
@@ -36,7 +36,7 @@ export async function checkM2MPermissions(
 async function checkLeftSidePermission(
   left: M2MPermissionContext['left'],
   handlerContext: HandlerContext,
-  authConfig?: ResourceAuthConfig
+  authConfig?: ResourceAuthConfig,
 ): Promise<void> {
   if (!authConfig?.permissions?.update) {
     // No update permission configured = allow
@@ -45,7 +45,7 @@ async function checkLeftSidePermission(
 
   const hasPermission = await checkPermission(
     authConfig.permissions.update,
-    handlerContext
+    handlerContext,
   )
 
   if (!hasPermission) {
@@ -77,7 +77,7 @@ async function checkRightSidePermission(
   leftResource: string,
   handlerContext: HandlerContext,
   rightAuthConfig?: ResourceAuthConfig,
-  m2mConfig?: M2MPermissionConfig
+  m2mConfig?: M2MPermissionConfig,
 ): Promise<void> {
   if (!rightAuthConfig) {
     // No auth config = allow
@@ -85,10 +85,10 @@ async function checkRightSidePermission(
   }
 
   // Determine if update permission is required
-  const requireUpdate =
-    m2mConfig?.requireUpdateToLink ||
-    m2mConfig?.requireUpdateOnRelated?.includes(right.resource) ||
-    false
+  const requireUpdate
+    = m2mConfig?.requireUpdateToLink
+      || m2mConfig?.requireUpdateOnRelated?.includes(right.resource)
+      || false
 
   const permissionToCheck = requireUpdate
     ? rightAuthConfig.permissions?.update
@@ -101,7 +101,7 @@ async function checkRightSidePermission(
 
   const hasPermission = await checkPermission(
     permissionToCheck,
-    handlerContext
+    handlerContext,
   )
 
   if (!hasPermission) {
@@ -130,7 +130,7 @@ async function checkRightSidePermission(
  */
 async function checkCustomM2MPermission(
   context: M2MPermissionContext,
-  m2mConfig?: M2MPermissionConfig
+  m2mConfig?: M2MPermissionConfig,
 ): Promise<void> {
   if (!m2mConfig?.relations) {
     return
@@ -149,7 +149,8 @@ async function checkCustomM2MPermission(
         message: `Custom M2M permission check failed for ${context.left.resource} -> ${context.right.resource}`,
       })
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     // Re-throw H3 errors as-is
     if (error.statusCode) {
       throw error
@@ -181,7 +182,7 @@ export function buildM2MPermissionContext(
     leftRecord?: any
     rightRecords?: any[]
     operation: M2MPermissionContext['operation']
-  }
+  },
 ): M2MPermissionContext {
   return {
     left: {

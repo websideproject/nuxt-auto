@@ -6,7 +6,7 @@
  */
 export function filterRelationFields(
   data: any,
-  _relationsConfig?: Record<string, any>
+  _relationsConfig?: Record<string, any>,
 ): any {
   return data
 }

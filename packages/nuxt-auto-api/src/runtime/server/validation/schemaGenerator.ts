@@ -20,7 +20,8 @@ export function generateSchemas(table: any, options?: {
     const update = options?.updateSchema || insertSchema.partial()
 
     return { create, update }
-  } catch (error) {
+  }
+  catch (error) {
     // Fallback if drizzle-zod fails (e.g., table doesn't have proper metadata)
     console.warn('[nuxt-auto-api] Failed to generate schemas from table, using passthrough', error)
     return {
@@ -45,7 +46,7 @@ export function generateQuerySchema() {
     limit: z.coerce.number().int().positive().optional(),
     // Cursor pagination
     cursor: z.string().optional(),
-    cursorFields: z.union([z.string(), z.array(z.string())]).optional().transform(val => {
+    cursorFields: z.union([z.string(), z.array(z.string())]).optional().transform((val) => {
       if (typeof val === 'string') return val.split(',')
       return val
     }),
@@ -72,7 +73,7 @@ export function defineValidationSchema(schema: {
  */
 export function refineSchema<T extends z.ZodType<any>>(
   baseSchema: T,
-  refinements: (schema: T) => T
+  refinements: (schema: T) => T,
 ): T {
   return refinements(baseSchema)
 }

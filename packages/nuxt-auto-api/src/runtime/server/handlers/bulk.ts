@@ -54,7 +54,7 @@ export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOp
   }
 
   const results: any[] = []
-  const errors: Array<{ index: number; error: string }> = []
+  const errors: Array<{ index: number, error: string }> = []
 
   // Execute beforeCreate hook for each item
   const processedItems: any[] = []
@@ -70,7 +70,8 @@ export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOp
       // Execute beforeCreate hook
       itemData = await executeBeforeHook('create', context, itemData)
       processedItems.push(itemData)
-    } catch (error: any) {
+    }
+    catch (error: any) {
       errors.push({
         index: i,
         error: error.message || 'Validation failed',
@@ -99,12 +100,14 @@ export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOp
       for (const item of created) {
         try {
           await executeAfterHook('create', context, item)
-        } catch (error: any) {
+        }
+        catch (error: any) {
           console.error('[autoApi] afterCreate hook error:', error)
         }
       }
     })
-  } else {
+  }
+  else {
     // Insert individually, collect errors
     for (let i = 0; i < processedItems.length; i++) {
       try {
@@ -114,10 +117,12 @@ export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOp
         // Execute afterCreate hook
         try {
           await executeAfterHook('create', context, created)
-        } catch (error: any) {
+        }
+        catch (error: any) {
           console.error('[autoApi] afterCreate hook error:', error)
         }
-      } catch (error: any) {
+      }
+      catch (error: any) {
         errors.push({
           index: i,
           error: error.message || 'Insert failed',
@@ -196,7 +201,7 @@ export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOp
   }
 
   const results: any[] = []
-  const errors: Array<{ index: number; id: string | number; error: string }> = []
+  const errors: Array<{ index: number, id: string | number, error: string }> = []
 
   const performUpdate = async (tx: any) => {
     for (let i = 0; i < items.length; i++) {
@@ -221,7 +226,7 @@ export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOp
         await checkObjectLevelAuth(existing, context)
 
         // Execute beforeUpdate hook
-        let processedData = await executeBeforeHook('update', context, data, id)
+        const processedData = await executeBeforeHook('update', context, data, id)
 
         // Update the record
         const [updated] = await tx
@@ -238,10 +243,12 @@ export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOp
         // Execute afterUpdate hook
         try {
           await executeAfterHook('update', context, updated)
-        } catch (error: any) {
+        }
+        catch (error: any) {
           console.error('[autoApi] afterUpdate hook error:', error)
         }
-      } catch (error: any) {
+      }
+      catch (error: any) {
         errors.push({
           index: i,
           id,
@@ -260,14 +267,16 @@ export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOp
     try {
       const adapter = context.adapter || getDatabaseAdapter()
       await adapter.atomic(async ({ tx }) => performUpdate(tx))
-    } catch (error: any) {
+    }
+    catch (error: any) {
       throw createError({
         statusCode: 400,
         message: 'Bulk update failed (transaction rolled back)',
         data: { errors },
       })
     }
-  } else {
+  }
+  else {
     await performUpdate(db)
   }
 
@@ -332,7 +341,7 @@ export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOp
 
   const softDeleteCol = getSoftDeleteColumn(table)
   const results: any[] = []
-  const errors: Array<{ index: number; id: string | number; error: string }> = []
+  const errors: Array<{ index: number, id: string | number, error: string }> = []
 
   const performDelete = async (tx: any) => {
     for (let i = 0; i < ids.length; i++) {
@@ -363,7 +372,8 @@ export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOp
           await tx.update(table)
             .set({ [softDeleteCol]: new Date() })
             .where(eq(table.id, id))
-        } else {
+        }
+        else {
           await tx.delete(table).where(eq(table.id, id))
         }
 
@@ -372,10 +382,12 @@ export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOp
         // Execute afterDelete hook
         try {
           await executeAfterHook('delete', context, undefined, id)
-        } catch (error: any) {
+        }
+        catch (error: any) {
           console.error('[autoApi] afterDelete hook error:', error)
         }
-      } catch (error: any) {
+      }
+      catch (error: any) {
         errors.push({
           index: i,
           id,
@@ -394,14 +406,16 @@ export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOp
     try {
       const adapter = context.adapter || getDatabaseAdapter()
       await adapter.atomic(async ({ tx }) => performDelete(tx))
-    } catch (error: any) {
+    }
+    catch (error: any) {
       throw createError({
         statusCode: 400,
         message: 'Bulk delete failed (transaction rolled back)',
         data: { errors },
       })
     }
-  } else {
+  }
+  else {
     await performDelete(db)
   }
 

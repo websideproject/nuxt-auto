@@ -24,7 +24,7 @@ export function useM2MSync(
   resource: MaybeRef<string>,
   id: MaybeRef<string | number>,
   relation: MaybeRef<string>,
-  options?: Omit<UseMutationOptions<M2MOperationResponse, Error, M2MSyncRequest>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<M2MOperationResponse, Error, M2MSyncRequest>, 'mutationFn'>,
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -38,7 +38,7 @@ export function useM2MSync(
         {
           method: 'POST',
           body: data,
-        }
+        },
       )
       return response
     },

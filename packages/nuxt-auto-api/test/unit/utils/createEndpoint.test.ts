@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import { createEndpoint } from '../../../src/runtime/server/utils/createEndpoint'
+
 // Use vi.hoisted to define mocks before vi.mock hoisting
 const { mockContext, mockAuthorize, mockValidate, mockRunMiddleware } = vi.hoisted(() => ({
   mockContext: {
@@ -65,8 +67,6 @@ vi.mock('../../../src/runtime/server/utils/serializeResponse', () => ({
   serializeResponse: vi.fn((data: any) => data),
 }))
 
-import { createEndpoint } from '../../../src/runtime/server/utils/createEndpoint'
-
 describe('createEndpoint', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -86,7 +86,7 @@ describe('createEndpoint', () => {
       const handler = createEndpoint({
         resource: 'users',
         operation: 'get',
-        handler: async (ctx) => ({ user: ctx.user }),
+        handler: async ctx => ({ user: ctx.user }),
       })
 
       const mockEvent = { method: 'GET', path: '/api/users/1', context: {} } as any
@@ -181,7 +181,7 @@ describe('createEndpoint', () => {
       })
 
       await expect(
-        handler({ method: 'POST', path: '/api/custom', context: {} } as any)
+        handler({ method: 'POST', path: '/api/custom', context: {} } as any),
       ).rejects.toThrow('Body validation failed')
     })
   })
@@ -214,7 +214,7 @@ describe('createEndpoint', () => {
     it('should apply transform to result', async () => {
       const handler = createEndpoint({
         handler: async () => ({ value: 5 }),
-        transform: (result) => ({ ...result, doubled: result.value * 2 }),
+        transform: result => ({ ...result, doubled: result.value * 2 }),
       })
 
       const result = await handler({ method: 'GET', path: '/api/custom', context: {} } as any)

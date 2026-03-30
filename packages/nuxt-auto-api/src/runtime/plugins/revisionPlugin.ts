@@ -130,7 +130,7 @@ export function createRevisionPlugin(options: RevisionPluginOptions = {}): AutoA
             .where(and(
               eq(revTable.resource, resource),
               eq(revTable.recordId, String(recordId)),
-              eq(revTable.version, parseInt(version, 10)),
+              eq(revTable.version, Number.parseInt(version, 10)),
             ))
 
           if (!revision) {
@@ -146,7 +146,7 @@ export function createRevisionPlugin(options: RevisionPluginOptions = {}): AutoA
             throw createError({ statusCode: 404, message: `Resource "${resource}" not found` })
           }
 
-          const parsedId = /^\d+$/.test(recordId) ? parseInt(recordId, 10) : recordId
+          const parsedId = /^\d+$/.test(recordId) ? Number.parseInt(recordId, 10) : recordId
           const { id: _id, createdAt: _createdAt, ...restoreData } = snapshotData
 
           const [updated] = await db
@@ -159,7 +159,7 @@ export function createRevisionPlugin(options: RevisionPluginOptions = {}): AutoA
             throw createError({ statusCode: 404, message: 'Record not found' })
           }
 
-          return { data: updated, meta: { restoredFromVersion: parseInt(version, 10) } }
+          return { data: updated, meta: { restoredFromVersion: Number.parseInt(version, 10) } }
         }),
       })
     },
@@ -172,7 +172,7 @@ export function createRevisionPlugin(options: RevisionPluginOptions = {}): AutoA
           const table = context.schema[context.resource]
           if (!table) return
 
-          const parsedId = /^\d+$/.test(String(id)) ? parseInt(String(id), 10) : id
+          const parsedId = /^\d+$/.test(String(id)) ? Number.parseInt(String(id), 10) : id
           const [current] = await context.db.select().from(table).where(eq(table.id, parsedId))
           ;(context as any)._revisionBefore = current || null
         },
@@ -240,7 +240,8 @@ export function createRevisionPlugin(options: RevisionPluginOptions = {}): AutoA
                 }
               }
             }
-          } catch (err) {
+          }
+          catch (err) {
             console.error('[autoApi:revision] Failed to create revision:', err)
           }
         },

@@ -23,7 +23,7 @@ import { useAutoApiToast } from './useAutoApiToast'
  */
 export function useAutoApiBulkCreate<T = any, TBody = any>(
   resource: MaybeRef<string>,
-  options?: Omit<UseMutationOptions<GetResponse<T[]>, Error, TBody[]>, 'mutationFn'> & { toast?: AutoApiToastOptions }
+  options?: Omit<UseMutationOptions<GetResponse<T[]>, Error, TBody[]>, 'mutationFn'> & { toast?: AutoApiToastOptions },
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -36,20 +36,20 @@ export function useAutoApiBulkCreate<T = any, TBody = any>(
     mutationFn: async (items: TBody[]) => {
       return await $fetch<GetResponse<T[]>>(`/api/${resourceRef.value}/bulk`, {
         method: 'POST',
-        body: items
+        body: items,
       })
     },
     onSuccess: (data, variables, context) => {
       // Invalidate list queries
       queryClient.invalidateQueries({
-        queryKey: ['autoapi', resourceRef.value, 'list']
+        queryKey: ['autoapi', resourceRef.value, 'list'],
       })
 
       // Show toast if enabled
       if (toastOptions.enabled && toastOptions.showSuccess) {
         handleSuccess(
           'Bulk created successfully',
-          `${variables.length} ${resourceRef.value} have been created`
+          `${variables.length} ${resourceRef.value} have been created`,
         )
       }
 
@@ -65,7 +65,7 @@ export function useAutoApiBulkCreate<T = any, TBody = any>(
       // Call user's onError
       mutationOptions?.onError?.(error, variables, context)
     },
-    ...mutationOptions
+    ...mutationOptions,
   } as any)
 }
 
@@ -90,7 +90,7 @@ export function useAutoApiBulkUpdate<T = any, TBody = any>(
   options?: Omit<
     UseMutationOptions<GetResponse<T[]>, Error, (TBody & { id: string | number })[]>,
     'mutationFn'
-  > & { toast?: AutoApiToastOptions }
+  > & { toast?: AutoApiToastOptions },
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -103,27 +103,27 @@ export function useAutoApiBulkUpdate<T = any, TBody = any>(
     mutationFn: async (items: (TBody & { id: string | number })[]) => {
       return await $fetch<GetResponse<T[]>>(`/api/${resourceRef.value}/bulk`, {
         method: 'PATCH',
-        body: items
+        body: items,
       })
     },
     onSuccess: (data, variables, context) => {
       // Invalidate specific item caches
-      variables.forEach(item => {
+      variables.forEach((item) => {
         queryClient.invalidateQueries({
-          queryKey: ['autoapi', resourceRef.value, 'get', item.id]
+          queryKey: ['autoapi', resourceRef.value, 'get', item.id],
         })
       })
 
       // Invalidate list cache
       queryClient.invalidateQueries({
-        queryKey: ['autoapi', resourceRef.value, 'list']
+        queryKey: ['autoapi', resourceRef.value, 'list'],
       })
 
       // Show toast if enabled
       if (toastOptions.enabled && toastOptions.showSuccess) {
         handleSuccess(
           'Bulk updated successfully',
-          `${variables.length} ${resourceRef.value} have been updated`
+          `${variables.length} ${resourceRef.value} have been updated`,
         )
       }
 
@@ -139,7 +139,7 @@ export function useAutoApiBulkUpdate<T = any, TBody = any>(
       // Call user's onError
       mutationOptions?.onError?.(error, variables, context)
     },
-    ...mutationOptions
+    ...mutationOptions,
   } as any)
 }
 
@@ -159,9 +159,9 @@ export function useAutoApiBulkUpdate<T = any, TBody = any>(
 export function useAutoApiBulkDelete(
   resource: MaybeRef<string>,
   options?: Omit<
-    UseMutationOptions<{ success: boolean; deleted: number }, Error, (string | number)[]>,
+    UseMutationOptions<{ success: boolean, deleted: number }, Error, (string | number)[]>,
     'mutationFn'
-  > & { toast?: AutoApiToastOptions }
+  > & { toast?: AutoApiToastOptions },
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -172,29 +172,29 @@ export function useAutoApiBulkDelete(
 
   return useMutation({
     mutationFn: async (ids: (string | number)[]) => {
-      return await $fetch<{ success: boolean; deleted: number }>(`/api/${resourceRef.value}/bulk`, {
+      return await $fetch<{ success: boolean, deleted: number }>(`/api/${resourceRef.value}/bulk`, {
         method: 'DELETE',
-        body: { ids }
+        body: { ids },
       })
     },
     onSuccess: (data, ids, context) => {
       // Remove specific items from cache
-      ids.forEach(id => {
+      ids.forEach((id) => {
         queryClient.removeQueries({
-          queryKey: ['autoapi', resourceRef.value, 'get', id]
+          queryKey: ['autoapi', resourceRef.value, 'get', id],
         })
       })
 
       // Invalidate list cache
       queryClient.invalidateQueries({
-        queryKey: ['autoapi', resourceRef.value, 'list']
+        queryKey: ['autoapi', resourceRef.value, 'list'],
       })
 
       // Show toast if enabled
       if (toastOptions.enabled && toastOptions.showSuccess) {
         handleSuccess(
           'Bulk deleted successfully',
-          `${ids.length} ${resourceRef.value} have been deleted`
+          `${ids.length} ${resourceRef.value} have been deleted`,
         )
       }
 
@@ -210,6 +210,6 @@ export function useAutoApiBulkDelete(
       // Call user's onError
       mutationOptions?.onError?.(error, ids, context)
     },
-    ...mutationOptions
+    ...mutationOptions,
   } as any)
 }

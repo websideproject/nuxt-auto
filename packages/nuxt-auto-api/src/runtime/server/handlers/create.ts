@@ -45,7 +45,7 @@ export async function createHandler(context: HandlerContext): Promise<SingleResp
   }
 
   // Execute afterCreate hook (may transform data, e.g., API Token plugin)
-  let result = await executeAfterHookWithTransform('create', context, created)
+  const result = await executeAfterHookWithTransform('create', context, created)
 
   // Filter hidden fields from response
   const filteredData = filterHiddenFields(result, context)

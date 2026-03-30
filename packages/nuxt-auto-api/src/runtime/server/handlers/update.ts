@@ -78,7 +78,7 @@ export async function updateHandler(context: HandlerContext): Promise<SingleResp
   }
 
   // Execute afterUpdate hook (may transform data)
-  let result = await executeAfterHookWithTransform('update', context, updated)
+  const result = await executeAfterHookWithTransform('update', context, updated)
 
   // Filter hidden fields from response
   const filteredData = filterHiddenFields(result, context)

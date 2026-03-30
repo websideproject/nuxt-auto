@@ -106,7 +106,7 @@ export function validateM2MRemoveRequest(body: any): M2MValidationResult {
  */
 export function validateMetadata(
   metadata: Array<Record<string, any>> | undefined,
-  junction: DetectedJunction
+  junction: DetectedJunction,
 ): void {
   if (!metadata || metadata.length === 0) {
     return
@@ -118,8 +118,8 @@ export function validateMetadata(
   if (validColumns.length === 0) {
     throw createError({
       statusCode: 400,
-      message: `Junction table ${junction.tableName} has no metadata columns. ` +
-        `Available columns: ${junction.leftKey}, ${junction.rightKey}`,
+      message: `Junction table ${junction.tableName} has no metadata columns. `
+        + `Available columns: ${junction.leftKey}, ${junction.rightKey}`,
     })
   }
 
@@ -127,14 +127,14 @@ export function validateMetadata(
   for (let i = 0; i < metadata.length; i++) {
     const meta = metadata[i]
     const invalidColumns = Object.keys(meta).filter(
-      key => !validColumns.includes(key)
+      key => !validColumns.includes(key),
     )
 
     if (invalidColumns.length > 0) {
       throw createError({
         statusCode: 400,
-        message: `Invalid metadata columns at index ${i}: ${invalidColumns.join(', ')}. ` +
-          `Valid columns: ${validColumns.join(', ')}`,
+        message: `Invalid metadata columns at index ${i}: ${invalidColumns.join(', ')}. `
+          + `Valid columns: ${validColumns.join(', ')}`,
       })
     }
   }
@@ -180,9 +180,9 @@ export function validateBatchSize(ids: Array<string | number>, maxSize = 500): v
  * Sanitize IDs (convert to numbers if they're numeric strings)
  */
 export function sanitizeIds(ids: Array<string | number>): Array<string | number> {
-  return ids.map(id => {
+  return ids.map((id) => {
     if (typeof id === 'string' && /^\d+$/.test(id)) {
-      return parseInt(id, 10)
+      return Number.parseInt(id, 10)
     }
     return id
   })

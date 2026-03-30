@@ -9,10 +9,10 @@ const createMockEvent = (headers: Record<string, string> = {}) => ({
     req: {
       headers,
       socket: {
-        remoteAddress: '127.0.0.1'
-      }
-    }
-  }
+        remoteAddress: '127.0.0.1',
+      },
+    },
+  },
 })
 
 // Mock plugin runtime context
@@ -28,7 +28,7 @@ const createMockPluginContext = () => {
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
-      }
+      },
     } as unknown as PluginRuntimeContext,
     extendContextFn,
     addGlobalHookFn,
@@ -66,7 +66,7 @@ describe('requestMetadataPlugin', () => {
           'cf-iplatitude': '37.7749',
           'cf-iplongitude': '-122.4194',
           'user-agent': 'Mozilla/5.0',
-        })
+        }),
       } as unknown as HandlerContext
 
       await extender(mockContext)
@@ -95,7 +95,7 @@ describe('requestMetadataPlugin', () => {
         event: createMockEvent({
           'x-forwarded-for': '5.6.7.8, 1.1.1.1',
           'user-agent': 'Mozilla/5.0',
-        })
+        }),
       } as unknown as HandlerContext
 
       await extender(mockContext)
@@ -116,7 +116,7 @@ describe('requestMetadataPlugin', () => {
 
       const extender = extendContextFn.mock.calls[0][0]
       const mockContext = {
-        event: createMockEvent()
+        event: createMockEvent(),
       } as unknown as HandlerContext
 
       await extender(mockContext)
@@ -138,14 +138,14 @@ describe('requestMetadataPlugin', () => {
 
       const extender = extendContextFn.mock.calls[0][0]
       const mockContext = {
-        event: createMockEvent()
+        event: createMockEvent(),
       } as unknown as HandlerContext
 
       await extender(mockContext)
 
       expect(ctx.logger?.warn).toHaveBeenCalledWith(
         'Failed to extract request metadata:',
-        expect.any(Error)
+        expect.any(Error),
       )
       expect(mockContext.requestMeta).toEqual({})
     })
@@ -170,7 +170,7 @@ describe('requestMetadataPlugin', () => {
       await plugin.runtimeSetup!(ctx)
 
       expect(addGlobalHookFn).toHaveBeenCalledWith(
-        expect.objectContaining({ beforeCreate: expect.any(Function) })
+        expect.objectContaining({ beforeCreate: expect.any(Function) }),
       )
     })
 
@@ -188,9 +188,9 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'users',
         schema: {
-          users: { signupIp: {}, signupCountry: {}, email: {} }
+          users: { signupIp: {}, signupCountry: {}, email: {} },
         },
-        requestMeta: { ip: '1.2.3.4', country: 'US' }
+        requestMeta: { ip: '1.2.3.4', country: 'US' },
       } as unknown as HandlerContext
 
       const data = { email: 'user@example.com' }
@@ -217,9 +217,9 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'users',
         schema: {
-          users: { email: {} }  // No signupIp or signupCountry column
+          users: { email: {} }, // No signupIp or signupCountry column
         },
-        requestMeta: { ip: '1.2.3.4', country: 'US' }
+        requestMeta: { ip: '1.2.3.4', country: 'US' },
       } as unknown as HandlerContext
 
       const data = { email: 'user@example.com' }
@@ -243,19 +243,19 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'users',
         schema: { users: { signupIp: {} } },
-        requestMeta: { ip: '1.2.3.4' }
+        requestMeta: { ip: '1.2.3.4' },
       } as unknown as HandlerContext
 
-      const data = { signupIp: '9.9.9.9' }  // User explicitly set
+      const data = { signupIp: '9.9.9.9' } // User explicitly set
       const result = await beforeCreate(data, mockContext)
 
-      expect(result.signupIp).toBe('9.9.9.9')  // Keep user value
+      expect(result.signupIp).toBe('9.9.9.9') // Keep user value
     })
 
     it('should filter by resources when specified', async () => {
       const plugin = createRequestMetadataPlugin({
         autoPopulate: { ip: 'signupIp' },
-        resources: ['users'],  // Only users
+        resources: ['users'], // Only users
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -267,13 +267,13 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'orders',
         schema: { orders: { signupIp: {} } },
-        requestMeta: { ip: '1.2.3.4' }
+        requestMeta: { ip: '1.2.3.4' },
       } as unknown as HandlerContext
 
       const data = {}
       const result = await beforeCreate(data, mockContext)
 
-      expect(result).toEqual({})  // Should not populate for orders
+      expect(result).toEqual({}) // Should not populate for orders
     })
 
     it('should populate on both create and update when configured', async () => {
@@ -297,7 +297,7 @@ describe('requestMetadataPlugin', () => {
   describe('JSON Field Storage', () => {
     it('should store metadata in JSON column with path', async () => {
       const plugin = createRequestMetadataPlugin({
-        autoPopulate: { json: 'metadata', path: 'signup' }
+        autoPopulate: { json: 'metadata', path: 'signup' },
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -309,7 +309,7 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'users',
         schema: { users: { metadata: {} } },
-        requestMeta: { ip: '1.2.3.4', country: 'US' }
+        requestMeta: { ip: '1.2.3.4', country: 'US' },
       } as unknown as HandlerContext
 
       const data = { email: 'user@example.com' }
@@ -320,15 +320,15 @@ describe('requestMetadataPlugin', () => {
         metadata: {
           signup: {
             ip: '1.2.3.4',
-            country: 'US'
-          }
-        }
+            country: 'US',
+          },
+        },
       })
     })
 
     it('should merge with existing JSON data when merge=true', async () => {
       const plugin = createRequestMetadataPlugin({
-        autoPopulate: { json: 'metadata', path: 'signup', merge: true }
+        autoPopulate: { json: 'metadata', path: 'signup', merge: true },
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -340,23 +340,23 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'users',
         schema: { users: { metadata: {} } },
-        requestMeta: { ip: '1.2.3.4' }
+        requestMeta: { ip: '1.2.3.4' },
       } as unknown as HandlerContext
 
       const data = {
-        metadata: { existingField: 'value' }
+        metadata: { existingField: 'value' },
       }
       const result = await beforeCreate(data, mockContext)
 
       expect(result.metadata).toEqual({
-        existingField: 'value',  // Preserved
-        signup: { ip: '1.2.3.4' }
+        existingField: 'value', // Preserved
+        signup: { ip: '1.2.3.4' },
       })
     })
 
     it('should overwrite JSON data when merge=false', async () => {
       const plugin = createRequestMetadataPlugin({
-        autoPopulate: { json: 'metadata', path: 'signup', merge: false }
+        autoPopulate: { json: 'metadata', path: 'signup', merge: false },
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -368,22 +368,22 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'users',
         schema: { users: { metadata: {} } },
-        requestMeta: { ip: '1.2.3.4' }
+        requestMeta: { ip: '1.2.3.4' },
       } as unknown as HandlerContext
 
       const data = {
-        metadata: { existingField: 'value' }
+        metadata: { existingField: 'value' },
       }
       const result = await beforeCreate(data, mockContext)
 
       expect(result.metadata).toEqual({
-        signup: { ip: '1.2.3.4' }  // existingField removed
+        signup: { ip: '1.2.3.4' }, // existingField removed
       })
     })
 
     it('should store at top level when no path specified', async () => {
       const plugin = createRequestMetadataPlugin({
-        autoPopulate: { json: 'metadata' }
+        autoPopulate: { json: 'metadata' },
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -395,7 +395,7 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'users',
         schema: { users: { metadata: {} } },
-        requestMeta: { ip: '1.2.3.4', country: 'US' }
+        requestMeta: { ip: '1.2.3.4', country: 'US' },
       } as unknown as HandlerContext
 
       const data = {}
@@ -403,13 +403,13 @@ describe('requestMetadataPlugin', () => {
 
       expect(result.metadata).toEqual({
         ip: '1.2.3.4',
-        country: 'US'
+        country: 'US',
       })
     })
 
     it('should skip if JSON column does not exist in schema', async () => {
       const plugin = createRequestMetadataPlugin({
-        autoPopulate: { json: 'metadata', path: 'signup' }
+        autoPopulate: { json: 'metadata', path: 'signup' },
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -420,14 +420,14 @@ describe('requestMetadataPlugin', () => {
 
       const mockContext = {
         resource: 'users',
-        schema: { users: { email: {} } },  // No metadata column
-        requestMeta: { ip: '1.2.3.4' }
+        schema: { users: { email: {} } }, // No metadata column
+        requestMeta: { ip: '1.2.3.4' },
       } as unknown as HandlerContext
 
       const data = { email: 'user@example.com' }
       const result = await beforeCreate(data, mockContext)
 
-      expect(result).toEqual({ email: 'user@example.com' })  // No metadata added
+      expect(result).toEqual({ email: 'user@example.com' }) // No metadata added
     })
   })
 
@@ -439,7 +439,7 @@ describe('requestMetadataPlugin', () => {
       })
 
       const plugin = createRequestMetadataPlugin({
-        autoPopulate: customMapper
+        autoPopulate: customMapper,
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -450,7 +450,7 @@ describe('requestMetadataPlugin', () => {
 
       const mockContext = {
         resource: 'users',
-        requestMeta: { ip: '1.2.3.4' }
+        requestMeta: { ip: '1.2.3.4' },
       } as unknown as HandlerContext
 
       const data = { email: 'user@example.com' }
@@ -459,7 +459,7 @@ describe('requestMetadataPlugin', () => {
       expect(customMapper).toHaveBeenCalledWith(
         { ip: '1.2.3.4' },
         expect.objectContaining({ email: 'user@example.com' }),
-        mockContext
+        mockContext,
       )
       expect(result.custom).toBe('1.2.3.4_users')
       expect(result.email).toBe('user@example.com')
@@ -473,7 +473,7 @@ describe('requestMetadataPlugin', () => {
       }
 
       const plugin = createRequestMetadataPlugin({
-        autoPopulate: asyncMapper
+        autoPopulate: asyncMapper,
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -484,7 +484,7 @@ describe('requestMetadataPlugin', () => {
 
       const mockContext = {
         resource: 'users',
-        requestMeta: { ip: '1.2.3.4' }
+        requestMeta: { ip: '1.2.3.4' },
       } as unknown as HandlerContext
 
       const data = {}
@@ -501,7 +501,7 @@ describe('requestMetadataPlugin', () => {
       }
 
       const plugin = createRequestMetadataPlugin({
-        autoPopulate: mapper
+        autoPopulate: mapper,
       })
       const { ctx, addGlobalHookFn } = createMockPluginContext()
 
@@ -512,7 +512,7 @@ describe('requestMetadataPlugin', () => {
 
       const mockContext = {
         resource: 'users',
-        requestMeta: { country: 'US', city: 'San Francisco' }
+        requestMeta: { country: 'US', city: 'San Francisco' },
       } as unknown as HandlerContext
 
       const data = {}
@@ -520,7 +520,7 @@ describe('requestMetadataPlugin', () => {
 
       expect(result).toEqual({
         isDomestic: true,
-        location: 'San Francisco, US'
+        location: 'San Francisco, US',
       })
     })
   })
@@ -541,7 +541,7 @@ describe('requestMetadataPlugin', () => {
       const mockContext = {
         resource: 'users',
         schema: { users: { lastIp: {} } },
-        requestMeta: { ip: '1.2.3.4' }
+        requestMeta: { ip: '1.2.3.4' },
       } as unknown as HandlerContext
 
       const data = { email: 'updated@example.com' }

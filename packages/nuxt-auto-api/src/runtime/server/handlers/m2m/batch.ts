@@ -58,7 +58,7 @@ export async function m2mBatchHandler(context: HandlerContext): Promise<M2MBatch
     }
   }
 
-  const parsedLeftId = /^\d+$/.test(leftId) ? parseInt(leftId, 10) : leftId
+  const parsedLeftId = /^\d+$/.test(leftId) ? Number.parseInt(leftId, 10) : leftId
 
   // Verify left record exists
   const leftTable = schema[resource]
@@ -143,7 +143,7 @@ export async function m2mBatchHandler(context: HandlerContext): Promise<M2MBatch
             toAdd,
             toRemove,
             metadata: relationData.metadata,
-          }
+          },
         )
 
         results[relationName] = {
@@ -151,7 +151,8 @@ export async function m2mBatchHandler(context: HandlerContext): Promise<M2MBatch
           removed: opResult.removed,
           total: opResult.total,
         }
-      } catch (error: any) {
+      }
+      catch (error: any) {
         // Store error for this relation
         results[relationName] = {
           added: 0,

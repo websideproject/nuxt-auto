@@ -49,7 +49,7 @@ describe('defineAutoApiHandler', () => {
   describe('basic functionality', () => {
     it('should create a handler function', () => {
       const handler = defineAutoApiHandler({
-        execute: async (context) => ({ data: 'test' }),
+        execute: async context => ({ data: 'test' }),
       })
 
       expect(typeof handler).toBe('function')
@@ -200,7 +200,7 @@ describe('defineAutoApiHandler', () => {
 
       expect(transformSpy).toHaveBeenCalledWith(
         { data: 'test' },
-        mockContext
+        mockContext,
       )
     })
 
@@ -235,7 +235,7 @@ describe('defineAutoApiHandler', () => {
 
       expect(createContextFromRegistry).toHaveBeenCalledWith(
         expect.anything(),
-        'get'
+        'get',
       )
     })
 
@@ -251,7 +251,7 @@ describe('defineAutoApiHandler', () => {
 
       expect(createContextFromRegistry).toHaveBeenCalledWith(
         expect.anything(),
-        'list'
+        'list',
       )
     })
 
@@ -267,7 +267,7 @@ describe('defineAutoApiHandler', () => {
 
       expect(createContextFromRegistry).toHaveBeenCalledWith(
         expect.anything(),
-        'create'
+        'create',
       )
     })
 
@@ -283,7 +283,7 @@ describe('defineAutoApiHandler', () => {
 
       expect(createContextFromRegistry).toHaveBeenCalledWith(
         expect.anything(),
-        'update'
+        'update',
       )
     })
 
@@ -299,7 +299,7 @@ describe('defineAutoApiHandler', () => {
 
       expect(createContextFromRegistry).toHaveBeenCalledWith(
         expect.anything(),
-        'delete'
+        'delete',
       )
     })
   })

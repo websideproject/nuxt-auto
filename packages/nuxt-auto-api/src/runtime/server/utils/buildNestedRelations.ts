@@ -25,12 +25,12 @@ export function parseEnhancedInclude(include: string): {
   let fieldsStr = ''
   let optionsStr = ''
   let nested = ''
-  
+
   // Step 1: Separate the main relation part from the nested part (if any)
   // We need to find the first dot that is NOT inside [] or {}
   let balance = 0
   let splitIndex = -1
-  
+
   for (let i = 0; i < include.length; i++) {
     const char = include[i]
     if (char === '[' || char === '{') balance++
@@ -40,33 +40,35 @@ export function parseEnhancedInclude(include: string): {
       break
     }
   }
-  
+
   let currentPart = ''
   if (splitIndex !== -1) {
     currentPart = include.substring(0, splitIndex)
     nested = include.substring(splitIndex + 1)
-  } else {
+  }
+  else {
     currentPart = include
   }
 
   // Step 2: Parse relation name, fields [], and options {} from currentPart
   // Strategy: Identify blocks [] and {}
-  
-  let cursor = 0
+
+  const cursor = 0
   let nameEnd = currentPart.length
-  
+
   // Find start of [ or {
   const bracketStart = currentPart.indexOf('[')
   const braceStart = currentPart.indexOf('{')
-  
+
   if (bracketStart !== -1 && (braceStart === -1 || bracketStart < braceStart)) {
     nameEnd = bracketStart
-  } else if (braceStart !== -1) {
+  }
+  else if (braceStart !== -1) {
     nameEnd = braceStart
   }
-  
+
   relationName = currentPart.substring(0, nameEnd)
-  
+
   // Extract fields if present
   if (bracketStart !== -1) {
     const bracketEnd = currentPart.indexOf(']', bracketStart)
@@ -74,7 +76,7 @@ export function parseEnhancedInclude(include: string): {
       fieldsStr = currentPart.substring(bracketStart + 1, bracketEnd)
     }
   }
-  
+
   // Extract options if present
   // Note: options might contain nested braces for filter JSON
   if (braceStart !== -1) {
@@ -91,7 +93,7 @@ export function parseEnhancedInclude(include: string): {
         }
       }
     }
-    
+
     if (braceEnd !== -1) {
       optionsStr = currentPart.substring(braceStart + 1, braceEnd)
     }
@@ -103,15 +105,15 @@ export function parseEnhancedInclude(include: string): {
 
   if (optionsStr) {
     options = {}
-    
+
     // Parse limit
     const limitMatch = optionsStr.match(/limit:(\d+)/)
-    if (limitMatch) options.limit = parseInt(limitMatch[1])
-    
+    if (limitMatch) options.limit = Number.parseInt(limitMatch[1])
+
     // Parse offset
     const offsetMatch = optionsStr.match(/offset:(\d+)/)
-    if (offsetMatch) options.offset = parseInt(offsetMatch[1])
-    
+    if (offsetMatch) options.offset = Number.parseInt(offsetMatch[1])
+
     // Parse filter
     // We look for "filter:" and then try to capture the JSON object following it
     const filterIndex = optionsStr.indexOf('filter:')
@@ -131,14 +133,15 @@ export function parseEnhancedInclude(include: string): {
             }
           }
         }
-        
+
         if (jsonEnd !== -1) {
           try {
             const jsonStr = optionsStr.substring(jsonStart, jsonEnd)
             // Attempt to make it valid JSON by quoting keys if they are not quoted
-            const fixedJson = jsonStr.replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+            const fixedJson = jsonStr.replace(/([{,])\s*(\w+)\s*:/g, '$1"$2":')
             options.filter = JSON.parse(fixedJson)
-          } catch (e) {
+          }
+          catch (e) {
             console.warn('[autoApi] Failed to parse filter JSON:', e)
           }
         }
@@ -150,7 +153,7 @@ export function parseEnhancedInclude(include: string): {
     relation: relationName,
     fields,
     options,
-    nested: nested || undefined
+    nested: nested || undefined,
   }
 }
 
@@ -172,7 +175,7 @@ export function isEnhancedInclude(include: string): boolean {
 export function buildNestedRelations(
   include: string | string[],
   schema: any,
-  maxDepth: number = 3
+  maxDepth: number = 3,
 ): Record<string, any> | undefined {
   if (!include) {
     return undefined
@@ -203,7 +206,7 @@ function buildNestedRelation(
   includePath: string,
   schema: any,
   currentDepth: number,
-  maxDepth: number
+  maxDepth: number,
 ): void {
   if (currentDepth >= maxDepth) {
     console.warn(`[autoApi] Max nesting depth ${maxDepth} reached for: ${includePath}`)
@@ -240,7 +243,8 @@ function buildNestedRelation(
     const relatedTable = schema[relation]
     if (relatedTable) {
       relationConfig.where = buildWhereClause(options.filter, relatedTable)
-    } else {
+    }
+    else {
       // If we can't find the table by relation name, store filter for now
       // This will fail at query time if the filter is invalid
       console.warn(`[autoApi] Could not find table for relation '${relation}' in schema. Filter may fail at query time.`)
@@ -282,8 +286,8 @@ export function getRelationsConfig() {
  */
 export function validateEnhancedInclude(
   include: string | string[],
-  schema: any
-): { valid: boolean; error?: string } {
+  schema: any,
+): { valid: boolean, error?: string } {
   const config = getRelationsConfig()
 
   const includeArray = Array.isArray(include)
@@ -298,7 +302,7 @@ export function validateEnhancedInclude(
     if (!schema[relation]) {
       return {
         valid: false,
-        error: `Unknown relation: ${relation}`
+        error: `Unknown relation: ${relation}`,
       }
     }
 
@@ -306,7 +310,7 @@ export function validateEnhancedInclude(
     if (fields && fields.length > 0 && !config.allowFieldSelection) {
       return {
         valid: false,
-        error: 'Field selection is disabled'
+        error: 'Field selection is disabled',
       }
     }
 
@@ -314,7 +318,7 @@ export function validateEnhancedInclude(
     if (options?.filter && !config.allowFiltering) {
       return {
         valid: false,
-        error: 'Filtering on relations is disabled'
+        error: 'Filtering on relations is disabled',
       }
     }
 
@@ -322,7 +326,7 @@ export function validateEnhancedInclude(
     if ((options?.limit || options?.offset) && !config.allowPagination) {
       return {
         valid: false,
-        error: 'Pagination on relations is disabled'
+        error: 'Pagination on relations is disabled',
       }
     }
   }

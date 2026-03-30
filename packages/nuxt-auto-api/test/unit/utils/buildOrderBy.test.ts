@@ -5,7 +5,7 @@ import { buildOrderBy } from '../../../src/runtime/server/utils/buildOrderBy'
 const testTable = sqliteTable('test', {
   id: integer('id').primaryKey(),
   name: text('name'),
-  createdAt: integer('created_at')
+  createdAt: integer('created_at'),
 })
 
 describe('buildOrderBy', () => {

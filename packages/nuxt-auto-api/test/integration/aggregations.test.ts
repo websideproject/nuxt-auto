@@ -5,7 +5,7 @@ import type { HandlerContext } from '../../src/types'
 
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('Aggregations', () => {

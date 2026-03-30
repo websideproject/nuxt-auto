@@ -26,7 +26,7 @@ function col(overrides: Partial<ColumnMetadata>): ColumnMetadata {
 
 describe('mapColumnTypeToWidget', () => {
   it('returns RelationSelect for foreign key columns', () => {
-    expect(mapColumnTypeToWidget(col({ foreignKey: { table: 'users', column: 'id' } as any }))).toBe('RelationSelect')
+    expect(mapColumnTypeToWidget(col({ foreignKey: { table: 'users', column: 'id' } }))).toBe('RelationSelect')
   })
 
   it('returns SelectInput for enum columns', () => {
@@ -89,7 +89,7 @@ describe('mapColumnTypeToWidget', () => {
 
   it('foreign key check takes precedence over enum', () => {
     expect(
-      mapColumnTypeToWidget(col({ foreignKey: { table: 'roles', column: 'id' } as any, enumValues: ['a'] })),
+      mapColumnTypeToWidget(col({ foreignKey: { table: 'roles', column: 'id' }, enumValues: ['a'] })),
     ).toBe('RelationSelect')
   })
 })

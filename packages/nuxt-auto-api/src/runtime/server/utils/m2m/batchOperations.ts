@@ -24,8 +24,8 @@ function executeM2MInTx(
       .where(
         and(
           eq(junctionTable[junction.leftKey], leftId),
-          inArray(junctionTable[junction.rightKey], toRemove)
-        )
+          inArray(junctionTable[junction.rightKey], toRemove),
+        ),
       )
       .run()
 
@@ -91,7 +91,7 @@ export async function executeBatchM2M(
   db: any,
   junction: DetectedJunction,
   leftId: string | number,
-  operation: M2MBatchOperation
+  operation: M2MBatchOperation,
 ): Promise<M2MBatchResult> {
   const { toAdd, toRemove, metadata } = operation
   const junctionTable = junction.table
@@ -100,7 +100,8 @@ export async function executeBatchM2M(
   let adapter
   try {
     adapter = getDatabaseAdapter()
-  } catch {
+  }
+  catch {
     // Fallback to legacy behavior
   }
 
@@ -124,7 +125,7 @@ export async function executeBatchM2M(
 export async function getCurrentRelations(
   db: any,
   junction: DetectedJunction,
-  leftId: string | number
+  leftId: string | number,
 ): Promise<Array<string | number>> {
   const junctionTable = junction.table
 
@@ -141,7 +142,7 @@ export async function getCurrentRelations(
  */
 export function calculateDiff(
   current: Array<string | number>,
-  desired: Array<string | number>
+  desired: Array<string | number>,
 ): { toAdd: Array<string | number>, toRemove: Array<string | number> } {
   const currentSet = new Set(current.map(String))
   const desiredSet = new Set(desired.map(String))
@@ -151,7 +152,6 @@ export function calculateDiff(
 
   return { toAdd, toRemove }
 }
-
 
 /**
  * Chunk array into smaller batches
@@ -173,7 +173,7 @@ export async function executeBatchM2MWithChunking(
   junction: DetectedJunction,
   leftId: string | number,
   operation: M2MBatchOperation,
-  chunkSize = 500
+  chunkSize = 500,
 ): Promise<M2MBatchResult> {
   const { toAdd, toRemove, metadata } = operation
 
@@ -185,7 +185,8 @@ export async function executeBatchM2MWithChunking(
   let adapter
   try {
     adapter = getDatabaseAdapter()
-  } catch {
+  }
+  catch {
     // Fallback to legacy behavior
   }
 
@@ -203,8 +204,8 @@ export async function executeBatchM2MWithChunking(
           .where(
             and(
               eq(junctionTable[junction.leftKey], leftId),
-              inArray(junctionTable[junction.rightKey], chunk)
-            )
+              inArray(junctionTable[junction.rightKey], chunk),
+            ),
           )
           .run()
         totalRemoved += adapter

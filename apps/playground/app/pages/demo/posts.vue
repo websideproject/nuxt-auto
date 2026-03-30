@@ -44,7 +44,10 @@
     </div>
 
     <!-- Loading state -->
-    <div v-if="isLoading" class="space-y-4">
+    <div
+      v-if="isLoading"
+      class="space-y-4"
+    >
       <USkeleton class="h-32" />
       <USkeleton class="h-32" />
       <USkeleton class="h-32" />
@@ -61,7 +64,10 @@
     />
 
     <!-- Posts list -->
-    <div v-else-if="posts" class="space-y-4">
+    <div
+      v-else-if="posts"
+      class="space-y-4"
+    >
       <UCard
         v-for="post in posts.data"
         :key="post.id"
@@ -164,17 +170,36 @@
           </h3>
         </template>
 
-        <form @submit.prevent="submitForm" class="space-y-4">
-          <UFormGroup label="Title" required>
-            <UInput v-model="formData.title" placeholder="Enter post title" />
+        <form
+          class="space-y-4"
+          @submit.prevent="submitForm"
+        >
+          <UFormGroup
+            label="Title"
+            required
+          >
+            <UInput
+              v-model="formData.title"
+              placeholder="Enter post title"
+            />
           </UFormGroup>
 
-          <UFormGroup label="Content" required>
-            <UTextarea v-model="formData.content" placeholder="Enter post content" rows="4" />
+          <UFormGroup
+            label="Content"
+            required
+          >
+            <UTextarea
+              v-model="formData.content"
+              placeholder="Enter post content"
+              rows="4"
+            />
           </UFormGroup>
 
           <UFormGroup label="Published">
-            <UCheckbox v-model="formData.published" label="Publish this post" />
+            <UCheckbox
+              v-model="formData.published"
+              label="Publish this post"
+            />
           </UFormGroup>
 
           <div class="flex justify-end gap-2">
@@ -209,10 +234,16 @@
         <div class="space-y-4">
           <p>Are you sure you want to delete this post?</p>
           <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded">
-            <p class="font-medium">{{ deletingPost?.title }}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ deletingPost?.content }}</p>
+            <p class="font-medium">
+              {{ deletingPost?.title }}
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {{ deletingPost?.content }}
+            </p>
           </div>
-          <p class="text-sm text-red-600">This action cannot be undone.</p>
+          <p class="text-sm text-red-600">
+            This action cannot be undone.
+          </p>
 
           <div class="flex justify-end gap-2">
             <UButton
@@ -247,10 +278,10 @@ interface Post {
 const { user, isAdmin } = useAuth()
 
 const { data: posts, isLoading, error, refetch } = useAutoApiList<Post>('posts', {
-  sort: '-createdAt',
+  sort: '-createdAt'
 })
 
-const toast = useToast()
+const _toast = useToast()
 
 // Create/Edit modal state
 const showFormModal = ref(false)
@@ -259,7 +290,7 @@ const isSubmitting = ref(false)
 const formData = reactive({
   title: '',
   content: '',
-  published: false,
+  published: false
 })
 
 // Delete modal state
@@ -271,24 +302,24 @@ const isDeleting = ref(false)
 const { mutateAsync: createPost } = useAutoApiMutation('posts', 'create', {
   toast: {
     success: { title: 'Post created successfully!' },
-    error: { title: 'Failed to create post' },
-  },
+    error: { title: 'Failed to create post' }
+  }
 })
 
 // Update mutation
 const { mutateAsync: updatePost } = useAutoApiMutation('posts', 'update', {
   toast: {
     success: { title: 'Post updated successfully!' },
-    error: { title: 'Failed to update post' },
-  },
+    error: { title: 'Failed to update post' }
+  }
 })
 
 // Delete mutation
 const { mutateAsync: deletePost } = useAutoApiMutation('posts', 'delete', {
   toast: {
     success: { title: 'Post deleted successfully!' },
-    error: { title: 'Failed to delete post' },
-  },
+    error: { title: 'Failed to delete post' }
+  }
 })
 
 function isOwnPost(post: Post): boolean {
@@ -363,15 +394,15 @@ async function submitForm() {
         data: {
           title: formData.title,
           content: formData.content,
-          published: formData.published,
-        },
+          published: formData.published
+        }
       })
     } else {
       // Create new post
       await createPost({
         title: formData.title,
         content: formData.content,
-        published: formData.published,
+        published: formData.published
       })
     }
 

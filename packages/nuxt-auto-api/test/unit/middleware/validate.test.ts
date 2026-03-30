@@ -13,7 +13,7 @@ vi.mock('h3', async () => {
       const error = new Error(opts.message)
       Object.assign(error, opts)
       return error
-    }
+    },
   }
 })
 
@@ -23,8 +23,8 @@ describe('Validation Middleware', () => {
       const schemas = {
         query: z.object({
           page: z.coerce.number().min(1),
-          limit: z.coerce.number().min(1).max(100)
-        })
+          limit: z.coerce.number().min(1).max(100),
+        }),
       }
 
       const middleware = createValidationMiddleware(schemas)
@@ -33,7 +33,7 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'list',
-        query: { page: '1', limit: '20' }
+        query: { page: '1', limit: '20' },
       })
 
       await middleware(context as any)
@@ -45,8 +45,8 @@ describe('Validation Middleware', () => {
       const schemas = {
         create: z.object({
           title: z.string().min(1),
-          content: z.string()
-        })
+          content: z.string(),
+        }),
       }
 
       const { readBody } = await import('h3')
@@ -58,7 +58,7 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'create',
-        query: {}
+        query: {},
       })
 
       await middleware(context as any)
@@ -70,8 +70,8 @@ describe('Validation Middleware', () => {
       const schemas = {
         update: z.object({
           title: z.string().optional(),
-          content: z.string().optional()
-        })
+          content: z.string().optional(),
+        }),
       }
 
       const { readBody } = await import('h3')
@@ -83,7 +83,7 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'update',
-        query: {}
+        query: {},
       })
 
       await middleware(context as any)
@@ -94,8 +94,8 @@ describe('Validation Middleware', () => {
     it('should throw validation error for invalid data', async () => {
       const schemas = {
         create: z.object({
-          email: z.string().email()
-        })
+          email: z.string().email(),
+        }),
       }
 
       const { readBody } = await import('h3')
@@ -107,7 +107,7 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'create',
-        query: {}
+        query: {},
       })
 
       await expect(middleware(context as any)).rejects.toThrow('Validation error')
@@ -123,7 +123,7 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'create',
-        query: {}
+        query: {},
       })
 
       await middleware(context as any)
@@ -138,7 +138,7 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'list',
-        query: {}
+        query: {},
       })
 
       await middleware(context as any)
@@ -153,7 +153,7 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'get',
-        query: {}
+        query: {},
       })
 
       await middleware(context as any)
@@ -165,8 +165,8 @@ describe('Validation Middleware', () => {
       const schemas = {
         query: z.object({
           page: z.coerce.number(),
-          limit: z.coerce.number()
-        })
+          limit: z.coerce.number(),
+        }),
       }
 
       const middleware = createValidationMiddleware(schemas)
@@ -175,7 +175,7 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'list',
-        query: { page: '5', limit: '50' }
+        query: { page: '5', limit: '50' },
       })
 
       await middleware(context as any)
@@ -187,8 +187,8 @@ describe('Validation Middleware', () => {
       const schemas = {
         create: z.object({
           title: z.string().min(3),
-          age: z.number().min(18)
-        })
+          age: z.number().min(18),
+        }),
       }
 
       const { readBody } = await import('h3')
@@ -200,13 +200,14 @@ describe('Validation Middleware', () => {
       const context = createMockContext({
         event,
         operation: 'create',
-        query: {}
+        query: {},
       })
 
       try {
         await middleware(context as any)
         expect.fail('Should have thrown validation error')
-      } catch (error: any) {
+      }
+      catch (error: any) {
         expect(error.statusCode).toBe(400)
         expect(error.data.errors).toBeDefined()
         expect(error.data.errors.length).toBeGreaterThan(0)

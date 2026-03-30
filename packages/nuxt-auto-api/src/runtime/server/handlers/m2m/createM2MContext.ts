@@ -19,8 +19,8 @@ import { useRuntimeConfig } from '#imports'
  * - POST /api/{resource}/:id/relations/batch (batch)
  */
 export async function createM2MContext(
-  event: H3Event
-): Promise<{ context: HandlerContext; runMiddleware: (stage: MiddlewareStage) => Promise<void> }> {
+  event: H3Event,
+): Promise<{ context: HandlerContext, runMiddleware: (stage: MiddlewareStage) => Promise<void> }> {
   // Import registry from virtual module (generated at build time)
   const { registry } = await import('#nuxt-auto-api-registry') as any
 
@@ -57,7 +57,8 @@ export async function createM2MContext(
   try {
     adapter = getDatabaseAdapter()
     db = adapter.db
-  } catch {
+  }
+  catch {
     db = (globalThis as any).__autoApiDb
     if (!db) {
       throw new Error('Database not initialized. Make sure to set globalThis.__autoApiDb in a server plugin or call initializeDatabase()')

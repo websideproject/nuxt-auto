@@ -14,7 +14,7 @@ export interface ModuleOptions {
    * Access control function - determines who can access admin panel
    * @default undefined (no access control)
    */
-  access?: (user: any) => boolean | Promise<boolean>
+  access?: (user: unknown) => boolean | Promise<boolean>
 
   /**
    * Branding configuration
@@ -141,7 +141,7 @@ export interface CustomPageConfig {
   /**
    * Permission check function for more complex logic
    */
-  canAccess?: (user: any) => boolean | Promise<boolean>
+  canAccess?: (user: unknown) => boolean | Promise<boolean>
 }
 
 /**
@@ -264,12 +264,12 @@ export interface FieldConfig {
   /**
    * Validation rules
    */
-  validation?: any
+  validation?: Record<string, unknown>
 
   /**
    * Conditional visibility based on other field values
    */
-  condition?: (formData: any) => boolean
+  condition?: (formData: Record<string, unknown>) => boolean
 }
 
 /**
@@ -300,7 +300,7 @@ export type WidgetType
  */
 export interface WidgetOptions {
   // SelectInput
-  options?: Array<{ label: string, value: any }>
+  options?: Array<{ label: string, value: string | number | boolean }>
   enumValues?: string[]
 
   // RelationSelect
@@ -338,7 +338,7 @@ export interface WidgetOptions {
   theme?: string
 
   // Any other custom options
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**
@@ -373,12 +373,12 @@ export interface CustomAction {
   /**
    * Action handler
    */
-  handler: (item: any | any[], context: ActionContext) => Promise<void> | void
+  handler: (item: unknown | unknown[], context: ActionContext) => Promise<void> | void
 
   /**
    * Confirmation message (if any)
    */
-  confirm?: string | ((item: any | any[]) => string)
+  confirm?: string | ((item: unknown | unknown[]) => string)
 
   /**
    * Button variant
@@ -395,10 +395,10 @@ export interface CustomAction {
  * Action context passed to custom actions
  */
 export interface ActionContext {
-  user: any
+  user: unknown
   resource: string
   refresh: () => Promise<void>
-  toast: any
+  toast: unknown
 }
 
 /**
@@ -424,11 +424,11 @@ export interface DashboardWidget {
   resource?: string
   label?: string
   aggregation?: 'count' | 'sum' | 'avg' | 'min' | 'max'
-  filter?: Record<string, any>
+  filter?: Record<string, unknown>
   groupBy?: string
   limit?: number
   component?: string
-  props?: Record<string, any>
+  props?: Record<string, unknown>
   span?: number // Grid span (1-12)
 }
 
@@ -593,7 +593,7 @@ export interface ColumnMetadata {
   /**
    * Default value
    */
-  defaultValue?: any
+  defaultValue?: unknown
 
   /**
    * Enum values (for enum columns)

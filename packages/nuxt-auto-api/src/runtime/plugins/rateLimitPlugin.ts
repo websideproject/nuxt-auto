@@ -87,13 +87,14 @@ export function createRateLimitPlugin(options: RateLimitPluginOptions = {}): Aut
           let key: string
           if (keyGenerator) {
             key = keyGenerator(context)
-          } else {
+          }
+          else {
             const parts: string[] = []
             if (byIp) {
               const event = context.event
-              const ip = event.node?.req?.headers?.['x-forwarded-for'] ||
-                         event.node?.req?.socket?.remoteAddress ||
-                         'unknown'
+              const ip = event.node?.req?.headers?.['x-forwarded-for']
+                || event.node?.req?.socket?.remoteAddress
+                || 'unknown'
               parts.push(`ip:${Array.isArray(ip) ? ip[0] : ip}`)
             }
             if (byUser && context.user?.id) {
@@ -109,7 +110,8 @@ export function createRateLimitPlugin(options: RateLimitPluginOptions = {}): Aut
 
           if (!entry || now > entry.resetAt) {
             store.set(key, { count: 1, resetAt: now + windowMs })
-          } else {
+          }
+          else {
             entry.count++
             if (entry.count > max) {
               throw createError({

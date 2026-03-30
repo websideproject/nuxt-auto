@@ -72,7 +72,7 @@ describe('Query Parsing Integration', () => {
   })
 
   it('should handle non-string/non-object filter (if possible) by validation failure', async () => {
-     const context = createMockContext({
+    const context = createMockContext({
       resource: 'posts',
       operation: 'list',
       query: {
@@ -82,7 +82,7 @@ describe('Query Parsing Integration', () => {
 
     await expect(validate(context as any)).rejects.toThrow('Validation error')
   })
-  
+
   it('should handle undefined filter', async () => {
     const context = createMockContext({
       resource: 'posts',

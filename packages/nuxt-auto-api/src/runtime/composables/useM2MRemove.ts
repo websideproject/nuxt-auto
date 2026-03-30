@@ -19,7 +19,7 @@ export function useM2MRemove(
   resource: MaybeRef<string>,
   id: MaybeRef<string | number>,
   relation: MaybeRef<string>,
-  options?: Omit<UseMutationOptions<M2MOperationResponse, Error, M2MRemoveRequest>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<M2MOperationResponse, Error, M2MRemoveRequest>, 'mutationFn'>,
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -33,7 +33,7 @@ export function useM2MRemove(
         {
           method: 'DELETE',
           body: data,
-        }
+        },
       )
       return response
     },

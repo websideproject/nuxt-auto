@@ -1,5 +1,4 @@
-import { createError } from 'h3'
-import { readBody } from 'h3'
+import { createError, readBody } from 'h3'
 import { z } from 'zod'
 import type { HandlerContext } from '../../types'
 import { generateQuerySchema } from '../validation/schemaGenerator'
@@ -22,7 +21,8 @@ export function createValidationMiddleware(schemas?: {
       if (query && typeof query.filter === 'string') {
         try {
           query.filter = JSON.parse(query.filter)
-        } catch (e) {
+        }
+        catch (e) {
           // If parsing fails, leave as string - validation or handler will catch it
         }
       }
@@ -31,7 +31,8 @@ export function createValidationMiddleware(schemas?: {
       if (schemas?.query) {
         const validated = await schemas.query.parseAsync(query)
         context.validated.query = validated
-      } else {
+      }
+      else {
         // Use default query schema
         const defaultQuerySchema = generateQuerySchema()
         const validated = await defaultQuerySchema.parseAsync(query)
@@ -45,15 +46,18 @@ export function createValidationMiddleware(schemas?: {
         if (operation === 'create' && schemas?.create) {
           const validated = await schemas.create.parseAsync(body)
           context.validated.body = validated
-        } else if (operation === 'update' && schemas?.update) {
+        }
+        else if (operation === 'update' && schemas?.update) {
           const validated = await schemas.update.parseAsync(body)
           context.validated.body = validated
-        } else {
+        }
+        else {
           // No validation schema, pass through
           context.validated.body = body
         }
       }
-    } catch (error: any) {
+    }
+    catch (error: any) {
       if (error instanceof z.ZodError) {
         throw createError({
           statusCode: 400,

@@ -2,7 +2,6 @@ import {
   defineNuxtModule,
   addPlugin,
   createResolver,
-  addComponent,
   addImportsDir,
   addTemplate,
   addLayout,
@@ -59,7 +58,7 @@ export default defineNuxtModule<ModuleOptions>({
     // modules:done fires, all subscribers have populated the registry.
     let capturedRegistry: BuildTimeRegistry | null = null
 
-    nuxt.hook('autoApi:registerSchema' as any, async (registry: BuildTimeRegistry) => {
+    nuxt.hook('autoApi:registerSchema' as unknown as 'close', async (registry: BuildTimeRegistry) => {
       capturedRegistry = registry
     })
 
@@ -172,10 +171,31 @@ export default defineNuxtModule<ModuleOptions>({
   },
 })
 
+interface BuildTimeResource {
+  name: string
+  schema: unknown
+  [key: string]: unknown
+}
+
+interface BuildTimeResourceConfig {
+  displayName?: string
+  icon?: string
+  listFields?: string[]
+  formFields?: unknown
+  hiddenFields?: string[]
+  readonlyFields?: string[]
+  actions?: unknown
+  group?: string
+  order?: number
+  disabled?: boolean
+  type?: string
+  [key: string]: unknown
+}
+
 /**
  * Generate admin registry virtual module
  */
-function generateAdminRegistry(resources: any[], options: ModuleOptions): string {
+function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOptions): string {
   const imports: string[] = []
   const registryEntries: string[] = []
 
@@ -185,7 +205,7 @@ function generateAdminRegistry(resources: any[], options: ModuleOptions): string
     .map(r => r.name)
 
   resources.forEach((resource, index) => {
-    const resourceConfig = options.resources?.[resource.name] || {}
+    const resourceConfig: BuildTimeResourceConfig = options.resources?.[resource.name] || {}
 
     // Skip disabled resources
     if (resourceConfig.disabled) {
@@ -195,7 +215,7 @@ function generateAdminRegistry(resources: any[], options: ModuleOptions): string
     const varName = `resource${index}`
 
     // Import schema for introspection
-    const schemaImport = resource.schema as any
+    const schemaImport = resource.schema as Record<string, unknown> & { __modulePath?: string, __exportName?: string }
     if (schemaImport.__modulePath) {
       const exportName = schemaImport.__exportName || resource.name
       const modulePath = ensureExtension(schemaImport.__modulePath)
@@ -303,8 +323,8 @@ export const adminConfig = config
  * Build resource schema entry with introspection
  */
 function buildResourceSchemaEntry(
-  resource: any,
-  config: any,
+  resource: BuildTimeResource,
+  config: BuildTimeResourceConfig,
   varName: string,
   allResourceNames: string[],
 ): string {
@@ -526,7 +546,7 @@ function ensureExtension(path: string): string {
 /**
  * Generate TypeScript types for admin registry
  */
-function generateAdminRegistryTypes(resources: any[]): string {
+function generateAdminRegistryTypes(resources: BuildTimeResource[]): string {
   const resourceTypes = resources.map(r => `'${r.name}'`).join(' | ')
 
   return `import type { ResourceSchema, AdminRegistry } from './runtime/types'

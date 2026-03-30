@@ -12,7 +12,7 @@ import { createMockContext } from '../helpers/mocks'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('Multi-Tenancy Integration', () => {

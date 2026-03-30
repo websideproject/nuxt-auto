@@ -11,13 +11,13 @@ export default defineEventHandler(async (event) => {
   const [userCount, postCount, commentCount] = await Promise.all([
     ctx.db.select({ count: count() }).from(users),
     ctx.db.select({ count: count() }).from(posts),
-    ctx.db.select({ count: count() }).from(comments),
+    ctx.db.select({ count: count() }).from(comments)
   ])
 
   return respondWith({
     users: userCount[0].count,
     posts: postCount[0].count,
     comments: commentCount[0].count,
-    database: ctx.adapter?.engine || 'unknown',
+    database: ctx.adapter?.engine || 'unknown'
   })
 })

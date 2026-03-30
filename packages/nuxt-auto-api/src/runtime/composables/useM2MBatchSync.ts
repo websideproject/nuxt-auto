@@ -23,7 +23,7 @@ import { autoApiKeys } from './queryKeys'
 export function useM2MBatchSync(
   resource: MaybeRef<string>,
   id: MaybeRef<string | number>,
-  options?: Omit<UseMutationOptions<M2MBatchSyncResponse, Error, M2MBatchSyncRequest>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<M2MBatchSyncResponse, Error, M2MBatchSyncRequest>, 'mutationFn'>,
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -36,7 +36,7 @@ export function useM2MBatchSync(
         {
           method: 'POST',
           body: data,
-        }
+        },
       )
       return response
     },

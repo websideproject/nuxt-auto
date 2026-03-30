@@ -41,7 +41,7 @@ const props = defineProps<{
   showConfirm?: boolean
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   'update:modelValue': [value: string]
 }>()
 

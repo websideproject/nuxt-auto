@@ -5,12 +5,12 @@ export default defineNuxtPlugin((nuxtApp) => {
   const queryClient = createAutoApiQueryClient()
 
   nuxtApp.vueApp.use(VueQueryPlugin, {
-    queryClient
+    queryClient,
   })
 
   return {
     provide: {
-      queryClient
-    }
+      queryClient,
+    },
   }
 })

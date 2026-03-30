@@ -21,7 +21,7 @@ export const users = sqliteTable('users', {
   signupCountry: text('signup_country'),
   signupMeta: text('signup_meta', { mode: 'json' }),
   lastIp: text('last_ip'),
-  lastSeen: integer('last_seen', { mode: 'timestamp' }),
+  lastSeen: integer('last_seen', { mode: 'timestamp' })
 })
 
 /**
@@ -38,7 +38,7 @@ export const posts = sqliteTable('posts', {
   organizationId: text('organization_id'), // Multi-tenancy support
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }), // Soft delete support
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }) // Soft delete support
 })
 
 /**
@@ -53,7 +53,7 @@ export const comments = sqliteTable('comments', {
   userId: integer('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date())
 })
 
 /**
@@ -63,26 +63,26 @@ export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
   comments: many(comments),
   apiKeys: many(apiKeys),
-  articles: many(articles),
+  articles: many(articles)
 }))
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
   author: one(users, {
     fields: [posts.userId],
-    references: [users.id],
+    references: [users.id]
   }),
-  comments: many(comments),
+  comments: many(comments)
 }))
 
 export const commentsRelations = relations(comments, ({ one }) => ({
   post: one(posts, {
     fields: [comments.postId],
-    references: [posts.id],
+    references: [posts.id]
   }),
   author: one(users, {
     fields: [comments.userId],
-    references: [users.id],
-  }),
+    references: [users.id]
+  })
 }))
 
 // Combined schema for migrations
@@ -93,5 +93,5 @@ export const schema = {
   comments,
   usersRelations,
   postsRelations,
-  commentsRelations,
+  commentsRelations
 }

@@ -66,7 +66,8 @@ export async function deleteHandler(context: HandlerContext): Promise<{ success:
       softDeleted: true,
       message: 'Record marked as deleted',
     }
-  } else {
+  }
+  else {
     // Hard delete: actually remove the record
     await db.delete(table).where(eq(table.id, id))
 

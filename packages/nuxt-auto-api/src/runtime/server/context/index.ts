@@ -8,11 +8,11 @@ import type { HandlerContext, AuthUser } from '../../types'
 export async function buildContext(
   event: H3Event,
   options: {
-    db: any
-    schema: any
+    db: unknown
+    schema: Record<string, unknown>
     resource: string
     operation: HandlerContext['operation']
-  }
+  },
 ): Promise<HandlerContext> {
   const query = getQuery(event)
   const params = getRouterParams(event)

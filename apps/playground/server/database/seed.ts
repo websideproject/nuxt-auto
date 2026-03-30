@@ -30,7 +30,7 @@ export async function seed() {
         name: 'Admin User',
         role: 'admin',
         password: '$2a$10$hashed_password_admin_123',
-        apiKey: 'sk_live_admin_abc123xyz789',
+        apiKey: 'sk_live_admin_abc123xyz789'
       },
       {
         id: 2,
@@ -38,7 +38,7 @@ export async function seed() {
         name: 'Editor User',
         role: 'editor',
         password: '$2a$10$hashed_password_editor_456',
-        apiKey: 'sk_live_editor_def456uvw012',
+        apiKey: 'sk_live_editor_def456uvw012'
       },
       {
         id: 3,
@@ -46,8 +46,8 @@ export async function seed() {
         name: 'Regular User',
         role: 'user',
         password: '$2a$10$hashed_password_user_789',
-        apiKey: 'sk_live_user_ghi789rst345',
-      },
+        apiKey: 'sk_live_user_ghi789rst345'
+      }
     ])
     .returning()
 
@@ -61,37 +61,37 @@ export async function seed() {
         title: 'My First Post',
         content: 'This is a post by the regular user (ID 3). They should be able to edit this.',
         published: true,
-        userId: 3, // Regular user
+        userId: 3 // Regular user
       },
       {
         title: 'My Draft Post',
         content: 'This is a draft post by the regular user.',
         published: false,
-        userId: 3, // Regular user
+        userId: 3 // Regular user
       },
       {
         title: 'Editor\'s Featured Article',
         content: 'This is a post created by the editor user.',
         published: true,
-        userId: 2, // Editor
+        userId: 2 // Editor
       },
       {
         title: 'Editor\'s Work in Progress',
         content: 'Another post by the editor.',
         published: false,
-        userId: 2, // Editor
+        userId: 2 // Editor
       },
       {
         title: 'Admin Announcement',
         content: 'Important announcement from the admin.',
         published: true,
-        userId: 1, // Admin
+        userId: 1 // Admin
       },
       {
         title: 'System Update',
         content: 'System maintenance scheduled.',
         published: true,
-        userId: 1, // Admin
+        userId: 1 // Admin
       },
       // Additional posts for aggregation demos
       { title: 'Post 7', content: 'Content for aggregation test', published: true, userId: 1 },
@@ -107,7 +107,7 @@ export async function seed() {
       { title: 'Post 17', content: 'Content for aggregation test', published: false, userId: 2 },
       { title: 'Post 18', content: 'Content for aggregation test', published: true, userId: 2 },
       { title: 'Post 19', content: 'Content for aggregation test', published: true, userId: 3 },
-      { title: 'Post 20', content: 'Content for aggregation test', published: false, userId: 3 },
+      { title: 'Post 20', content: 'Content for aggregation test', published: false, userId: 3 }
     ])
     .returning()
 
@@ -120,18 +120,18 @@ export async function seed() {
       {
         content: 'Great post!',
         postId: insertedPosts[0].id,
-        userId: 2, // Editor commenting
+        userId: 2 // Editor commenting
       },
       {
         content: 'Thanks for sharing',
         postId: insertedPosts[0].id,
-        userId: 1, // Admin commenting
+        userId: 1 // Admin commenting
       },
       {
         content: 'Very informative',
         postId: insertedPosts[2].id,
-        userId: 3, // Regular user commenting
-      },
+        userId: 3 // Regular user commenting
+      }
     ])
     .returning()
 
@@ -144,18 +144,18 @@ export async function seed() {
       {
         name: 'Technology',
         slug: 'technology',
-        description: 'Tech news and tutorials',
+        description: 'Tech news and tutorials'
       },
       {
         name: 'Design',
         slug: 'design',
-        description: 'UI/UX and design principles',
+        description: 'UI/UX and design principles'
       },
       {
         name: 'Business',
         slug: 'business',
-        description: 'Business insights and strategies',
-      },
+        description: 'Business insights and strategies'
+      }
     ])
     .returning()
 
@@ -170,7 +170,7 @@ export async function seed() {
       { name: 'Vue', slug: 'vue' },
       { name: 'Nuxt', slug: 'nuxt' },
       { name: 'Design Systems', slug: 'design-systems' },
-      { name: 'Startup', slug: 'startup' },
+      { name: 'Startup', slug: 'startup' }
     ])
     .returning()
 
@@ -185,36 +185,36 @@ export async function seed() {
         content: 'Nuxt 4 brings exciting new features including better performance, improved DX, and more. In this article, we explore the key changes and how to migrate your existing apps.',
         slug: 'getting-started-nuxt-4',
         published: true,
-        authorId: 2, // Editor
+        authorId: 2 // Editor
       },
       {
         title: 'Building Type-Safe APIs with Drizzle',
         content: 'Drizzle ORM provides excellent TypeScript support for building type-safe database queries. Learn how to set up Drizzle and create your first schema.',
         slug: 'type-safe-apis-drizzle',
         published: true,
-        authorId: 1, // Admin
+        authorId: 1 // Admin
       },
       {
         title: 'Modern Design Systems',
         content: 'A comprehensive guide to building scalable design systems that work across multiple platforms and frameworks.',
         slug: 'modern-design-systems',
         published: true,
-        authorId: 2, // Editor
+        authorId: 2 // Editor
       },
       {
         title: 'Draft: Advanced Vue Patterns',
         content: 'Work in progress on advanced Vue patterns... (only editors/admins can see this)',
         slug: 'draft-advanced-vue-patterns',
         published: false,
-        authorId: 2, // Editor
+        authorId: 2 // Editor
       },
       {
         title: 'Draft: Startup Best Practices',
         content: 'Key lessons learned from building successful startups in 2026. (draft)',
         slug: 'draft-startup-best-practices',
         published: false,
-        authorId: 1, // Admin
-      },
+        authorId: 1 // Admin
+      }
     ])
     .returning()
 
@@ -225,7 +225,7 @@ export async function seed() {
     { articleId: insertedArticles[0].id, categoryId: insertedCategories[0].id },
     { articleId: insertedArticles[1].id, categoryId: insertedCategories[0].id },
     { articleId: insertedArticles[2].id, categoryId: insertedCategories[1].id },
-    { articleId: insertedArticles[3].id, categoryId: insertedCategories[2].id },
+    { articleId: insertedArticles[3].id, categoryId: insertedCategories[2].id }
   ])
 
   console.log('Linked articles to categories')
@@ -237,7 +237,7 @@ export async function seed() {
     { articleId: insertedArticles[1].id, tagId: insertedTags[1].id }, // Drizzle -> TypeScript
     { articleId: insertedArticles[1].id, tagId: insertedTags[0].id }, // Drizzle -> JavaScript
     { articleId: insertedArticles[2].id, tagId: insertedTags[4].id }, // Design -> Design Systems
-    { articleId: insertedArticles[3].id, tagId: insertedTags[5].id }, // Startup -> Startup
+    { articleId: insertedArticles[3].id, tagId: insertedTags[5].id } // Startup -> Startup
   ])
 
   console.log('Linked articles to tags')
@@ -257,20 +257,20 @@ export async function seed() {
         name: 'Admin Unrestricted Key',
         key: hash('sk_test_admin_unrestricted'),
         userId: 1,
-        scopes: ['*'] as any,
+        scopes: ['*']
       },
       {
         name: 'Editor Articles Key',
         key: hash('sk_test_editor_articles'),
         userId: 2,
-        scopes: ['articles:read', 'articles:create', 'articles:update'] as any,
+        scopes: ['articles:read', 'articles:create', 'articles:update']
       },
       {
         name: 'User Read-Only Key',
         key: hash('sk_test_user_readonly'),
         userId: 3,
-        scopes: ['articles:read', 'posts:read', 'categories:read', 'tags:read'] as any,
-      },
+        scopes: ['articles:read', 'posts:read', 'categories:read', 'tags:read']
+      }
     ])
     .returning()
 

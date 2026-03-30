@@ -91,7 +91,8 @@ function parseScopes(value: unknown): string[] | null {
   if (value == null) return null
   if (Array.isArray(value)) return value as string[]
   if (typeof value === 'string') {
-    try { return JSON.parse(value) } catch { return null }
+    try { return JSON.parse(value) }
+    catch { return null }
   }
   return null
 }
@@ -221,7 +222,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
 
   const resourceNames = Object.keys(resources)
 
-  function cfg(resource: string): ApiTokenResourceConfig & { secretField: string; userField: string; userResource: string } {
+  function cfg(resource: string): ApiTokenResourceConfig & { secretField: string, userField: string, userResource: string } {
     const r = resources[resource]!
     return {
       ...r,
@@ -383,7 +384,6 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
             }
 
             console.log(`[api-token] Found token record id=${tokenRecord.id} in "${resName}"`)
-
 
             // Check expiry
             if (c.expiresField && tokenRecord[c.expiresField]) {
@@ -564,7 +564,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
           // -- afterList: mask the hash --------------------------------
           afterList(results: any[], _context: HandlerContext) {
             if (!results) return results
-            return results.map(item => {
+            return results.map((item) => {
               if (!item[c.secretField]) return item
               return { ...item, [c.secretField]: maskToken(item[c.secretField]) }
             })
@@ -581,7 +581,8 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
               const hashed = hashToken(rawToken, hashAlgorithm)
               updated[c.secretField] = hashed
               ;(context as any)._rawToken = rawToken
-            } else {
+            }
+            else {
               // Block direct writes to the secret field
               delete updated[c.secretField]
             }
@@ -690,7 +691,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
         if (!table) return
 
         const parsedId = typeof recordId === 'string' && /^\d+$/.test(recordId)
-          ? parseInt(recordId, 10)
+          ? Number.parseInt(recordId, 10)
           : recordId
 
         context.db

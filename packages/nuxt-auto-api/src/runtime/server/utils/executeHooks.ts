@@ -8,7 +8,7 @@ export class HookExecutionError extends Error {
   constructor(
     message: string,
     public hookName: string,
-    public cause?: Error
+    public cause?: Error,
   ) {
     super(message)
     this.name = 'HookExecutionError'
@@ -25,7 +25,7 @@ export class HookExecutionError extends Error {
  */
 function getAllHooks(
   context: HandlerContext,
-  hookName: keyof ResourceHooks
+  hookName: keyof ResourceHooks,
 ): Array<Function> {
   const hooks: Array<Function> = []
   const { resource, resourceConfig } = context
@@ -65,15 +65,15 @@ async function executeSingleHook(
   hook: Function,
   args: any[],
   hookName: string,
-  timeout: number = 5000
+  timeout: number = 5000,
 ): Promise<any> {
   return Promise.race([
     hook(...args),
     new Promise((_, reject) =>
       setTimeout(
         () => reject(new Error(`Hook ${hookName} timed out after ${timeout}ms`)),
-        timeout
-      )
+        timeout,
+      ),
     ),
   ])
 }
@@ -86,7 +86,7 @@ export async function executeBeforeHook(
   operation: 'create' | 'update' | 'delete' | 'list' | 'get',
   context: HandlerContext,
   data?: any,
-  id?: string | number
+  id?: string | number,
 ): Promise<any> {
   const hookName = `before${operation.charAt(0).toUpperCase()}${operation.slice(1)}` as keyof ResourceHooks
   const hooks = getAllHooks(context, hookName)
@@ -107,14 +107,14 @@ export async function executeBeforeHook(
       // Execute hooks in parallel
       // Note: In parallel mode, each hook receives the original data
       const results = await Promise.all(
-        hooks.map(hook => {
+        hooks.map((hook) => {
           const args = operation === 'update' || operation === 'delete' || operation === 'get'
             ? [id, currentData, context]
             : operation === 'list'
-            ? [context]
-            : [currentData, context]
+              ? [context]
+              : [currentData, context]
           return executeSingleHook(hook, args, hookName, timeout)
-        })
+        }),
       )
 
       // For before hooks, use the last non-undefined result
@@ -124,14 +124,15 @@ export async function executeBeforeHook(
           break
         }
       }
-    } else {
+    }
+    else {
       // Execute hooks sequentially (default)
       for (const hook of hooks) {
         const args = operation === 'update' || operation === 'delete' || operation === 'get'
           ? [id, currentData, context]
           : operation === 'list'
-          ? [context]
-          : [currentData, context]
+            ? [context]
+            : [currentData, context]
 
         const result = await executeSingleHook(hook, args, hookName, timeout)
 
@@ -141,17 +142,19 @@ export async function executeBeforeHook(
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     const hookError = new HookExecutionError(
       `Error executing ${hookName} hook`,
       hookName,
-      error as Error
+      error as Error,
     )
 
     // Before hooks should throw errors (block operation)
     if (errorHandling === 'throw') {
       throw hookError
-    } else {
+    }
+    else {
       console.error(`[autoApi] ${hookError.message}:`, error)
     }
   }
@@ -166,7 +169,7 @@ export async function executeAfterHook(
   operation: 'create' | 'update' | 'delete' | 'list' | 'get',
   context: HandlerContext,
   result?: any,
-  id?: string | number
+  id?: string | number,
 ): Promise<void> {
   const hookName = `after${operation.charAt(0).toUpperCase()}${operation.slice(1)}` as keyof ResourceHooks
   const hooks = getAllHooks(context, hookName)
@@ -184,14 +187,15 @@ export async function executeAfterHook(
     if (parallel && hooks.length > 1) {
       // Execute hooks in parallel
       await Promise.all(
-        hooks.map(hook => {
+        hooks.map((hook) => {
           const args = operation === 'delete'
             ? [id, context]
             : [result, context]
           return executeSingleHook(hook, args, hookName, timeout)
-        })
+        }),
       )
-    } else {
+    }
+    else {
       // Execute hooks sequentially
       for (const hook of hooks) {
         const args = operation === 'delete'
@@ -201,17 +205,19 @@ export async function executeAfterHook(
         await executeSingleHook(hook, args, hookName, timeout)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     const hookError = new HookExecutionError(
       `Error executing ${hookName} hook`,
       hookName,
-      error as Error
+      error as Error,
     )
 
     // After hooks should not throw by default (don't rollback)
     if (errorHandling === 'throw') {
       throw hookError
-    } else {
+    }
+    else {
       console.error(`[autoApi] ${hookError.message}:`, error)
     }
   }
@@ -248,16 +254,18 @@ export async function executeAfterHookWithTransform(
         currentResult = hookResult
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     const hookError = new HookExecutionError(
       `Error executing ${hookName} hook`,
       hookName,
-      error as Error
+      error as Error,
     )
 
     if (errorHandling === 'throw') {
       throw hookError
-    } else {
+    }
+    else {
       console.error(`[autoApi] ${hookError.message}:`, error)
     }
   }
@@ -285,7 +293,7 @@ export async function executeHook(
 
   if (parallel && hooks.length > 1) {
     const results = await Promise.all(
-      hooks.map(hook => executeSingleHook(hook, args, hookName, timeout))
+      hooks.map(hook => executeSingleHook(hook, args, hookName, timeout)),
     )
     // Return the last non-undefined result
     for (const result of results.reverse()) {
@@ -293,7 +301,8 @@ export async function executeHook(
         return result
       }
     }
-  } else {
+  }
+  else {
     let lastResult: any
     for (const hook of hooks) {
       const result = await executeSingleHook(hook, args, hookName, timeout)

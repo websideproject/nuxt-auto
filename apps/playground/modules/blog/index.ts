@@ -6,45 +6,45 @@ import { createModuleImport } from '@websideproject/nuxt-auto-api'
 export default defineNuxtModule({
   meta: {
     name: 'blog-module',
-    configKey: 'blog',
+    configKey: 'blog'
   },
 
   setup(_options, nuxt: Nuxt) {
     const resolver = createResolver(import.meta.url)
 
     // Register resources at BUILD TIME via hook
-    nuxt.hook('autoApi:registerSchema' as any, (registry: any) => {
+    nuxt.hook('autoApi:registerSchema' as never, (registry: Record<string, (...args: unknown[]) => void>) => {
       // Register articles
       registry.register('articles', {
         schema: createModuleImport(resolver.resolve('./schema'), 'articles'),
-        authorization: createModuleImport(resolver.resolve('./auth'), 'articlesAuth'),
+        authorization: createModuleImport(resolver.resolve('./auth'), 'articlesAuth')
       })
 
       // Register categories
       registry.register('categories', {
         schema: createModuleImport(resolver.resolve('./schema'), 'categories'),
-        authorization: createModuleImport(resolver.resolve('./auth'), 'categoriesAuth'),
+        authorization: createModuleImport(resolver.resolve('./auth'), 'categoriesAuth')
       })
 
       // Register tags
       registry.register('tags', {
         schema: createModuleImport(resolver.resolve('./schema'), 'tags'),
-        authorization: createModuleImport(resolver.resolve('./auth'), 'tagsAuth'),
+        authorization: createModuleImport(resolver.resolve('./auth'), 'tagsAuth')
       })
 
       // Register article-categories junction table
       registry.register('articleCategories', {
         schema: createModuleImport(resolver.resolve('./schema'), 'articleCategories'),
-        authorization: createModuleImport(resolver.resolve('./auth'), 'articleCategoriesAuth'),
+        authorization: createModuleImport(resolver.resolve('./auth'), 'articleCategoriesAuth')
       })
 
       // Register article-tags junction table
       registry.register('articleTags', {
         schema: createModuleImport(resolver.resolve('./schema'), 'articleTags'),
-        authorization: createModuleImport(resolver.resolve('./auth'), 'articleTagsAuth'),
+        authorization: createModuleImport(resolver.resolve('./auth'), 'articleTagsAuth')
       })
 
       console.log('[blog-module] Registered 5 resources at build time')
     })
-  },
+  }
 })

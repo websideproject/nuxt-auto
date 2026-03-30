@@ -1,7 +1,6 @@
-import { defineEventHandler, getMethod } from 'h3'
+import { defineEventHandler, getMethod, createError } from 'h3'
 import { bulkCreateHandler, bulkUpdateHandler, bulkDeleteHandler } from './bulk'
 import { createContextFromRegistry } from './createContextFromRegistry'
-import { createError } from 'h3'
 
 /**
  * Entry point for bulk operations - /api/{resource}/bulk
@@ -33,7 +32,8 @@ export default defineEventHandler(async (event) => {
     const result = await bulkCreateHandler(context)
     await runMiddleware('post-execute')
     return result
-  } else if (method === 'PATCH') {
+  }
+  else if (method === 'PATCH') {
     const { context, authorize, validate, runMiddleware } = await createContextFromRegistry(event, 'update')
     await runMiddleware('pre-auth')
     await authorize(context)
@@ -43,7 +43,8 @@ export default defineEventHandler(async (event) => {
     const result = await bulkUpdateHandler(context)
     await runMiddleware('post-execute')
     return result
-  } else if (method === 'DELETE') {
+  }
+  else if (method === 'DELETE') {
     const { context, authorize, validate, runMiddleware } = await createContextFromRegistry(event, 'delete')
     await runMiddleware('pre-auth')
     await authorize(context)
@@ -53,7 +54,8 @@ export default defineEventHandler(async (event) => {
     const result = await bulkDeleteHandler(context)
     await runMiddleware('post-execute')
     return result
-  } else {
+  }
+  else {
     throw createError({
       statusCode: 405,
       message: `Method ${method} not allowed for bulk operations`,

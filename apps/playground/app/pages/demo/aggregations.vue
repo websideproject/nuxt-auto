@@ -31,35 +31,55 @@
     <div class="space-y-8">
       <!-- Simple Aggregations Stats -->
       <div>
-        <h2 class="text-2xl font-semibold mb-4">Simple Aggregations</h2>
+        <h2 class="text-2xl font-semibold mb-4">
+          Simple Aggregations
+        </h2>
 
-        <div v-if="totalCountLoading || publishedCountLoading || draftCountLoading" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+          v-if="totalCountLoading || publishedCountLoading || draftCountLoading"
+          class="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
           <USkeleton class="h-32" />
           <USkeleton class="h-32" />
           <USkeleton class="h-32" />
         </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+          v-else
+          class="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
           <UCard>
             <div class="text-center">
-              <p class="text-4xl font-bold text-green-600">{{ totalCount?._count || 0 }}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Total Posts</p>
+              <p class="text-4xl font-bold text-green-600">
+                {{ totalCount?._count || 0 }}
+              </p>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                Total Posts
+              </p>
               <code class="text-xs text-gray-500">GET /api/posts/aggregate?aggregate=count</code>
             </div>
           </UCard>
 
           <UCard>
             <div class="text-center">
-              <p class="text-4xl font-bold text-blue-600">{{ publishedCount?._count || 0 }}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Published Posts</p>
+              <p class="text-4xl font-bold text-blue-600">
+                {{ publishedCount?._count || 0 }}
+              </p>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                Published Posts
+              </p>
               <code class="text-xs text-gray-500">?aggregate=count&filter={published:true}</code>
             </div>
           </UCard>
 
           <UCard>
             <div class="text-center">
-              <p class="text-4xl font-bold text-orange-600">{{ draftCount?._count || 0 }}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Draft Posts</p>
+              <p class="text-4xl font-bold text-orange-600">
+                {{ draftCount?._count || 0 }}
+              </p>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                Draft Posts
+              </p>
               <code class="text-xs text-gray-500">?aggregate=count&filter={published:false}</code>
             </div>
           </UCard>
@@ -69,7 +89,9 @@
       <!-- GroupBy Example -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">GroupBy Example</h2>
+          <h2 class="text-xl font-semibold">
+            GroupBy Example
+          </h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/aggregate?aggregate=count&groupBy=published</code>
           </p>
@@ -79,11 +101,17 @@
           <USkeleton class="h-64" />
         </div>
 
-        <div v-else-if="groupByError" class="text-red-600">
+        <div
+          v-else-if="groupByError"
+          class="text-red-600"
+        >
           Error: {{ groupByError }}
         </div>
 
-        <div v-else class="space-y-4">
+        <div
+          v-else
+          class="space-y-4"
+        >
           <p class="text-sm text-gray-600 dark:text-gray-400">
             Group posts by published status and count each group:
           </p>
@@ -91,7 +119,9 @@
           <AggregationChart :data="groupByChartData" />
 
           <div class="mt-4">
-            <p class="text-sm font-medium mb-2">Raw Data:</p>
+            <p class="text-sm font-medium mb-2">
+              Raw Data:
+            </p>
             <ApiResponse :data="groupByData" />
           </div>
         </div>
@@ -100,7 +130,9 @@
       <!-- GroupBy User Example -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Posts Per User</h2>
+          <h2 class="text-xl font-semibold">
+            Posts Per User
+          </h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/aggregate?aggregate=count&groupBy=userId</code>
           </p>
@@ -110,11 +142,17 @@
           <USkeleton class="h-64" />
         </div>
 
-        <div v-else-if="userGroupError" class="text-red-600">
+        <div
+          v-else-if="userGroupError"
+          class="text-red-600"
+        >
           Error: {{ userGroupError }}
         </div>
 
-        <div v-else class="space-y-4">
+        <div
+          v-else
+          class="space-y-4"
+        >
           <p class="text-sm text-gray-600 dark:text-gray-400">
             Count posts grouped by user:
           </p>
@@ -122,7 +160,9 @@
           <AggregationChart :data="userGroupChartData" />
 
           <div class="mt-4">
-            <p class="text-sm font-medium mb-2">Raw Data:</p>
+            <p class="text-sm font-medium mb-2">
+              Raw Data:
+            </p>
             <ApiResponse :data="userGroupData" />
           </div>
         </div>
@@ -131,7 +171,9 @@
       <!-- Interactive Builder -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Interactive Aggregation Builder</h2>
+          <h2 class="text-xl font-semibold">
+            Interactive Aggregation Builder
+          </h2>
         </template>
 
         <div class="space-y-4">
@@ -190,21 +232,25 @@
           </div>
 
           <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-            <p class="text-sm font-medium mb-2">Generated Query:</p>
+            <p class="text-sm font-medium mb-2">
+              Generated Query:
+            </p>
             <code class="text-sm">{{ builderQuery }}</code>
           </div>
 
           <UButton
-            @click="executeBuilderQuery"
             :loading="builderLoading"
             icon="i-heroicons-play"
             color="green"
+            @click="executeBuilderQuery"
           >
             Execute Query
           </UButton>
 
           <div v-if="builderResult">
-            <p class="text-sm font-medium mb-2">Result:</p>
+            <p class="text-sm font-medium mb-2">
+              Result:
+            </p>
 
             <AggregationChart
               v-if="builderGroupBy && Array.isArray(builderResult)"
@@ -249,7 +295,7 @@ const {
 const groupByChartData = computed(() => {
   if (!groupByData.value || !Array.isArray(groupByData.value)) return []
 
-  return groupByData.value.map((item: any) => ({
+  return (groupByData.value as Record<string, unknown>[]).map(item => ({
     label: item.published ? 'Published' : 'Draft',
     value: item._count
   }))
@@ -268,7 +314,7 @@ const {
 const userGroupChartData = computed(() => {
   if (!userGroupData.value || !Array.isArray(userGroupData.value)) return []
 
-  return userGroupData.value.map((item: any) => ({
+  return (userGroupData.value as Record<string, unknown>[]).map(item => ({
     label: `User ${item.userId}`,
     value: item._count
   }))
@@ -278,7 +324,7 @@ const userGroupChartData = computed(() => {
 const builderAggregate = ref('count')
 const builderField = ref<string | null>('id')
 const builderGroupBy = ref<string | null>(null)
-const builderResult = ref<any>(null)
+const builderResult = ref<unknown>(null)
 const builderLoading = ref(false)
 
 const builderQuery = computed(() => {
@@ -299,7 +345,7 @@ const builderQuery = computed(() => {
 const formatBuilderChartData = computed(() => {
   if (!builderResult.value || !Array.isArray(builderResult.value)) return []
 
-  return builderResult.value.map((item: any) => {
+  return (builderResult.value as Record<string, unknown>[]).map((item) => {
     let label = 'Result'
 
     if (builderGroupBy.value === 'published') {
@@ -336,7 +382,7 @@ const executeBuilderQuery = async () => {
       agg = `${agg}(${builderField.value})`
     }
 
-    const params: any = { aggregate: agg }
+    const params: Record<string, string> = { aggregate: agg }
     if (builderGroupBy.value) {
       params.groupBy = builderGroupBy.value
     }

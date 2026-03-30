@@ -20,7 +20,8 @@ export async function authenticate(context: HandlerContext): Promise<void> {
 
     // If no user in context, authentication is not required
     // The authorization middleware will handle permission checks
-  } catch (error: any) {
+  }
+  catch (error: any) {
     throw createError({
       statusCode: 401,
       message: error.message || 'Authentication failed',

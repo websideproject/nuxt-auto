@@ -32,7 +32,7 @@ export async function restoreHandler(context: HandlerContext): Promise<SingleRes
   const [existing] = await db.select().from(table)
     .where(and(
       eq(table.id, id),
-      isNotNull(table[softDeleteCol])
+      isNotNull(table[softDeleteCol]),
     ))
 
   if (!existing) {

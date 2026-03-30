@@ -45,7 +45,7 @@ export async function m2mListHandler(context: HandlerContext): Promise<M2MListRe
 
   // Verify left record exists
   const leftTable = schema[resource]
-  const parsedLeftId = /^\d+$/.test(leftId) ? parseInt(leftId, 10) : leftId
+  const parsedLeftId = /^\d+$/.test(leftId) ? Number.parseInt(leftId, 10) : leftId
   const [leftRecord] = await db
     .select()
     .from(leftTable)
@@ -77,10 +77,10 @@ export async function m2mListHandler(context: HandlerContext): Promise<M2MListRe
 
   // Get junction records
   const junctionTable = junction.table
-  const includeRecords = effectiveQuery.includeRecords === true ||
-    effectiveQuery.includeRecords === 'true'
-  const includeMetadata = effectiveQuery.includeMetadata === true ||
-    effectiveQuery.includeMetadata === 'true'
+  const includeRecords = effectiveQuery.includeRecords === true
+    || effectiveQuery.includeRecords === 'true'
+  const includeMetadata = effectiveQuery.includeMetadata === true
+    || effectiveQuery.includeMetadata === 'true'
 
   // Query junction table
   let junctionQuery = db

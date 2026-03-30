@@ -55,7 +55,7 @@ import AutoField from './AutoField.vue'
 
 const props = defineProps<{
   fields: FieldConfig[]
-  initialData?: Record<string, any>
+  initialData?: Record<string, unknown>
   mode?: 'create' | 'edit' | 'view'
   showCancel?: boolean
   showReset?: boolean
@@ -64,11 +64,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [data: Record<string, any>]
+  submit: [data: Record<string, unknown>]
   cancel: []
 }>()
 
-const formData = ref<Record<string, any>>({})
+const formData = ref<Record<string, unknown>>({})
 const errors = ref<Record<string, string>>({})
 const isSubmitting = ref(false)
 
@@ -76,7 +76,7 @@ const isSubmitting = ref(false)
 watch(
   [() => props.fields, () => props.initialData],
   () => {
-    const data: Record<string, any> = {}
+    const data: Record<string, unknown> = {}
 
     props.fields.forEach((field) => {
       if (props.initialData && field.name in props.initialData) {
@@ -118,11 +118,12 @@ const submitLabel = computed(() => {
   return 'Submit'
 })
 
-function updateField(name: string, value: any) {
+function updateField(name: string, value: unknown) {
   formData.value[name] = value
   // Clear error for this field
   if (errors.value[name]) {
-    delete errors.value[name]
+    const { [name]: _, ...rest } = errors.value
+    errors.value = rest
   }
 }
 
@@ -130,7 +131,7 @@ function resetForm() {
   watch(
     [() => props.fields, () => props.initialData],
     () => {
-      const data: Record<string, any> = {}
+      const data: Record<string, unknown> = {}
 
       props.fields.forEach((field) => {
         if (props.initialData && field.name in props.initialData) {
@@ -177,12 +178,13 @@ async function handleSubmit() {
 
   try {
     // Filter out readonly fields for edit mode
-    const dataToSubmit = { ...formData.value }
+    let dataToSubmit = { ...formData.value }
 
     if (props.mode === 'edit') {
       visibleFields.value.forEach((field) => {
         if (field.readonly) {
-          delete dataToSubmit[field.name]
+          const { [field.name]: _, ...rest } = dataToSubmit
+          dataToSubmit = rest
         }
       })
     }

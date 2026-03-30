@@ -7,7 +7,7 @@ describe('buildRelations', () => {
 
     expect(result).toEqual({
       author: true,
-      comments: true
+      comments: true,
     })
   })
 
@@ -16,7 +16,7 @@ describe('buildRelations', () => {
 
     expect(result).toEqual({
       author: true,
-      comments: true
+      comments: true,
     })
   })
 
@@ -49,7 +49,7 @@ describe('buildRelations', () => {
 
     expect(result).toEqual({
       author: true,
-      comments: true
+      comments: true,
     })
   })
 
@@ -72,7 +72,7 @@ describe('buildRelations', () => {
     expect(result).toEqual({
       author: true,
       comments2: true,
-      tags3: true
+      tags3: true,
     })
   })
 })

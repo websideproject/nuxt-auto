@@ -99,7 +99,7 @@ describe('createRateLimitPlugin', () => {
 
       // Third request should throw 429
       await expect(registeredMiddleware.handler(context)).rejects.toThrow(
-        'Too many requests, please try again later'
+        'Too many requests, please try again later',
       )
     })
 

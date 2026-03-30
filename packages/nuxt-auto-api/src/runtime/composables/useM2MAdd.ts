@@ -19,7 +19,7 @@ export function useM2MAdd(
   resource: MaybeRef<string>,
   id: MaybeRef<string | number>,
   relation: MaybeRef<string>,
-  options?: Omit<UseMutationOptions<M2MOperationResponse, Error, M2MAddRequest>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<M2MOperationResponse, Error, M2MAddRequest>, 'mutationFn'>,
 ) {
   const queryClient = useQueryClient()
   const resourceRef = computed(() => unref(resource))
@@ -33,7 +33,7 @@ export function useM2MAdd(
         {
           method: 'POST',
           body: data,
-        }
+        },
       )
       return response
     },

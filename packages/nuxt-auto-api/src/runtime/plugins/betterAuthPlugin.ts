@@ -7,7 +7,7 @@ export interface BetterAuthPluginOptions {
    * Custom session extraction function.
    * If not provided, defaults to reading `event.context.user` (Better Auth convention).
    */
-  getSession?: (event: any) => Promise<{ user: any; session: any } | null>
+  getSession?: (event: any) => Promise<{ user: any, session: any } | null>
   /**
    * Map a Better Auth user to the AutoApi AuthUser shape.
    * If not provided, uses the user object directly.
@@ -55,11 +55,12 @@ export function createBetterAuthPlugin(options: BetterAuthPluginOptions = {}): A
         // Skip if user is already set (e.g., by another plugin or middleware)
         if (context.user) return
 
-        let sessionData: { user: any; session: any } | null = null
+        let sessionData: { user: any, session: any } | null = null
 
         if (getSession) {
           sessionData = await getSession(context.event)
-        } else {
+        }
+        else {
           // Default: read from event.context (Better Auth convention)
           const eventUser = (context.event.context as any).user
           if (eventUser) {

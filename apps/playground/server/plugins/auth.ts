@@ -13,20 +13,20 @@ const DEMO_USERS: Record<string, DemoUser> = {
     id: 1,
     name: 'Admin User',
     email: 'admin@example.com',
-    role: 'admin',
+    role: 'admin'
   },
   editor: {
     id: 2,
     name: 'Editor User',
     email: 'editor@example.com',
-    role: 'editor',
+    role: 'editor'
   },
   user: {
     id: 3,
     name: 'Regular User',
     email: 'user@example.com',
-    role: 'user',
-  },
+    role: 'user'
+  }
 }
 
 /**
@@ -53,18 +53,16 @@ export default defineNitroPlugin((nitroApp) => {
         name: demoUser.name,
         email: demoUser.email,
         role: demoUser.role,
-        roles: [demoUser.role],
+        roles: [demoUser.role]
       }
 
       // Set permissions based on role
       // The permissions array should contain role names that match the auth configs
       if (demoUser.role === 'admin') {
         event.context.permissions = ['admin']
-      }
-      else if (demoUser.role === 'editor') {
+      } else if (demoUser.role === 'editor') {
         event.context.permissions = ['editor']
-      }
-      else {
+      } else {
         event.context.permissions = ['user']
       }
 
@@ -91,7 +89,7 @@ export default defineNitroPlugin((nitroApp) => {
         event.context.user = {
           id: userId,
           role,
-          permissions: permissions || [],
+          permissions: permissions || []
         }
 
         console.log('[auth] Token authenticated user:', event.context.user)

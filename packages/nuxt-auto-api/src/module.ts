@@ -2,7 +2,7 @@ import { defineNuxtModule, createResolver, addServerHandler, addServerImportsDir
 import type { AutoApiOptions, ResourceRegistration, AutoApiPlugin } from './runtime/types'
 import type { PluginBuildContext } from './runtime/types/plugin'
 
-export interface ModuleOptions extends Partial<AutoApiOptions> {}
+export type ModuleOptions = Partial<AutoApiOptions>
 
 export interface BuildTimeRegistry {
   resources: Map<string, ResourceRegistration>
@@ -47,7 +47,7 @@ export default defineNuxtModule<ModuleOptions>({
     })
 
     // Add runtime config
-    nuxt.options.runtimeConfig.autoApi = options as any
+    nuxt.options.runtimeConfig.autoApi = options as unknown as typeof nuxt.options.runtimeConfig.autoApi
 
     // Create build-time registry
     const registry: BuildTimeRegistry = {
@@ -61,7 +61,7 @@ export default defineNuxtModule<ModuleOptions>({
       },
       getAll() {
         return Array.from(this.resources.values())
-      }
+      },
     }
 
     // ─── Plugin System ────────────────────────────────────────────────────
@@ -92,12 +92,14 @@ export default defineNuxtModule<ModuleOptions>({
       let resolved = userPlugins
       if (resolved.startsWith('~~/') || resolved.startsWith('~~\\')) {
         resolved = resolved.replace(/^~~/, nuxt.options.rootDir)
-      } else if (resolved.startsWith('~/') || resolved.startsWith('~\\')) {
+      }
+      else if (resolved.startsWith('~/') || resolved.startsWith('~\\')) {
         resolved = resolved.replace(/^~/, nuxt.options.rootDir)
       }
       userPluginFilePath = resolved
       console.log(`[nuxt-auto-api] Plugin file: ${userPlugins} → ${userPluginFilePath}`)
-    } else if (Array.isArray(userPlugins)) {
+    }
+    else if (Array.isArray(userPlugins)) {
       // Inline array (legacy/simple plugins)
       inlinePlugins = userPlugins
       console.warn('[nuxt-auto-api] Inline plugins in nuxt.config.ts have limited closure support. Consider using a file path instead: plugins: \'~/server/autoapi-plugins\'')
@@ -133,7 +135,8 @@ export default defineNuxtModule<ModuleOptions>({
       try {
         await plugin.buildSetup(buildContext)
         console.log(`[nuxt-auto-api] ✓ Plugin "${plugin.name}" build setup complete`)
-      } catch (error) {
+      }
+      catch (error) {
         console.error(`[nuxt-auto-api] ✗ Plugin "${plugin.name}" build setup failed:`, error)
       }
     }
@@ -410,7 +413,8 @@ function generateVirtualModule(resources: ResourceRegistration[]): string {
       const exportName = schemaImport.__exportName || resource.name
       const modulePath = ensureExtension(schemaImport.__modulePath)
       imports.push(`import { ${exportName} as ${varName}Schema } from '${modulePath}'`)
-    } else {
+    }
+    else {
       throw new Error(`[nuxt-auto-api] Resource "${resource.name}" schema must use createModuleImport()`)
     }
 
@@ -447,7 +451,8 @@ function generateVirtualModule(resources: ResourceRegistration[]): string {
         hooksVar = `${varName}Hooks`
         const modulePath = ensureExtension(hooksImport.__modulePath)
         imports.push(`import { ${exportName} as ${hooksVar} } from '${modulePath}'`)
-      } else if (typeof resource.hooks === 'object') {
+      }
+      else if (typeof resource.hooks === 'object') {
         // Inline hooks - serialize directly
         hooksVar = JSON.stringify(resource.hooks)
       }
@@ -538,7 +543,7 @@ function generatePluginsVirtualModule(opts: {
     let runtimeSetupStr = plugin.runtimeSetup?.toString() || '() => {}'
 
     // Fix function serialization: "funcName(args) {}" → "function funcName(args) {}"
-    if (runtimeSetupStr.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*\s*\(/)) {
+    if (runtimeSetupStr.match(/^[a-z_$][\w$]*\s*\(/i)) {
       runtimeSetupStr = 'function ' + runtimeSetupStr
     }
 

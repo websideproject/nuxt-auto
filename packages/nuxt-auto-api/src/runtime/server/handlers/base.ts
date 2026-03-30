@@ -14,7 +14,7 @@ export function createHandler(
   options: {
     db: any
     schema: any
-  }
+  },
 ): EventHandler {
   return async (event: H3Event) => {
     try {
@@ -51,7 +51,8 @@ export function createHandler(
       }
 
       return result
-    } catch (error: any) {
+    }
+    catch (error: any) {
       // Handle errors
       if (error.statusCode) {
         throw error

@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import type { FieldConfig, ResourceSchema } from '../types'
+import type { FieldConfig } from '../types'
 
 /**
  * Generate form configuration from resource schema
@@ -25,7 +25,7 @@ export function useResourceForm(resourceName: string, mode: 'create' | 'edit' = 
   const initialData = computed(() => {
     if (!resource.value) return {}
 
-    const data: Record<string, any> = {}
+    const data: Record<string, unknown> = {}
 
     fields.value.forEach((field) => {
       // Set default values based on field type

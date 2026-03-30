@@ -1,7 +1,10 @@
 <template>
   <UContainer>
     <!-- Loading State -->
-    <div v-if="isLoading" class="space-y-6">
+    <div
+      v-if="isLoading"
+      class="space-y-6"
+    >
       <USkeleton class="h-12 w-3/4" />
       <USkeleton class="h-6 w-1/2" />
       <USkeleton class="h-64 w-full" />
@@ -17,17 +20,30 @@
       :description="error.message"
     >
       <template #actions>
-        <UButton @click="refetch" size="xs" color="error" variant="subtle">
+        <UButton
+          size="xs"
+          color="error"
+          variant="subtle"
+          @click="refetch"
+        >
           Retry
         </UButton>
-        <UButton to="/posts" size="xs" color="gray" variant="subtle">
+        <UButton
+          to="/posts"
+          size="xs"
+          color="gray"
+          variant="subtle"
+        >
           Back to Posts
         </UButton>
       </template>
     </UAlert>
 
     <!-- Post Content -->
-    <div v-else-if="data" class="space-y-6">
+    <div
+      v-else-if="data"
+      class="space-y-6"
+    >
       <!-- Header -->
       <div class="flex items-start justify-between">
         <div class="flex-1">
@@ -49,19 +65,36 @@
             </UBadge>
           </div>
 
-          <h1 class="text-4xl font-bold mb-4">{{ data.data.title }}</h1>
+          <h1 class="text-4xl font-bold mb-4">
+            {{ data.data.title }}
+          </h1>
 
-          <div v-if="data.data.author" class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+          <div
+            v-if="data.data.author"
+            class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400"
+          >
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-user" class="w-4 h-4" />
+              <UIcon
+                name="i-lucide-user"
+                class="w-4 h-4"
+              />
               <span>{{ data.data.author.name || data.data.author.email }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-calendar" class="w-4 h-4" />
+              <UIcon
+                name="i-lucide-calendar"
+                class="w-4 h-4"
+              />
               <span>{{ formatDate(data.data.createdAt) }}</span>
             </div>
-            <div v-if="data.data.updatedAt !== data.data.createdAt" class="flex items-center gap-2">
-              <UIcon name="i-lucide-clock" class="w-4 h-4" />
+            <div
+              v-if="data.data.updatedAt !== data.data.createdAt"
+              class="flex items-center gap-2"
+            >
+              <UIcon
+                name="i-lucide-clock"
+                class="w-4 h-4"
+              />
               <span>Updated {{ formatDate(data.data.updatedAt) }}</span>
             </div>
           </div>
@@ -78,11 +111,11 @@
           </UButton>
 
           <UButton
-            @click="handleDelete"
             icon="i-lucide-trash-2"
             color="error"
             variant="outline"
             :loading="isDeleting"
+            @click="handleDelete"
           >
             Delete
           </UButton>
@@ -92,7 +125,9 @@
       <!-- Content -->
       <UCard>
         <div class="prose dark:prose-invert max-w-none">
-          <p class="whitespace-pre-wrap">{{ data.data.content }}</p>
+          <p class="whitespace-pre-wrap">
+            {{ data.data.content }}
+          </p>
         </div>
       </UCard>
 
@@ -113,12 +148,21 @@
             </UButton>
           </div>
 
-          <div v-if="data.data.comments.length === 0" class="text-center py-8 text-gray-500">
-            <UIcon name="i-lucide-message-circle" class="w-12 h-12 mx-auto mb-2 opacity-50" />
+          <div
+            v-if="data.data.comments.length === 0"
+            class="text-center py-8 text-gray-500"
+          >
+            <UIcon
+              name="i-lucide-message-circle"
+              class="w-12 h-12 mx-auto mb-2 opacity-50"
+            />
             <p>No comments yet. Be the first to comment!</p>
           </div>
 
-          <div v-else class="space-y-4">
+          <div
+            v-else
+            class="space-y-4"
+          >
             <div
               v-for="comment in data.data.comments"
               :key="comment.id"
@@ -131,7 +175,9 @@
                 <span class="text-gray-500">•</span>
                 <span class="text-gray-500">{{ formatDate(comment.createdAt) }}</span>
               </div>
-              <p class="text-gray-700 dark:text-gray-300">{{ comment.content }}</p>
+              <p class="text-gray-700 dark:text-gray-300">
+                {{ comment.content }}
+              </p>
             </div>
           </div>
         </div>
@@ -168,16 +214,16 @@
     >
       <template #footer>
         <UButton
-          @click="isDeleteModalOpen = false"
           color="neutral"
           variant="outline"
+          @click="isDeleteModalOpen = false"
         >
           Cancel
         </UButton>
         <UButton
-          @click="confirmDelete"
           color="error"
           :loading="isDeleting"
+          @click="confirmDelete"
         >
           Delete
         </UButton>

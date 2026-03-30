@@ -14,7 +14,7 @@ export function useDB() {
       schema: {
         ...baseSchema.schema,
         ...blogSchema,
-        ...apiTokenSchema,
+        ...apiTokenSchema
       }
     })
   }

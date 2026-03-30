@@ -15,7 +15,10 @@
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
-          <span class="font-medium text-sm" :class="getTextClass(event.type)">
+          <span
+            class="font-medium text-sm"
+            :class="getTextClass(event.type)"
+          >
             {{ event.hook }}
           </span>
           <span class="text-xs text-gray-500">
@@ -27,7 +30,10 @@
         </p>
       </div>
     </div>
-    <div v-if="events.length === 0" class="text-center py-8 text-gray-500">
+    <div
+      v-if="events.length === 0"
+      class="text-center py-8 text-gray-500"
+    >
       No events yet. Perform an action to see hook activity.
     </div>
   </div>
@@ -41,7 +47,7 @@ interface ActivityEvent {
   timestamp: Date
 }
 
-const props = defineProps<{
+defineProps<{
   events: ActivityEvent[]
 }>()
 

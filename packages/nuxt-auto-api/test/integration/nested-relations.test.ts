@@ -12,9 +12,9 @@ vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
   autoApi: {
     relations: {
-      maxDepth: 3
-    }
-  }
+      maxDepth: 3,
+    },
+  },
 }))
 
 describe('Nested Relations Integration', () => {
@@ -89,8 +89,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts[id,title]'
-        }
+          include: 'posts[id,title]',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -115,8 +115,8 @@ describe('Nested Relations Integration', () => {
         operation: 'get',
         params: { id: user.id },
         query: {
-          include: 'posts[id,title,published]'
-        }
+          include: 'posts[id,title,published]',
+        },
       })
 
       const result = await getHandler(context as any)
@@ -140,8 +140,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts{limit:2}'
-        }
+          include: 'posts{limit:2}',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -159,8 +159,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts{limit:2,offset:1}'
-        }
+          include: 'posts{limit:2,offset:1}',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -178,8 +178,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts{filter:{published:true}}'
-        }
+          include: 'posts{filter:{published:true}}',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -201,8 +201,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts[id,title,published]{limit:10,filter:{published:true}}'
-        }
+          include: 'posts[id,title,published]{limit:10,filter:{published:true}}',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -234,8 +234,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts[id,title].comments[id,body].author[id,name]'
-        }
+          include: 'posts[id,title].comments[id,body].author[id,name]',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -274,8 +274,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts[id,title]{limit:5},comments[id,body]{limit:3}'
-        }
+          include: 'posts[id,title]{limit:5},comments[id,body]{limit:3}',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -312,8 +312,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts'
-        }
+          include: 'posts',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -337,8 +337,8 @@ describe('Nested Relations Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts.comments'
-        }
+          include: 'posts.comments',
+        },
       })
 
       const result = await listHandler(context as any)

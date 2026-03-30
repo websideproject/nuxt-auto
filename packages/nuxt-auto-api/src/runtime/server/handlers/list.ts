@@ -35,7 +35,8 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
   if (typeof filter === 'string') {
     try {
       filter = JSON.parse(filter)
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('[autoApi] Failed to parse filter JSON:', filter)
       filter = undefined
     }
@@ -109,7 +110,8 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
       if (batchOffset) qo.offset = batchOffset
       if (cleanedRelations) qo.with = cleanedRelations
       return await db.query[resource].findMany(qo)
-    } else {
+    }
+    else {
       let qb = db.select().from(table)
       if (whereClause) qb = qb.where(whereClause)
       if (orderBy.length > 0) qb = qb.orderBy(...orderBy)
@@ -130,17 +132,18 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
 
   try {
     data = await fetchBatch(effectiveLimit, initialOffset)
-  } catch (error: any) {
+  }
+  catch (error: any) {
     // Check if it's a relation error
     if (relations && error.message && (
-      error.message.includes('relation') ||
-      error.message.includes('with') ||
-      error.message.includes('is not defined')
+      error.message.includes('relation')
+      || error.message.includes('with')
+      || error.message.includes('is not defined')
     )) {
       const includeStr = effectiveQuery.include as string
       const firstRelation = Array.isArray(includeStr)
         ? includeStr[0]
-        : String(includeStr).split(',')[0].split('.')[0].replace(/[\[{].*/, '').trim()
+        : String(includeStr).split(',')[0].split('.')[0].replace(/[[{].*/, '').trim()
 
       throw createRelationError(firstRelation, resource, error)
     }
@@ -217,10 +220,12 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
 
       if (validation.valid) {
         aggregates = await executeSimpleAggregation(db, table, aggregateList, whereClause)
-      } else {
+      }
+      else {
         console.warn(`[autoApi] Aggregation validation failed: ${validation.error}`)
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('[autoApi] Aggregation error:', error)
     }
   }
@@ -250,7 +255,8 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
     if (nextCursor) {
       response.meta.nextCursor = nextCursor
     }
-  } else if (effectiveQuery.page !== undefined) {
+  }
+  else if (effectiveQuery.page !== undefined) {
     // Offset pagination metadata
     response.meta.page = effectiveQuery.page as number
     response.meta.total = total

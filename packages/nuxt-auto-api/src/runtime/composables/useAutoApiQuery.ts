@@ -40,7 +40,7 @@ export interface GetResponse<T> {
 export function useAutoApiList<T = any>(
   resource: MaybeRef<string>,
   params?: MaybeRef<ListQueryParams>,
-  options?: Omit<UseQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
   const resourceRef = computed(() => unref(resource))
   const paramsRef = computed(() => unref(params) || {})
@@ -64,11 +64,11 @@ export function useAutoApiList<T = any>(
     queryKey: computed(() => ['autoapi', resourceRef.value, 'list', paramsRef.value]),
     queryFn: async () => {
       const response = await $fetch<ListResponse<T>>(`/api/${resourceRef.value}`, {
-        query: queryParams.value as any
+        query: queryParams.value as any,
       })
       return response
     },
-    ...options
+    ...options,
   } as any)
 }
 
@@ -84,7 +84,7 @@ export function useAutoApiGet<T = any>(
   resource: MaybeRef<string>,
   id: MaybeRef<string | number>,
   params?: MaybeRef<Pick<ListQueryParams, 'include' | 'fields'>>,
-  options?: Omit<UseQueryOptions<GetResponse<T>>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<GetResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
   const resourceRef = computed(() => unref(resource))
   const idRef = computed(() => unref(id))
@@ -95,12 +95,12 @@ export function useAutoApiGet<T = any>(
     queryFn: async () => {
       const response = await $fetch<GetResponse<T>>(
         `/api/${resourceRef.value}/${idRef.value}`,
-        { query: paramsRef.value as any }
+        { query: paramsRef.value as any },
       )
       return response
     },
     enabled: computed(() => !!idRef.value),
-    ...options
+    ...options,
   } as any)
 }
 
@@ -116,7 +116,7 @@ export function useAutoApiGet<T = any>(
 export function useAutoApiInfinite<T = any>(
   resource: MaybeRef<string>,
   params?: MaybeRef<Omit<ListQueryParams, 'cursor'>>,
-  options?: Omit<UseInfiniteQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>
+  options?: Omit<UseInfiniteQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>,
 ) {
   const resourceRef = computed(() => unref(resource))
   const paramsRef = computed(() => unref(params) || {})
@@ -138,7 +138,7 @@ export function useAutoApiInfinite<T = any>(
       }
 
       const response = await $fetch<ListResponse<T>>(`/api/${resourceRef.value}`, {
-        query: queryParams as any
+        query: queryParams as any,
       })
       return response
     },
@@ -146,6 +146,6 @@ export function useAutoApiInfinite<T = any>(
       return lastPage.meta?.nextCursor
     },
     initialPageParam: undefined,
-    ...options
+    ...options,
   } as any)
 }

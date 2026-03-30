@@ -18,7 +18,7 @@ export const apiKeys = sqliteTable('api_keys', {
   scopes: text('scopes', { mode: 'json' }).$type<string[]>(),
   expiresAt: integer('expires_at', { mode: 'timestamp' }),
   lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 })
 
 /**
@@ -27,6 +27,6 @@ export const apiKeys = sqliteTable('api_keys', {
 export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   user: one(users, {
     fields: [apiKeys.userId],
-    references: [users.id],
-  }),
+    references: [users.id]
+  })
 }))

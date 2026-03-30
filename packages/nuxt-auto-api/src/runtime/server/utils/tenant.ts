@@ -9,7 +9,7 @@ import { eq } from 'drizzle-orm'
 export async function extractTenantId(
   event: H3Event,
   user: AuthUser | null,
-  config: MultiTenancyConfig
+  config: MultiTenancyConfig,
 ): Promise<string | number | null> {
   if (!config.enabled) return null
 
@@ -40,7 +40,7 @@ export async function extractTenantId(
 export function isTenantScoped(
   resource: string,
   table: any,
-  config: MultiTenancyConfig
+  config: MultiTenancyConfig,
 ): boolean {
   if (!config.enabled) return false
 
@@ -67,7 +67,7 @@ export function isTenantScoped(
 export function buildTenantWhere(
   table: any,
   tenantId: string | number,
-  tenantField: string = 'organizationId'
+  tenantField: string = 'organizationId',
 ) {
   return eq(table[tenantField], tenantId)
 }

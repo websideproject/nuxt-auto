@@ -30,7 +30,7 @@ describe('nuxt-auto-admin module', async () => {
       body: {},
       responseType: 'json',
       ignoreResponseError: true,
-    }).catch((err: any) => err.response?.status ?? err.status)
+    }).catch((err: unknown) => (err as { response?: { status: number }, status?: number })?.response?.status ?? (err as { status?: number })?.status)
 
     expect(status).not.toBe(404)
   })

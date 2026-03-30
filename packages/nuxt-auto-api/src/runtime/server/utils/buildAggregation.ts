@@ -40,7 +40,8 @@ export function parseAggregateParam(aggregateParam: string): AggregationQuery['a
         field: field || '*',
         alias: 'count',
       })
-    } else {
+    }
+    else {
       if (!field) {
         console.warn(`[autoApi] Aggregation function ${funcName} requires a field`)
         continue
@@ -61,7 +62,7 @@ export function parseAggregateParam(aggregateParam: string): AggregationQuery['a
  */
 export function buildAggregateSelection(
   aggregates: AggregationQuery['aggregates'],
-  table: any
+  table: any,
 ): Record<string, any> {
   const selection: Record<string, any> = {}
 
@@ -103,7 +104,7 @@ export function buildAggregateSelection(
  */
 export function buildGroupBy(
   groupByFields: string | string[] | undefined,
-  table: any
+  table: any,
 ): any[] | undefined {
   if (!groupByFields) {
     return undefined
@@ -118,7 +119,8 @@ export function buildGroupBy(
   for (const field of fields) {
     if (table[field]) {
       groupBy.push(table[field])
-    } else {
+    }
+    else {
       console.warn(`[autoApi] Unknown field in groupBy: ${field}`)
     }
   }
@@ -133,7 +135,7 @@ export function buildGroupBy(
  */
 export function buildHavingClause(
   havingParam: Record<string, any> | undefined,
-  aggregateSelection: Record<string, any>
+  aggregateSelection: Record<string, any>,
 ): any | undefined {
   if (!havingParam) {
     return undefined
@@ -174,7 +176,8 @@ export function buildHavingClause(
             break
         }
       }
-    } else {
+    }
+    else {
       // Direct equality
       conditions.push(sql`${aggColumn} = ${condition}`)
     }
@@ -198,7 +201,7 @@ export async function executeSimpleAggregation(
   db: any,
   table: any,
   aggregates: AggregationQuery['aggregates'],
-  whereClause?: any
+  whereClause?: any,
 ): Promise<Record<string, any>> {
   const selection = buildAggregateSelection(aggregates, table)
 
@@ -220,7 +223,7 @@ export async function executeSimpleAggregation(
 export async function executeComplexAggregation(
   db: any,
   table: any,
-  aggregationQuery: AggregationQuery
+  aggregationQuery: AggregationQuery,
 ): Promise<any[]> {
   const { aggregates, groupBy: groupByFields, having, filter } = aggregationQuery
 
@@ -269,8 +272,8 @@ export async function executeComplexAggregation(
  */
 export function validateAggregation(
   aggregates: AggregationQuery['aggregates'],
-  groupByFields?: string | string[]
-): { valid: boolean; error?: string } {
+  groupByFields?: string | string[],
+): { valid: boolean, error?: string } {
   const runtimeConfig = useRuntimeConfig?.()
   const config = runtimeConfig?.autoApi?.aggregations
 

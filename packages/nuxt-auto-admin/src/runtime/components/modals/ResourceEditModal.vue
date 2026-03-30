@@ -58,10 +58,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { createReusableTemplate, useMediaQuery } from '@vueuse/core'
 import M2MRelationCard from '../M2MRelationCard.vue'
 import { useM2MDetection } from '../../composables/useM2MDetection'
+import type { M2MFieldConfig } from '../../composables/useM2MDetection'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 
@@ -73,7 +74,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'success': [data: any]
+  'success': [data: unknown]
 }>()
 
 const { resource } = useAdminResource(props.resourceName)
@@ -87,7 +88,7 @@ const isDesktop = useMediaQuery('(min-width: 1024px)')
 
 // Auto-detect M2M fields
 const { detectM2MFields, mergeM2MFields } = useM2MDetection()
-const autoM2MFields = ref<any[]>([])
+const autoM2MFields = ref<M2MFieldConfig[]>([])
 
 // Detect M2M fields when modal opens
 watch(() => props.open, async (isOpen) => {
@@ -114,7 +115,7 @@ function close() {
   emit('update:open', false)
 }
 
-function handleSuccess(data: any) {
+function handleSuccess(data: unknown) {
   emit('success', data)
   close()
 }

@@ -6,7 +6,7 @@ const testTable = sqliteTable('test', {
   id: integer('id').primaryKey(),
   name: text('name'),
   age: integer('age'),
-  status: text('status')
+  status: text('status'),
 })
 
 describe('buildWhereClause', () => {
@@ -97,7 +97,7 @@ describe('buildWhereClause', () => {
   it('should handle multiple filters with AND', () => {
     const filter = {
       status: 'active',
-      age: { $gt: 18 }
+      age: { $gt: 18 },
     }
     const result = buildWhereClause(filter, testTable)
 
@@ -119,7 +119,7 @@ describe('buildWhereClause', () => {
   it('should handle mixed valid and invalid fields', () => {
     const filter = {
       name: 'John',
-      nonexistent: 'value'
+      nonexistent: 'value',
     }
     const result = buildWhereClause(filter, testTable)
 

@@ -90,7 +90,7 @@ function analyzeTableAsJunction(
   tableName: string,
   table: any,
   schema: Record<string, any>,
-  availableResources: string[]
+  availableResources: string[],
 ): JunctionTableInfo | null {
   try {
     const columns = getTableColumns(table)
@@ -187,7 +187,8 @@ function analyzeTableAsJunction(
       metadataColumns,
       table,
     }
-  } catch (error) {
+  }
+  catch (error) {
     // If analysis fails, it's not a valid junction table
     return null
   }
@@ -200,7 +201,7 @@ function analyzeTableAsJunction(
 function extractTargetFromReference(
   column: any,
   schema: Record<string, any>,
-  availableResources: string[]
+  availableResources: string[],
 ): string | null {
   try {
     // Call the references function to get the target table
@@ -224,7 +225,8 @@ function extractTargetFromReference(
         if (refTableName === resTableName) {
           return resourceName
         }
-      } catch (e) {
+      }
+      catch (e) {
         // getTableName might fail on some table types
       }
     }
@@ -240,7 +242,8 @@ function extractTargetFromReference(
     }
 
     return null
-  } catch (error) {
+  }
+  catch (error) {
     return null
   }
 }
@@ -340,9 +343,9 @@ function generateResourceVariations(baseResource: string): string[] {
   variations.push(baseResource + 's')
 
   // 2. Add 'es': class -> classes, box -> boxes
-  if (baseResource.endsWith('s') || baseResource.endsWith('x') ||
-      baseResource.endsWith('z') || baseResource.endsWith('ch') ||
-      baseResource.endsWith('sh')) {
+  if (baseResource.endsWith('s') || baseResource.endsWith('x')
+    || baseResource.endsWith('z') || baseResource.endsWith('ch')
+    || baseResource.endsWith('sh')) {
     variations.push(baseResource + 'es')
   }
 
@@ -357,14 +360,14 @@ function generateResourceVariations(baseResource: string): string[] {
 
   // 4. Irregular plurals (can be extended)
   const irregularPlurals: Record<string, string> = {
-    'person': 'people',
-    'child': 'children',
-    'man': 'men',
-    'woman': 'women',
-    'tooth': 'teeth',
-    'foot': 'feet',
-    'mouse': 'mice',
-    'goose': 'geese',
+    person: 'people',
+    child: 'children',
+    man: 'men',
+    woman: 'women',
+    tooth: 'teeth',
+    foot: 'feet',
+    mouse: 'mice',
+    goose: 'geese',
   }
 
   if (irregularPlurals[baseResource]) {
@@ -391,7 +394,7 @@ function matchesJunctionPattern(
   leftResource: string,
   rightResource: string,
   leftBase: string,
-  rightBase: string
+  rightBase: string,
 ): boolean {
   const patterns: string[] = []
 
@@ -432,7 +435,7 @@ function capitalize(str: string): string {
  */
 export function getM2MRelationshipsForResource(
   resourceName: string,
-  schema: Record<string, any>
+  schema: Record<string, any>,
 ): M2MRelationship[] {
   const junctionTables = detectAllJunctionTables(schema)
   const relationships: M2MRelationship[] = []
@@ -446,7 +449,8 @@ export function getM2MRelationshipsForResource(
         junction,
         direction: 'left',
       })
-    } else if (junction.rightResource === resourceName) {
+    }
+    else if (junction.rightResource === resourceName) {
       relationships.push({
         resource: resourceName,
         relatedResource: junction.leftResource,

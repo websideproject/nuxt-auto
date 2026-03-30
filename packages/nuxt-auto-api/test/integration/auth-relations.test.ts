@@ -11,7 +11,7 @@ import { createMockContext, createMockUser } from '../helpers/mocks'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('Authorization & Relations Integration', () => {
@@ -32,7 +32,8 @@ describe('Authorization & Relations Integration', () => {
         const result = await fn(db)
         sqlite.prepare('RELEASE SAVEPOINT test_tx').run()
         return result
-      } catch (error) {
+      }
+      catch (error) {
         sqlite.prepare('ROLLBACK TO SAVEPOINT test_tx').run()
         throw error
       }
@@ -43,13 +44,13 @@ describe('Authorization & Relations Integration', () => {
       {
         content: 'First comment',
         postId: testData.posts[0].id,
-        userId: testData.users[0].id
+        userId: testData.users[0].id,
       },
       {
         content: 'Second comment',
         postId: testData.posts[0].id,
-        userId: testData.users[1].id
-      }
+        userId: testData.users[1].id,
+      },
     ])
   })
 
@@ -62,8 +63,8 @@ describe('Authorization & Relations Integration', () => {
     it('should allow admin to list posts', async () => {
       const config = {
         permissions: {
-          read: ['admin', 'user']
-        }
+          read: ['admin', 'user'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -74,7 +75,7 @@ describe('Authorization & Relations Integration', () => {
         permissions: ['admin', 'read'],
         operation: 'list',
         resource: 'posts',
-        query: {}
+        query: {},
       })
 
       await expect(middleware(context as any)).resolves.not.toThrow()
@@ -87,8 +88,8 @@ describe('Authorization & Relations Integration', () => {
     it('should deny regular user from admin-only operation', async () => {
       const config = {
         permissions: {
-          delete: ['admin']
-        }
+          delete: ['admin'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -96,7 +97,7 @@ describe('Authorization & Relations Integration', () => {
         user: createMockUser('user'),
         permissions: ['read', 'create'],
         operation: 'delete',
-        resource: 'posts'
+        resource: 'posts',
       })
 
       await expect(middleware(context as any)).rejects.toThrow('Forbidden')
@@ -105,8 +106,8 @@ describe('Authorization & Relations Integration', () => {
     it('should require authentication when no user', async () => {
       const config = {
         permissions: {
-          read: ['user']
-        }
+          read: ['user'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -114,7 +115,7 @@ describe('Authorization & Relations Integration', () => {
         user: null,
         permissions: [],
         operation: 'list',
-        resource: 'posts'
+        resource: 'posts',
       })
 
       await expect(middleware(context as any)).rejects.toThrow('Authentication required')
@@ -123,8 +124,8 @@ describe('Authorization & Relations Integration', () => {
     it('should allow operation when user has permission from array', async () => {
       const config = {
         permissions: {
-          update: ['admin', 'editor']
-        }
+          update: ['admin', 'editor'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -132,7 +133,7 @@ describe('Authorization & Relations Integration', () => {
         user: createMockUser('editor'),
         permissions: ['read', 'create', 'update', 'editor'],
         operation: 'update',
-        resource: 'posts'
+        resource: 'posts',
       })
 
       await expect(middleware(context as any)).resolves.not.toThrow()
@@ -146,11 +147,11 @@ describe('Authorization & Relations Integration', () => {
 
       const config = {
         permissions: {
-          update: ['admin', 'owner']
+          update: ['admin', 'owner'],
         },
         objectLevel: (record: any, ctx: any) => {
           return ctx.user.id === record.userId
-        }
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -163,8 +164,8 @@ describe('Authorization & Relations Integration', () => {
         resource: 'posts',
         params: { id: post.id },
         validated: {
-          body: { title: 'Updated by owner' }
-        }
+          body: { title: 'Updated by owner' },
+        },
       })
 
       // Run authorization middleware
@@ -185,11 +186,11 @@ describe('Authorization & Relations Integration', () => {
 
       const config = {
         permissions: {
-          update: ['admin', 'owner']
+          update: ['admin', 'owner'],
         },
         objectLevel: (record: any, ctx: any) => {
           return ctx.user.id === record.userId
-        }
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -202,8 +203,8 @@ describe('Authorization & Relations Integration', () => {
         resource: 'posts',
         params: { id: post.id },
         validated: {
-          body: { title: 'Attempted update' }
-        }
+          body: { title: 'Attempted update' },
+        },
       })
 
       // Run authorization middleware
@@ -218,8 +219,8 @@ describe('Authorization & Relations Integration', () => {
 
       const config = {
         permissions: {
-          update: ['admin']
-        }
+          update: ['admin'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -232,8 +233,8 @@ describe('Authorization & Relations Integration', () => {
         resource: 'posts',
         params: { id: post.id },
         validated: {
-          body: { title: 'Admin update' }
-        }
+          body: { title: 'Admin update' },
+        },
       })
 
       await middleware(context as any)
@@ -254,8 +255,8 @@ describe('Authorization & Relations Integration', () => {
         operation: 'get',
         params: { id: post.id },
         query: {
-          include: 'author'
-        }
+          include: 'author',
+        },
       })
 
       const result = await getHandler(context as any)
@@ -276,8 +277,8 @@ describe('Authorization & Relations Integration', () => {
         operation: 'get',
         params: { id: post.id },
         query: {
-          include: 'author,comments'
-        }
+          include: 'author,comments',
+        },
       })
 
       const result = await getHandler(context as any)
@@ -296,8 +297,8 @@ describe('Authorization & Relations Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          include: 'author,comments'
-        }
+          include: 'author,comments',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -319,8 +320,8 @@ describe('Authorization & Relations Integration', () => {
         operation: 'list',
         query: {
           include: 'author',
-          filter: { published: true }
-        }
+          filter: { published: true },
+        },
       })
 
       const result = await listHandler(context as any)
@@ -344,8 +345,8 @@ describe('Authorization & Relations Integration', () => {
         query: {
           include: 'author',
           page: 1,
-          limit: 1
-        }
+          limit: 1,
+        },
       })
 
       const result = await listHandler(context as any)
@@ -364,8 +365,8 @@ describe('Authorization & Relations Integration', () => {
         operation: 'list',
         query: {
           include: 'author',
-          sort: '-createdAt'
-        }
+          sort: '-createdAt',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -386,8 +387,8 @@ describe('Authorization & Relations Integration', () => {
         operation: 'get',
         params: { id: post.id },
         query: {
-          include: 'comments.author'
-        }
+          include: 'comments.author',
+        },
       })
 
       const result = await getHandler(context as any)
@@ -412,8 +413,8 @@ describe('Authorization & Relations Integration', () => {
         operation: 'get',
         params: { id: user.id },
         query: {
-          include: 'posts,comments'
-        }
+          include: 'posts,comments',
+        },
       })
 
       const result = await getHandler(context as any)
@@ -431,8 +432,8 @@ describe('Authorization & Relations Integration', () => {
 
       const config = {
         permissions: {
-          read: ['user', 'admin']
-        }
+          read: ['user', 'admin'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -445,8 +446,8 @@ describe('Authorization & Relations Integration', () => {
         resource: 'posts',
         params: { id: post.id },
         query: {
-          include: 'author,comments'
-        }
+          include: 'author,comments',
+        },
       })
 
       // Auth check
@@ -462,8 +463,8 @@ describe('Authorization & Relations Integration', () => {
     it('should deny unauthorized user even with relations requested', async () => {
       const config = {
         permissions: {
-          read: ['admin']
-        }
+          read: ['admin'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -473,8 +474,8 @@ describe('Authorization & Relations Integration', () => {
         operation: 'list',
         resource: 'posts',
         query: {
-          include: 'author'
-        }
+          include: 'author',
+        },
       })
 
       await expect(middleware(context as any)).rejects.toThrow('Forbidden')

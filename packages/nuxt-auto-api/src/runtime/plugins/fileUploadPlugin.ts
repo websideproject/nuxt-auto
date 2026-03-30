@@ -31,11 +31,11 @@ function parseSize(size: string): number {
   const num = match[1]
   const unit = match[2]
   const multipliers: Record<string, number> = { kb: 1024, mb: 1024 * 1024, gb: 1024 * 1024 * 1024 }
-  return parseInt(num!) * (multipliers[unit!.toLowerCase()] || 1024 * 1024)
+  return Number.parseInt(num!) * (multipliers[unit!.toLowerCase()] || 1024 * 1024)
 }
 
 function matchesMime(type: string, patterns: string[]): boolean {
-  return patterns.some(pattern => {
+  return patterns.some((pattern) => {
     if (pattern === '*' || pattern === '*/*') return true
     if (pattern.endsWith('/*')) {
       return type.startsWith(pattern.replace('/*', '/'))
@@ -97,7 +97,7 @@ export function createFileUploadPlugin(options: FileUploadPluginOptions): AutoAp
             const table = resourceConfig.schema
 
             // Check record exists
-            const parsedId = /^\d+$/.test(id) ? parseInt(id, 10) : id
+            const parsedId = /^\d+$/.test(id) ? Number.parseInt(id, 10) : id
             const [existing] = await db.select().from(table).where(eq(table.id, parsedId))
             if (!existing) {
               throw createError({ statusCode: 404, message: 'Record not found' })
@@ -141,7 +141,8 @@ export function createFileUploadPlugin(options: FileUploadPluginOptions): AutoAp
               const filePath = join(dir, uniqueName)
               await writeFile(filePath, fileData)
               fileUrl = `/uploads/${storagePath}/${uniqueName}`
-            } else {
+            }
+            else {
               // NuxtHub Blob storage
               try {
                 const { hubBlob } = await import('#imports' as any)
@@ -150,7 +151,8 @@ export function createFileUploadPlugin(options: FileUploadPluginOptions): AutoAp
                   contentType: fileType,
                 })
                 fileUrl = blob.pathname || blob.url
-              } catch (err) {
+              }
+              catch (err) {
                 throw createError({ statusCode: 500, message: 'Blob storage not available' })
               }
             }
@@ -188,7 +190,7 @@ export function createFileUploadPlugin(options: FileUploadPluginOptions): AutoAp
             const db = adapter.db
             const table = resourceConfig.schema
 
-            const parsedId = /^\d+$/.test(id) ? parseInt(id, 10) : id
+            const parsedId = /^\d+$/.test(id) ? Number.parseInt(id, 10) : id
             const [existing] = await db.select().from(table).where(eq(table.id, parsedId))
             if (!existing) {
               throw createError({ statusCode: 404, message: 'Record not found' })
@@ -201,7 +203,8 @@ export function createFileUploadPlugin(options: FileUploadPluginOptions): AutoAp
               try {
                 const filePath = join(process.cwd(), localDir, currentUrl.replace('/uploads/', ''))
                 await unlink(filePath)
-              } catch {
+              }
+              catch {
                 // File may not exist
               }
             }

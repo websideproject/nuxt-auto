@@ -7,7 +7,7 @@ import type { HandlerContext, ResourceAuthConfig } from '../../types'
 function hasPermission(
   userPermissions: string[],
   required: string | string[] | Function,
-  context: HandlerContext
+  context: HandlerContext,
 ): boolean {
   // If required is a function, call it
   if (typeof required === 'function') {
@@ -44,7 +44,7 @@ export function createAuthorizationMiddleware(config?: ResourceAuthConfig) {
     const permissionKey = operation === 'list' || operation === 'get' ? 'read' : operation
 
     // Get required permissions for this operation
-    let requiredPermission = config.permissions?.[permissionKey as keyof typeof config.permissions]
+    const requiredPermission = config.permissions?.[permissionKey as keyof typeof config.permissions]
 
     // If no permission required, allow
     if (!requiredPermission) {
@@ -79,7 +79,7 @@ export function createAuthorizationMiddleware(config?: ResourceAuthConfig) {
  */
 export async function checkObjectLevelAuth(
   object: any,
-  context: HandlerContext
+  context: HandlerContext,
 ): Promise<void> {
   if (!context.objectLevelCheck) {
     return
@@ -101,7 +101,7 @@ export async function checkObjectLevelAuth(
 export function filterFieldsByPermission(
   data: any,
   config?: ResourceAuthConfig,
-  context?: HandlerContext
+  context?: HandlerContext,
 ): any {
   if (!config?.fields || !context) {
     return data
@@ -125,7 +125,8 @@ export function filterFieldsByPermission(
         filtered[field] = value
       }
       // Field is excluded if user doesn't have read permission
-    } else {
+    }
+    else {
       // No read restriction
       filtered[field] = value
     }

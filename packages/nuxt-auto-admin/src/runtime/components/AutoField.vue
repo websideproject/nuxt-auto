@@ -26,13 +26,13 @@ import { formatFieldLabel } from '../utils/fieldTypeMapping'
 
 const props = defineProps<{
   field: FieldConfig
-  modelValue: any
+  modelValue: unknown
   error?: string
   disabled?: boolean
 }>()
 
 defineEmits<{
-  'update:modelValue': [value: any]
+  'update:modelValue': [value: unknown]
 }>()
 
 // Static import map for all widget components

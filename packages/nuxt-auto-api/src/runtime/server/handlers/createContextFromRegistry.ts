@@ -16,7 +16,7 @@ import { useRuntimeConfig } from '#imports'
  */
 export async function createContextFromRegistry(
   event: H3Event,
-  operation: 'list' | 'get' | 'create' | 'update' | 'delete' | 'bulk' | 'aggregate'
+  operation: 'list' | 'get' | 'create' | 'update' | 'delete' | 'bulk' | 'aggregate',
 ): Promise<{
   context: HandlerContext
   authorize: (ctx: HandlerContext) => Promise<void>
@@ -64,7 +64,8 @@ export async function createContextFromRegistry(
   try {
     adapter = getDatabaseAdapter()
     db = adapter.db
-  } catch {
+  }
+  catch {
     // Fallback to legacy globalThis.__autoApiDb
     db = (globalThis as any).__autoApiDb
     if (!db) {
@@ -126,11 +127,13 @@ export async function createContextFromRegistry(
   let validate = defaultValidate
   if (resourceConfig.validation) {
     validate = createValidationMiddleware(resourceConfig.validation)
-  } else if (resourceConfig.schema) {
+  }
+  else if (resourceConfig.schema) {
     try {
       const schemas = generateSchemas(resourceConfig.schema)
       validate = createValidationMiddleware(schemas)
-    } catch (error) {
+    }
+    catch (error) {
       console.warn(`[nuxt-auto-api] Failed to generate validation schemas for ${resourceName}`, error)
     }
   }

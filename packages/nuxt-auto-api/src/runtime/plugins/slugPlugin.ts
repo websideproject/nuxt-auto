@@ -4,7 +4,7 @@ import type { AutoApiPlugin } from '../types/plugin'
 
 export interface SlugPluginOptions {
   /** Resource-to-field mapping: { articles: { source: 'title', target: 'slug' } } */
-  resources: Record<string, { source: string; target: string }>
+  resources: Record<string, { source: string, target: string }>
   /** Slug separator character. @default '-' */
   separator?: string
   /** Maximum slug length. @default 80 */
@@ -18,11 +18,11 @@ function slugify(text: string, separator: string, maxLength: number): string {
   return text
     .toString()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[\u0300-\u036F]/g, '') // Remove diacritics
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, '')   // Remove non-alphanumeric
-    .replace(/[\s_]+/g, separator)   // Spaces/underscores to separator
+    .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric
+    .replace(/[\s_]+/g, separator) // Spaces/underscores to separator
     .replace(new RegExp(`[${separator}]+`, 'g'), separator) // Collapse repeated separators
     .replace(new RegExp(`^${separator}|${separator}$`, 'g'), '') // Trim separators
     .slice(0, maxLength)
@@ -43,7 +43,7 @@ async function ensureUnique(
 
   while (true) {
     const conditions = [eq(table[targetColumn], slug)]
-    let query = db.select({ id: table.id }).from(table).where(eq(table[targetColumn], slug))
+    const query = db.select({ id: table.id }).from(table).where(eq(table[targetColumn], slug))
     const existing = await query
 
     const conflict = excludeId

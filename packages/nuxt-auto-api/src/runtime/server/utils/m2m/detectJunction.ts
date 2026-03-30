@@ -15,7 +15,7 @@ export function detectJunction(
   schema: any,
   leftResource: string,
   rightResource: string,
-  providedJunctionTable?: string
+  providedJunctionTable?: string,
 ): DetectedJunction {
   // If junction table is explicitly provided, use it
   if (providedJunctionTable) {
@@ -58,9 +58,9 @@ export function detectJunction(
   }
 
   throw new Error(
-    `Junction table not found for relation ${leftResource} <-> ${rightResource}. ` +
-    `Tried: ${uniquePatterns.slice(0, 10).join(', ')}${uniquePatterns.length > 10 ? '...' : ''}. ` +
-    `Please provide junctionTable explicitly in M2M configuration.`
+    `Junction table not found for relation ${leftResource} <-> ${rightResource}. `
+    + `Tried: ${uniquePatterns.slice(0, 10).join(', ')}${uniquePatterns.length > 10 ? '...' : ''}. `
+    + `Please provide junctionTable explicitly in M2M configuration.`,
   )
 }
 
@@ -71,7 +71,7 @@ function detectFromTableName(
   schema: any,
   tableName: string,
   leftResource: string,
-  rightResource: string
+  rightResource: string,
 ): DetectedJunction {
   const table = schema[tableName]
   if (!table) {
@@ -85,8 +85,8 @@ function detectFromTableName(
   const leftKey = detectForeignKey(columnNames, leftResource)
   if (!leftKey) {
     throw new Error(
-      `Could not detect left foreign key for ${leftResource} in junction table ${tableName}. ` +
-      `Expected patterns: ${leftResource}Id, ${leftResource}_id, or id${capitalize(leftResource)}`
+      `Could not detect left foreign key for ${leftResource} in junction table ${tableName}. `
+      + `Expected patterns: ${leftResource}Id, ${leftResource}_id, or id${capitalize(leftResource)}`,
     )
   }
 
@@ -94,14 +94,14 @@ function detectFromTableName(
   const rightKey = detectForeignKey(columnNames, rightResource)
   if (!rightKey) {
     throw new Error(
-      `Could not detect right foreign key for ${rightResource} in junction table ${tableName}. ` +
-      `Expected patterns: ${rightResource}Id, ${rightResource}_id, or id${capitalize(rightResource)}`
+      `Could not detect right foreign key for ${rightResource} in junction table ${tableName}. `
+      + `Expected patterns: ${rightResource}Id, ${rightResource}_id, or id${capitalize(rightResource)}`,
     )
   }
 
   // Metadata columns = all columns except the two foreign keys
   const metadataColumns = columnNames.filter(
-    name => name !== leftKey && name !== rightKey
+    name => name !== leftKey && name !== rightKey,
   )
 
   return {
@@ -130,9 +130,9 @@ function detectForeignKey(columnNames: string[], resourceName: string): string |
   // Try all variations with different patterns
   for (const name of nameVariations) {
     const patterns = [
-      `${name}Id`,                    // articleId, articlesId
-      `${name}_id`,                   // article_id, articles_id
-      `id${capitalize(name)}`,        // idArticle, idArticles
+      `${name}Id`, // articleId, articlesId
+      `${name}_id`, // article_id, articles_id
+      `id${capitalize(name)}`, // idArticle, idArticles
     ]
 
     for (const pattern of patterns) {
@@ -163,12 +163,14 @@ function generateNameVariations(resourceName: string): string[] {
   if (resourceName.endsWith('ies')) {
     // categories -> category
     variations.push(resourceName.slice(0, -3) + 'y')
-  } else if (resourceName.endsWith('es') &&
-             (resourceName.endsWith('sses') || resourceName.endsWith('ches') ||
-              resourceName.endsWith('shes') || resourceName.endsWith('xes'))) {
+  }
+  else if (resourceName.endsWith('es')
+    && (resourceName.endsWith('sses') || resourceName.endsWith('ches')
+      || resourceName.endsWith('shes') || resourceName.endsWith('xes'))) {
     // classes -> class, boxes -> box
     variations.push(resourceName.slice(0, -2))
-  } else if (resourceName.endsWith('s') && resourceName.length > 1) {
+  }
+  else if (resourceName.endsWith('s') && resourceName.length > 1) {
     // articles -> article, tags -> tag
     variations.push(resourceName.slice(0, -1))
   }
@@ -178,12 +180,14 @@ function generateNameVariations(resourceName: string): string[] {
     if (resourceName.endsWith('y')) {
       // category -> categories
       variations.push(resourceName.slice(0, -1) + 'ies')
-    } else if (resourceName.endsWith('s') || resourceName.endsWith('x') ||
-               resourceName.endsWith('z') || resourceName.endsWith('ch') ||
-               resourceName.endsWith('sh')) {
+    }
+    else if (resourceName.endsWith('s') || resourceName.endsWith('x')
+      || resourceName.endsWith('z') || resourceName.endsWith('ch')
+      || resourceName.endsWith('sh')) {
       // class -> classes, box -> boxes
       variations.push(resourceName + 'es')
-    } else {
+    }
+    else {
       // article -> articles
       variations.push(resourceName + 's')
     }
@@ -197,7 +201,7 @@ function generateNameVariations(resourceName: string): string[] {
  */
 export function validateJunctionConfig(
   junction: DetectedJunction,
-  schema: any
+  schema: any,
 ): void {
   // Verify table exists
   const table = schema[junction.tableName]
@@ -211,15 +215,15 @@ export function validateJunctionConfig(
 
   if (!columnNames.includes(junction.leftKey)) {
     throw new Error(
-      `Left key ${junction.leftKey} not found in junction table ${junction.tableName}. ` +
-      `Available columns: ${columnNames.join(', ')}`
+      `Left key ${junction.leftKey} not found in junction table ${junction.tableName}. `
+      + `Available columns: ${columnNames.join(', ')}`,
     )
   }
 
   if (!columnNames.includes(junction.rightKey)) {
     throw new Error(
-      `Right key ${junction.rightKey} not found in junction table ${junction.tableName}. ` +
-      `Available columns: ${columnNames.join(', ')}`
+      `Right key ${junction.rightKey} not found in junction table ${junction.tableName}. `
+      + `Available columns: ${columnNames.join(', ')}`,
     )
   }
 
@@ -227,8 +231,8 @@ export function validateJunctionConfig(
   for (const metaCol of junction.metadataColumns) {
     if (!columnNames.includes(metaCol)) {
       throw new Error(
-        `Metadata column ${metaCol} not found in junction table ${junction.tableName}. ` +
-        `Available columns: ${columnNames.join(', ')}`
+        `Metadata column ${metaCol} not found in junction table ${junction.tableName}. `
+        + `Available columns: ${columnNames.join(', ')}`,
       )
     }
   }

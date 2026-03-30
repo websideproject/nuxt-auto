@@ -12,7 +12,7 @@ import { createMockContext, createMockUser } from '../helpers/mocks'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('CRUD Operations Integration', () => {
@@ -39,7 +39,7 @@ describe('CRUD Operations Integration', () => {
         schema: baseSchema,
         resource: 'posts',
         operation: 'list',
-        query: {}
+        query: {},
       })
 
       const result = await listHandler(context as any)
@@ -57,8 +57,8 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          filter: { published: true }
-        }
+          filter: { published: true },
+        },
       })
 
       const result = await listHandler(context as any)
@@ -74,8 +74,8 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          include: 'author'
-        }
+          include: 'author',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -100,8 +100,8 @@ describe('CRUD Operations Integration', () => {
         operation: 'list',
         query: {
           page: 1,
-          limit: 2
-        }
+          limit: 2,
+        },
       })
 
       const result = await listHandler(context as any)
@@ -122,8 +122,8 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          sort: 'title'
-        }
+          sort: 'title',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -145,8 +145,8 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          sort: '-title'
-        }
+          sort: '-title',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -165,8 +165,8 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          fields: 'id,title'
-        }
+          fields: 'id,title',
+        },
       })
 
       const result = await listHandler(context as any)
@@ -191,9 +191,9 @@ describe('CRUD Operations Integration', () => {
         query: {
           filter: {
             title: { $like: 'Test' },
-            published: true
-          }
-        }
+            published: true,
+          },
+        },
       })
 
       const result = await listHandler(context as any)
@@ -213,7 +213,7 @@ describe('CRUD Operations Integration', () => {
         schema: baseSchema,
         resource: 'posts',
         operation: 'get',
-        params: { id: post.id }
+        params: { id: post.id },
       })
 
       const result = await getHandler(context as any)
@@ -229,7 +229,7 @@ describe('CRUD Operations Integration', () => {
         schema: baseSchema,
         resource: 'posts',
         operation: 'get',
-        params: { id: 99999 }
+        params: { id: 99999 },
       })
 
       await expect(getHandler(context as any)).rejects.toThrow('not found')
@@ -245,8 +245,8 @@ describe('CRUD Operations Integration', () => {
         operation: 'get',
         params: { id: post.id },
         query: {
-          include: 'author'
-        }
+          include: 'author',
+        },
       })
 
       const result = await getHandler(context as any)
@@ -266,8 +266,8 @@ describe('CRUD Operations Integration', () => {
         operation: 'get',
         params: { id: post.id },
         query: {
-          fields: 'id,title'
-        }
+          fields: 'id,title',
+        },
       })
 
       const result = await getHandler(context as any)
@@ -293,9 +293,9 @@ describe('CRUD Operations Integration', () => {
             title: 'New Post',
             content: 'New content',
             userId: user.id,
-            published: false
-          }
-        }
+            published: false,
+          },
+        },
       })
 
       const result = await createHandler(context as any)
@@ -307,7 +307,7 @@ describe('CRUD Operations Integration', () => {
 
       // Verify it was actually created in DB
       const check = await db.query.posts.findFirst({
-        where: (posts: any, { eq }: any) => eq(posts.id, result.data.id)
+        where: (posts: any, { eq }: any) => eq(posts.id, result.data.id),
       })
       expect(check).toBeDefined()
       expect(check.title).toBe('New Post')
@@ -324,9 +324,9 @@ describe('CRUD Operations Integration', () => {
         validated: {
           body: {
             title: 'Minimal Post',
-            userId: user.id
-          }
-        }
+            userId: user.id,
+          },
+        },
       })
 
       const result = await createHandler(context as any)
@@ -342,7 +342,7 @@ describe('CRUD Operations Integration', () => {
         schema: baseSchema,
         resource: 'posts',
         operation: 'create',
-        event: {} as any
+        event: {} as any,
       })
 
       // Mock readBody to return null
@@ -363,9 +363,9 @@ describe('CRUD Operations Integration', () => {
         user: createMockUser('admin'),
         validated: {
           body: {
-            title: 'Updated Title'
-          }
-        }
+            title: 'Updated Title',
+          },
+        },
       })
 
       const result = await updateHandler(context as any)
@@ -375,7 +375,7 @@ describe('CRUD Operations Integration', () => {
 
       // Verify update persisted
       const check = await db.query.posts.findFirst({
-        where: (posts: any, { eq }: any) => eq(posts.id, post.id)
+        where: (posts: any, { eq }: any) => eq(posts.id, post.id),
       })
       expect(check.title).toBe('Updated Title')
     })
@@ -393,9 +393,9 @@ describe('CRUD Operations Integration', () => {
           body: {
             title: 'New Title',
             content: 'New Content',
-            published: true
-          }
-        }
+            published: true,
+          },
+        },
       })
 
       const result = await updateHandler(context as any)
@@ -412,7 +412,7 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'update',
         params: { id: 99999 },
-        validated: { body: { title: 'Test' } }
+        validated: { body: { title: 'Test' } },
       })
 
       await expect(updateHandler(context as any)).rejects.toThrow('not found')
@@ -429,7 +429,7 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'delete',
         params: { id: post.id },
-        user: createMockUser('admin')
+        user: createMockUser('admin'),
       })
 
       const result = await deleteHandler(context as any)
@@ -438,7 +438,7 @@ describe('CRUD Operations Integration', () => {
 
       // Verify deleted (soft delete)
       const check = await db.query.posts.findFirst({
-        where: (posts: any, { eq }: any) => eq(posts.id, post.id)
+        where: (posts: any, { eq }: any) => eq(posts.id, post.id),
       })
       expect(check).toBeDefined()
       expect(check.deletedAt).not.toBeNull()
@@ -451,7 +451,7 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'delete',
         params: { id: 99999 },
-        user: createMockUser('admin')
+        user: createMockUser('admin'),
       })
 
       await expect(deleteHandler(context as any)).rejects.toThrow('not found')
@@ -467,7 +467,7 @@ describe('CRUD Operations Integration', () => {
         resource: 'posts',
         operation: 'delete',
         params: { id: post.id },
-        user: createMockUser('admin')
+        user: createMockUser('admin'),
       })
 
       await deleteHandler(deleteContext as any)
@@ -478,7 +478,7 @@ describe('CRUD Operations Integration', () => {
         schema: baseSchema,
         resource: 'posts',
         operation: 'get',
-        params: { id: post.id }
+        params: { id: post.id },
       })
 
       await expect(getHandler(getContext as any)).rejects.toThrow('not found')

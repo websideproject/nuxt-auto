@@ -215,7 +215,7 @@ export type PermissionFunction = (context: HandlerContext) => boolean | Promise<
 
 export type ObjectLevelAuthFunction = (
   object: any,
-  context: HandlerContext
+  context: HandlerContext,
 ) => boolean | Promise<boolean>
 
 export interface HandlerContext {
@@ -317,7 +317,7 @@ export interface HandlerContext {
    * When set by middleware (e.g., cache plugin in pre-execute),
    * the entry handler skips the main handler and returns this data directly.
    */
-  shortCircuit?: { data: any; status?: number }
+  shortCircuit?: { data: any, status?: number }
 
   /**
    * How the current request was authenticated (e.g. 'session', 'api-token').
@@ -357,7 +357,7 @@ export interface HandlerContext {
     latitude?: string
     longitude?: string
     userAgent?: string
-    [key: string]: any  // Allow custom fields from user-defined extractors
+    [key: string]: any // Allow custom fields from user-defined extractors
   }
 }
 

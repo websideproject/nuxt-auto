@@ -8,7 +8,10 @@
         </h3>
       </template>
 
-      <form @submit.prevent="handleSubmit" class="space-y-4">
+      <form
+        class="space-y-4"
+        @submit.prevent="handleSubmit"
+      >
         <!-- Title -->
         <UFormGroup
           label="Title"
@@ -75,10 +78,10 @@
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
           <UButton
             type="button"
-            @click="handleReset"
             color="neutral"
             variant="ghost"
             :disabled="loading"
+            @click="handleReset"
           >
             {{ isNew ? 'Clear' : 'Reset' }}
           </UButton>
@@ -99,8 +102,13 @@
     <UCard class="lg:col-span-1 lg:sticky lg:top-4 h-fit">
       <template #header>
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold">Preview</h3>
-          <UBadge :color="form.published ? 'green' : 'gray'" variant="subtle">
+          <h3 class="text-lg font-semibold">
+            Preview
+          </h3>
+          <UBadge
+            :color="form.published ? 'green' : 'gray'"
+            variant="subtle"
+          >
             {{ form.published ? 'Published' : 'Draft' }}
           </UBadge>
         </div>
@@ -111,7 +119,10 @@
           <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
             {{ form.title || 'Untitled Post' }}
           </h2>
-          <p v-if="form.userId" class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          <p
+            v-if="form.userId"
+            class="text-sm text-gray-500 dark:text-gray-400 mt-2"
+          >
             By {{ getUserName(form.userId) }}
           </p>
         </div>
@@ -127,14 +138,27 @@
 </template>
 
 <script setup lang="ts">
+interface PostFormData {
+  title: string
+  content: string
+  userId: number | null
+  published: boolean
+}
+
+interface UserRecord {
+  id: number
+  name?: string
+  email?: string
+}
+
 const props = defineProps<{
-  initialData?: any
+  initialData?: PostFormData
   loading?: boolean
   isNew?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'submit', data: any): void
+  (e: 'submit', data: PostFormData): void
 }>()
 
 const toast = useToast()
@@ -146,7 +170,7 @@ const { data: usersData, isLoading: isLoadingUsers } = useAutoApiList('users', {
 
 const userOptions = computed(() => {
   if (!usersData.value) return []
-  return usersData.value.data.map((user: any) => ({
+  return usersData.value.data.map((user: UserRecord) => ({
     label: user.name || user.email,
     value: user.id
   }))
@@ -155,7 +179,7 @@ const userOptions = computed(() => {
 // Get user name for preview
 function getUserName(userId: number | null) {
   if (!userId || !usersData.value) return 'Unknown Author'
-  const user = usersData.value.data.find((u: any) => u.id === userId)
+  const user = usersData.value.data.find((u: UserRecord) => u.id === userId)
   return user?.name || user?.email || 'Unknown Author'
 }
 

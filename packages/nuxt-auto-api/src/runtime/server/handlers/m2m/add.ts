@@ -63,7 +63,7 @@ export async function m2mAddHandler(context: HandlerContext): Promise<M2MOperati
 
   // Sanitize IDs (convert numeric strings to numbers)
   const sanitizedIds = sanitizeIds(ids)
-  const parsedLeftId = /^\d+$/.test(leftId) ? parseInt(leftId, 10) : leftId
+  const parsedLeftId = /^\d+$/.test(leftId) ? Number.parseInt(leftId, 10) : leftId
 
   // Verify left record exists
   const leftTable = schema[resource]
@@ -132,7 +132,7 @@ export async function m2mAddHandler(context: HandlerContext): Promise<M2MOperati
       toAdd,
       toRemove: [],
       metadata,
-    }
+    },
   )
 
   // Build response

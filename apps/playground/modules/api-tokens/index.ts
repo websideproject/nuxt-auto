@@ -8,19 +8,19 @@ import { createModuleImport } from '@websideproject/nuxt-auto-api'
 export default defineNuxtModule({
   meta: {
     name: 'playground-api-tokens',
-    configKey: 'playgroundApiTokens',
+    configKey: 'playgroundApiTokens'
   },
 
   setup(_options, nuxt) {
     const resolver = createResolver(import.meta.url)
 
-    nuxt.hook('autoApi:registerSchema' as any, (registry: any) => {
+    nuxt.hook('autoApi:registerSchema' as never, (registry: Record<string, (...args: unknown[]) => void>) => {
       registry.register('apiKeys', {
         schema: createModuleImport(resolver.resolve('./schema'), 'apiKeys'),
-        authorization: createModuleImport(resolver.resolve('./auth'), 'apiKeysAuth'),
+        authorization: createModuleImport(resolver.resolve('./auth'), 'apiKeysAuth')
       })
 
       console.log('[playground-api-tokens] Registered apiKeys resource at build time')
     })
-  },
+  }
 })

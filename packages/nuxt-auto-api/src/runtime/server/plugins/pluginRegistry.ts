@@ -67,10 +67,10 @@ export function addGlobalHook(hooks: ResourceHooks): void {
 export function getMiddlewareForStage(
   stage: MiddlewareStage,
   resource?: string,
-  operation?: HandlerContext['operation']
+  operation?: HandlerContext['operation'],
 ): AutoApiMiddleware[] {
   const registry = getRegistry()
-  return registry.middleware.filter(mw => {
+  return registry.middleware.filter((mw) => {
     if (mw.stage !== stage) return false
     if (mw.resources && resource && !mw.resources.includes(resource)) return false
     if (mw.operations && operation && !mw.operations.includes(operation)) return false
@@ -90,7 +90,7 @@ export function getContextExtenders(): ContextExtender[] {
  */
 export function getPluginHooks(
   resource: string,
-  hookName: keyof ResourceHooks
+  hookName: keyof ResourceHooks,
 ): Function[] {
   const registry = getRegistry()
   const hooks: Function[] = []

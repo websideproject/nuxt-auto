@@ -48,7 +48,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   else {
     // Check if it's a custom page
     const customPages = config.public.autoAdmin?.customPages || []
-    const customPage = customPages.find((p: any) => {
+    const customPage = customPages.find((p: { path: string, canAccess?: (user: unknown) => boolean | Promise<boolean>, label?: string, permissions?: string | string[] }) => {
       const pagePath = p.path.startsWith('/') ? p.path : `${adminPrefix}/${p.path}`
       return to.path === pagePath || to.path.startsWith(`${pagePath}/`)
     })

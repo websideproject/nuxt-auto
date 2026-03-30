@@ -87,11 +87,11 @@ export async function aggregateHandler(context: HandlerContext): Promise<Aggrega
 
     // Separate group fields from aggregate fields
     const groupByFields = aggregationQuery.groupBy || []
-    
+
     // Create a set of potential keys for grouping (property names AND column names)
     const groupKeys = new Set<string>()
     if (groupByFields) {
-      groupByFields.forEach(field => {
+      groupByFields.forEach((field) => {
         groupKeys.add(field)
         // Add column name if available
         if (table[field] && table[field].name) {
@@ -103,7 +103,8 @@ export async function aggregateHandler(context: HandlerContext): Promise<Aggrega
     for (const [key, value] of Object.entries(row)) {
       if (groupKeys.has(key)) {
         group[key] = value
-      } else {
+      }
+      else {
         aggregateValues[key] = value
       }
     }

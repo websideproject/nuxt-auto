@@ -10,7 +10,7 @@ import { createMockContext } from '../helpers/mocks'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('Hidden Fields Integration', () => {
@@ -41,8 +41,8 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password', 'apiKey']
-        }
+          hiddenFields: ['password', 'apiKey'],
+        },
       })
 
       const result = await listHandler(context as any)
@@ -69,8 +69,8 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password']
-        }
+          hiddenFields: ['password'],
+        },
       })
 
       const result = await getHandler(context as any)
@@ -92,14 +92,14 @@ describe('Hidden Fields Integration', () => {
           body: {
             email: 'test@example.com',
             name: 'Test User',
-            password: 'secret123'
-          }
+            password: 'secret123',
+          },
         },
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password']
-        }
+          hiddenFields: ['password'],
+        },
       })
 
       const result = await createHandler(context as any)
@@ -122,14 +122,14 @@ describe('Hidden Fields Integration', () => {
         query: {},
         validated: {
           body: {
-            name: 'Updated Name'
-          }
+            name: 'Updated Name',
+          },
         },
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password']
-        }
+          hiddenFields: ['password'],
+        },
       })
 
       const result = await updateHandler(context as any)
@@ -147,13 +147,13 @@ describe('Hidden Fields Integration', () => {
         users: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password', 'apiKey'] // Users resource config
+          hiddenFields: ['password', 'apiKey'], // Users resource config
         },
         posts: {
           name: 'posts',
           schema: baseSchema.posts,
-          hiddenFields: [] // Posts resource has no hidden fields
-        }
+          hiddenFields: [], // Posts resource has no hidden fields
+        },
       }
 
       const context = createMockContext({
@@ -162,10 +162,10 @@ describe('Hidden Fields Integration', () => {
         resource: 'posts',
         operation: 'list',
         query: {
-          include: 'author'
+          include: 'author',
         },
         resourceConfig: registry.posts,
-        registry // Include full registry
+        registry, // Include full registry
       })
 
       const result = await listHandler(context as any)
@@ -194,18 +194,18 @@ describe('Hidden Fields Integration', () => {
         users: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password', 'apiKey']
+          hiddenFields: ['password', 'apiKey'],
         },
         posts: {
           name: 'posts',
           schema: baseSchema.posts,
-          hiddenFields: []
+          hiddenFields: [],
         },
         comments: {
           name: 'comments',
           schema: baseSchema.comments,
-          hiddenFields: []
-        }
+          hiddenFields: [],
+        },
       }
 
       const context = createMockContext({
@@ -214,10 +214,10 @@ describe('Hidden Fields Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts.comments.author'
+          include: 'posts.comments.author',
         },
         resourceConfig: registry.users,
-        registry
+        registry,
       })
 
       const result = await listHandler(context as any)
@@ -253,13 +253,13 @@ describe('Hidden Fields Integration', () => {
         users: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password', 'apiKey']
+          hiddenFields: ['password', 'apiKey'],
         },
         posts: {
           name: 'posts',
           schema: baseSchema.posts,
-          hiddenFields: []
-        }
+          hiddenFields: [],
+        },
       }
 
       const context = createMockContext({
@@ -268,10 +268,10 @@ describe('Hidden Fields Integration', () => {
         resource: 'users',
         operation: 'list',
         query: {
-          include: 'posts'
+          include: 'posts',
         },
         resourceConfig: registry.users,
-        registry
+        registry,
       })
 
       const result = await listHandler(context as any)
@@ -302,13 +302,13 @@ describe('Hidden Fields Integration', () => {
         users: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password', 'apiKey']
+          hiddenFields: ['password', 'apiKey'],
         },
         posts: {
           name: 'posts',
           schema: baseSchema.posts,
-          hiddenFields: []
-        }
+          hiddenFields: [],
+        },
       }
 
       const context = createMockContext({
@@ -318,10 +318,10 @@ describe('Hidden Fields Integration', () => {
         operation: 'get',
         params: { id: user.id },
         query: {
-          include: 'posts'
+          include: 'posts',
         },
         resourceConfig: registry.users,
-        registry
+        registry,
       })
 
       const result = await getHandler(context as any)
@@ -351,8 +351,8 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
-          hiddenFields: ['password', 'resetToken', 'apiKey', 'twoFactorSecret']
-        }
+          hiddenFields: ['password', 'resetToken', 'apiKey', 'twoFactorSecret'],
+        },
       })
 
       const result = await listHandler(context as any)
@@ -379,8 +379,8 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'posts',
           schema: baseSchema.posts,
-          hiddenFields: undefined
-        }
+          hiddenFields: undefined,
+        },
       })
 
       const result = await listHandler(context as any)

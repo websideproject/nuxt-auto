@@ -44,7 +44,7 @@ export async function getHandler(context: HandlerContext): Promise<SingleRespons
 
   // Build where clause with tenant scoping
   // Parse id as number if it's numeric, otherwise use as string
-  const parsedId = /^\d+$/.test(id) ? parseInt(id, 10) : id
+  const parsedId = /^\d+$/.test(id) ? Number.parseInt(id, 10) : id
   let whereClause = eq(table.id, parsedId)
   if (context.tenant && !context.tenant.canAccessAllTenants) {
     const tenantWhere = buildTenantWhere(table, context.tenant.id, context.tenant.field)
@@ -67,23 +67,25 @@ export async function getHandler(context: HandlerContext): Promise<SingleRespons
       }
 
       data = await db.query[resource].findFirst(queryOptions)
-    } else {
+    }
+    else {
       // Use select API for simple queries
       const [result] = await db.select().from(table).where(whereClause)
       data = result
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     // Check if it's a relation error
     if (relations && error.message && (
-      error.message.includes('relation') ||
-      error.message.includes('with') ||
-      error.message.includes('is not defined')
+      error.message.includes('relation')
+      || error.message.includes('with')
+      || error.message.includes('is not defined')
     )) {
       // Extract the relation name from the include parameter
       const includeStr = effectiveQuery.include as string
       const firstRelation = Array.isArray(includeStr)
         ? includeStr[0]
-        : String(includeStr).split(',')[0].split('.')[0].replace(/[\[{].*/, '').trim()
+        : String(includeStr).split(',')[0].split('.')[0].replace(/[[{].*/, '').trim()
 
       throw createRelationError(firstRelation, resource, error)
     }

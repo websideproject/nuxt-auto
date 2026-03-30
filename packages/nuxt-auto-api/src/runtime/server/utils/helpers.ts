@@ -21,14 +21,15 @@ import type { HandlerContext } from '../../types'
  */
 export async function getAutoApiContext(
   event: H3Event,
-  opts?: { resource?: string; operation?: HandlerContext['operation'] }
+  opts?: { resource?: string, operation?: HandlerContext['operation'] },
 ): Promise<HandlerContext> {
   let adapter
   let db
   try {
     adapter = getDatabaseAdapter()
     db = adapter.db
-  } catch {
+  }
+  catch {
     db = (globalThis as any).__autoApiDb
   }
 
@@ -100,7 +101,7 @@ export function respondWith<T>(data: T): { data: T } {
 /**
  * Wrap list data in a standard `{ data, meta }` response envelope with serialization.
  */
-export function respondWithList<T>(data: T[], meta?: Record<string, any>): { data: T[]; meta: Record<string, any> } {
+export function respondWithList<T>(data: T[], meta?: Record<string, any>): { data: T[], meta: Record<string, any> } {
   return serializeResponse({ data, meta: meta || {} })
 }
 
@@ -118,7 +119,7 @@ export function respondWithError(statusCode: number, message: string, details?: 
 /**
  * Get the database instance and adapter.
  */
-export function getDb(): { db: any; adapter: ReturnType<typeof getDatabaseAdapter> } {
+export function getDb(): { db: any, adapter: ReturnType<typeof getDatabaseAdapter> } {
   const adapter = getDatabaseAdapter()
   return { db: adapter.db, adapter }
 }

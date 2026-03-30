@@ -97,6 +97,9 @@
 import { computed, ref, onMounted } from 'vue'
 import M2MRelationCard from '../../../../components/M2MRelationCard.vue'
 import { useM2MDetection } from '../../../../composables/useM2MDetection'
+import type { M2MFieldConfig } from '../../../../composables/useM2MDetection'
+
+defineOptions({ name: 'AdminResourceEditPage' })
 
 definePageMeta({
   layout: 'admin',
@@ -119,7 +122,7 @@ const showButtonBehavior = computed(() => permissionConfig.unauthorizedButtons |
 
 // Auto-detect M2M fields
 const { detectM2MFields, mergeM2MFields } = useM2MDetection()
-const autoM2MFields = ref<any[]>([])
+const autoM2MFields = ref<M2MFieldConfig[]>([])
 
 onMounted(async () => {
   autoM2MFields.value = await detectM2MFields(resourceName.value)

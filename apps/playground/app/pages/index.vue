@@ -41,13 +41,24 @@
         <UCard>
           <div class="text-center space-y-3">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900">
-              <UIcon name="i-lucide-document-text" class="text-blue-600 dark:text-blue-400" size="24" />
+              <UIcon
+                name="i-lucide-document-text"
+                class="text-blue-600 dark:text-blue-400"
+                size="24"
+              />
             </div>
-            <h3 class="font-semibold">Object-Level Auth</h3>
+            <h3 class="font-semibold">
+              Object-Level Auth
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               Users can only edit their own posts. Admins can edit all.
             </p>
-            <UButton to="/demo/posts" variant="ghost" size="xs" color="primary">
+            <UButton
+              to="/demo/posts"
+              variant="ghost"
+              size="xs"
+              color="primary"
+            >
               Try Demo
             </UButton>
           </div>
@@ -56,13 +67,24 @@
         <UCard>
           <div class="text-center space-y-3">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900">
-              <UIcon name="i-lucide-newspaper" class="text-green-600 dark:text-green-400" size="24" />
+              <UIcon
+                name="i-lucide-newspaper"
+                class="text-green-600 dark:text-green-400"
+                size="24"
+              />
             </div>
-            <h3 class="font-semibold">Role-Based</h3>
+            <h3 class="font-semibold">
+              Role-Based
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               Only editors and admins can create articles. Users read-only.
             </p>
-            <UButton to="/demo/articles" variant="ghost" size="xs" color="primary">
+            <UButton
+              to="/demo/articles"
+              variant="ghost"
+              size="xs"
+              color="primary"
+            >
               Try Demo
             </UButton>
           </div>
@@ -71,13 +93,24 @@
         <UCard>
           <div class="text-center space-y-3">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900">
-              <UIcon name="i-lucide-users" class="text-purple-600 dark:text-purple-400" size="24" />
+              <UIcon
+                name="i-lucide-users"
+                class="text-purple-600 dark:text-purple-400"
+                size="24"
+              />
             </div>
-            <h3 class="font-semibold">Field-Level</h3>
+            <h3 class="font-semibold">
+              Field-Level
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               Email addresses hidden unless viewing own profile or admin.
             </p>
-            <UButton to="/demo/users" variant="ghost" size="xs" color="primary">
+            <UButton
+              to="/demo/users"
+              variant="ghost"
+              size="xs"
+              color="primary"
+            >
               Try Demo
             </UButton>
           </div>
@@ -86,13 +119,24 @@
         <UCard>
           <div class="text-center space-y-3">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900">
-              <UIcon name="i-lucide-gauge" class="text-orange-600 dark:text-orange-400" size="24" />
+              <UIcon
+                name="i-lucide-gauge"
+                class="text-orange-600 dark:text-orange-400"
+                size="24"
+              />
             </div>
-            <h3 class="font-semibold">Live Permission Matrix</h3>
+            <h3 class="font-semibold">
+              Live Permission Matrix
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               See all permissions update in real-time as you switch roles.
             </p>
-            <UButton to="/demo" variant="ghost" size="xs" color="primary">
+            <UButton
+              to="/demo"
+              variant="ghost"
+              size="xs"
+              color="primary"
+            >
               View Matrix
             </UButton>
           </div>
@@ -145,7 +189,9 @@
               1
             </div>
             <div class="flex-1">
-              <h3 class="text-xl font-semibold mb-2">Define Your Schema</h3>
+              <h3 class="text-xl font-semibold mb-2">
+                Define Your Schema
+              </h3>
               <p class="text-gray-600 dark:text-gray-400 mb-3">
                 Use Drizzle ORM to define your database schema. That's it - CRUD endpoints are automatically generated.
               </p>
@@ -165,7 +211,9 @@
               2
             </div>
             <div class="flex-1">
-              <h3 class="text-xl font-semibold mb-2">Add Authorization (Optional)</h3>
+              <h3 class="text-xl font-semibold mb-2">
+                Add Authorization (Optional)
+              </h3>
               <p class="text-gray-600 dark:text-gray-400 mb-3">
                 Configure permissions at operation, object, or field level. Skip this for public APIs.
               </p>
@@ -188,7 +236,9 @@
               3
             </div>
             <div class="flex-1">
-              <h3 class="text-xl font-semibold mb-2">Use in Your Frontend</h3>
+              <h3 class="text-xl font-semibold mb-2">
+                Use in Your Frontend
+              </h3>
               <p class="text-gray-600 dark:text-gray-400 mb-3">
                 Auto-imported composables with TanStack Query. Permission-aware components automatically enable/disable.
               </p>

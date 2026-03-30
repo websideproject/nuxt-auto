@@ -6,7 +6,7 @@
  * @returns Clean config safe for Drizzle
  */
 export function cleanRelationsConfig(
-  relationsConfig?: Record<string, any>
+  relationsConfig?: Record<string, any>,
 ): Record<string, any> | undefined {
   if (!relationsConfig) {
     return undefined
@@ -38,7 +38,8 @@ export function cleanRelationsConfig(
       // Recursively clean nested objects
       if (typeof value === 'object' && value !== null) {
         cleaned[key] = cleanObject(value)
-      } else {
+      }
+      else {
         cleaned[key] = value
       }
     }

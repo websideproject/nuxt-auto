@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('Soft Deletes Integration', () => {

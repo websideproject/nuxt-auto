@@ -6,9 +6,9 @@ vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
   autoApi: {
     relations: {
-      maxDepth: 3
-    }
-  }
+      maxDepth: 3,
+    },
+  },
 }))
 
 describe('buildNestedRelations Utils', () => {
@@ -48,13 +48,13 @@ describe('buildNestedRelations Utils', () => {
     const mockSchema = {
       posts: {}, // Mock table
       comments: {},
-      author: {}
+      author: {},
     }
 
     it('should build simple relation', () => {
       const result = buildNestedRelations(['posts'], mockSchema)
       expect(result).toEqual({
-        posts: {}
+        posts: {},
       })
     })
 
@@ -64,9 +64,9 @@ describe('buildNestedRelations Utils', () => {
         posts: {
           columns: {
             id: true,
-            title: true
-          }
-        }
+            title: true,
+          },
+        },
       })
     })
 
@@ -74,8 +74,8 @@ describe('buildNestedRelations Utils', () => {
       const result = buildNestedRelations(['posts{limit:10}'], mockSchema)
       expect(result).toEqual({
         posts: {
-          limit: 10
-        }
+          limit: 10,
+        },
       })
     })
 
@@ -84,30 +84,30 @@ describe('buildNestedRelations Utils', () => {
       expect(result).toEqual({
         posts: {
           with: {
-            comments: {}
-          }
-        }
+            comments: {},
+          },
+        },
       })
     })
 
     it('should build nested relation with fields at multiple levels', () => {
       const result = buildNestedRelations(['posts[id,title].comments[id,body]'], mockSchema)
-      
+
       expect(result).toEqual({
         posts: {
           columns: {
             id: true,
-            title: true
+            title: true,
           },
           with: {
             comments: {
               columns: {
                 id: true,
-                body: true
-              }
-            }
-          }
-        }
+                body: true,
+              },
+            },
+          },
+        },
       })
     })
 
