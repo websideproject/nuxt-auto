@@ -102,17 +102,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRoute } from '#app'
 import ResourceCreateModal from '../../../components/modals/ResourceCreateModal.vue'
 import ResourceViewModal from '../../../components/modals/ResourceViewModal.vue'
 import ResourceEditModal from '../../../components/modals/ResourceEditModal.vue'
-
-// Composables are auto-imported
+import { useAdminResource } from '../../../composables/useAdminResource'
+import { useAdminActions } from '../../../composables/useAdminActions'
+import { useAdminPermissions } from '../../../composables/useAdminPermissions'
+import { useAdminConfig } from '../../../composables/useAdminConfig'
 
 defineOptions({ name: 'AdminResourceListPage' })
-
-definePageMeta({
-  layout: 'admin',
-})
 
 const route = useRoute()
 const toast = useToast()

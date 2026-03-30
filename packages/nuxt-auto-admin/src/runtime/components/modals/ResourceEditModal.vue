@@ -63,6 +63,7 @@ import { createReusableTemplate, useMediaQuery } from '@vueuse/core'
 import M2MRelationCard from '../M2MRelationCard.vue'
 import { useM2MDetection } from '../../composables/useM2MDetection'
 import type { M2MFieldConfig } from '../../composables/useM2MDetection'
+import { useAdminResource } from '../../composables/useAdminResource'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 

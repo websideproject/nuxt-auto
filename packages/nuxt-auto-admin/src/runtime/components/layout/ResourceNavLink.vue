@@ -25,6 +25,8 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { NuxtLink } from '#components'
 import type { ResourceSchema } from '../../types'
+import { useAdminPermissions } from '../../composables/useAdminPermissions'
+import { useAdminConfig } from '../../composables/useAdminConfig'
 
 const props = defineProps<{
   resource: ResourceSchema

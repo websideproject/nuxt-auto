@@ -1,4 +1,4 @@
-import { computed, type MaybeRef } from 'vue'
+import { computed, unref, type MaybeRef } from 'vue'
 
 /**
  * Composable for checking permissions in admin UI

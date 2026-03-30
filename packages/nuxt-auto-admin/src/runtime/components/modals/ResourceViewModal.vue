@@ -154,6 +154,9 @@ import { formatFieldLabel, formatDisplayValue } from '../../utils/fieldTypeMappi
 import M2MRelationCard from '../M2MRelationCard.vue'
 import { useM2MDetection } from '../../composables/useM2MDetection'
 import type { M2MFieldConfig } from '../../composables/useM2MDetection'
+import { useAdminResource } from '../../composables/useAdminResource'
+import { useAdminPermissions } from '../../composables/useAdminPermissions'
+import { useAdminConfig } from '../../composables/useAdminConfig'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 

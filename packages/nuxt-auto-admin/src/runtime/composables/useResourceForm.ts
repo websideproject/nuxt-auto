@@ -1,5 +1,6 @@
 import { computed } from 'vue'
 import type { FieldConfig } from '../types'
+import { useAdminResource } from './useAdminResource'
 
 /**
  * Generate form configuration from resource schema

@@ -1,3 +1,5 @@
+import { useRuntimeConfig } from '#app'
+
 /**
  * Composable to access admin configuration
  */

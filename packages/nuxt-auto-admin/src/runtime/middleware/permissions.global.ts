@@ -1,3 +1,7 @@
+import { defineNuxtRouteMiddleware, useRuntimeConfig, abortNavigation } from '#app'
+import { useAdminRegistry } from '../composables/useAdminRegistry'
+import { useAdminPermissions } from '../composables/useAdminPermissions'
+
 /**
  * Global middleware to check permissions for admin routes
  */

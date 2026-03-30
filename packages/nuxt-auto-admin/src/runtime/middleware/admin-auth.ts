@@ -1,4 +1,4 @@
-import { defineNuxtRouteMiddleware, navigateTo } from '#app'
+import { defineNuxtRouteMiddleware, navigateTo, useRuntimeConfig, useState } from '#app'
 
 /**
  * Admin authentication middleware

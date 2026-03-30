@@ -46,13 +46,10 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter, useRuntimeConfig } from '#app'
 import PermissionDeniedPage from '../../components/PermissionDeniedPage.vue'
 
 defineOptions({ name: 'AdminErrorPage' })
-
-definePageMeta({
-  layout: 'admin',
-})
 
 defineProps<{
   error: {

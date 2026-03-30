@@ -1,3 +1,4 @@
+import { defineNuxtPlugin } from '#app'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createAutoApiQueryClient } from '../composables/queryClient'
 

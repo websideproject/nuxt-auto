@@ -95,15 +95,16 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
+import { useRoute } from '#app'
 import M2MRelationCard from '../../../../components/M2MRelationCard.vue'
 import { useM2MDetection } from '../../../../composables/useM2MDetection'
 import type { M2MFieldConfig } from '../../../../composables/useM2MDetection'
+import { useAdminResource } from '../../../../composables/useAdminResource'
+import { useAdminActions } from '../../../../composables/useAdminActions'
+import { useAdminPermissions } from '../../../../composables/useAdminPermissions'
+import { useAdminConfig } from '../../../../composables/useAdminConfig'
 
 defineOptions({ name: 'AdminResourceEditPage' })
-
-definePageMeta({
-  layout: 'admin',
-})
 
 const route = useRoute()
 const resourceName = computed(() => route.params.resource as string)

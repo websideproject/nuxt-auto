@@ -37,6 +37,8 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter, useRuntimeConfig } from '#app'
+
 defineProps<{
   message?: string
 }>()

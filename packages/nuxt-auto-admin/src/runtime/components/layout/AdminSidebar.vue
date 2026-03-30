@@ -114,7 +114,10 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
+import { useRuntimeConfig } from '#app'
 import { getJunctionTableNames } from '../../composables/useM2MDetection'
+import { useAdminConfig } from '../../composables/useAdminConfig'
+import { useAdminRegistry } from '../../composables/useAdminRegistry'
 import type { ResourceSchema } from '../../types'
 
 interface SidebarItem {

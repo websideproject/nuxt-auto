@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { createReusableTemplate, useMediaQuery } from '@vueuse/core'
+import { useAdminResource } from '../../composables/useAdminResource'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 

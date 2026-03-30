@@ -25,6 +25,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { NuxtLink } from '#components'
 import type { CustomPageConfig } from '../../types'
+import { useAdminConfig } from '../../composables/useAdminConfig'
 
 const props = defineProps<{
   page: CustomPageConfig

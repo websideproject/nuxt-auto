@@ -81,6 +81,9 @@
     "drizzle-zod": "^0.8.3",
     "zod": "^4.3.6"
   },
+  "peerDependencies": {
+    "h3": "^1.15.0"
+  },
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",
     "@nuxt/module-builder": "^1.0.2",
@@ -91,7 +94,6 @@
     "better-sqlite3": "^11.0.0",
     "changelogen": "^0.6.2",
     "drizzle-kit": "^0.31.8",
-    "h3": "^1.15.5",
     "typescript": "^5.9.3",
     "nuxt": "^4.3.0"
   }

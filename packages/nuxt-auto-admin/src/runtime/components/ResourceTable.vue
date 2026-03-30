@@ -143,8 +143,8 @@ import type { TableColumn } from '@nuxt/ui'
 import type { CellContext } from '@tanstack/vue-table'
 import { formatDisplayValue, formatFieldLabel } from '../utils/fieldTypeMapping'
 import PermissionDeniedPage from './PermissionDeniedPage.vue'
-
-// Composables are auto-imported from nuxt-auto-api and nuxt-auto-admin
+import { useAdminResource } from '../composables/useAdminResource'
+import { useAdminActions } from '../composables/useAdminActions'
 
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')

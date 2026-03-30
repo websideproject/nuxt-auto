@@ -140,12 +140,10 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useRuntimeConfig } from '#app'
+import { useAdminRegistry } from '../../composables/useAdminRegistry'
 
 defineOptions({ name: 'AdminDashboardPage' })
-
-definePageMeta({
-  layout: 'admin',
-})
 
 const router = useRouter()
 const config = useRuntimeConfig()

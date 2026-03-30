@@ -43,7 +43,7 @@ export default defineNitroPlugin(async () => {
   // Get runtime config
   let runtimeConfig: any = {}
   try {
-    const { useRuntimeConfig } = await import('#imports')
+    const { useRuntimeConfig } = await import('nitropack/runtime')
     runtimeConfig = useRuntimeConfig()
   }
   catch {

@@ -142,4 +142,5 @@ export async function getRegistry(): Promise<Record<string, any>> {
 
 // Re-export utilities with shorter aliases
 export { serializeResponse as serialize } from './serializeResponse'
+
 export { filterHiddenFields as filterHidden } from './filterHiddenFields'

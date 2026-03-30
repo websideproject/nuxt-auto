@@ -82,12 +82,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute } from '#app'
+import { useAdminResource } from '../../../composables/useAdminResource'
+import { useAdminActions } from '../../../composables/useAdminActions'
+import { useAdminPermissions } from '../../../composables/useAdminPermissions'
+import { useAdminConfig } from '../../../composables/useAdminConfig'
 
 defineOptions({ name: 'AdminResourceNewPage' })
-
-definePageMeta({
-  layout: 'admin',
-})
 
 const route = useRoute()
 const resourceName = computed(() => route.params.resource as string)

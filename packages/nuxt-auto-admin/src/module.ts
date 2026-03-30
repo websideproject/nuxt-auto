@@ -126,26 +126,31 @@ export default defineNuxtModule<ModuleOptions>({
           name: 'admin',
           path: adminPrefix,
           file: resolver.resolve('./runtime/pages/admin/index.vue'),
+          meta: { layout: 'admin' },
         },
         {
           name: 'admin-resource-create',
           path: `${adminPrefix}/:resource/new`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/new.vue'),
+          meta: { layout: 'admin' },
         },
         {
           name: 'admin-resource-edit',
           path: `${adminPrefix}/:resource/:id/edit`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/[id]/edit.vue'),
+          meta: { layout: 'admin' },
         },
         {
           name: 'admin-resource-detail',
           path: `${adminPrefix}/:resource/:id`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/[id].vue'),
+          meta: { layout: 'admin' },
         },
         {
           name: 'admin-resource-list',
           path: `${adminPrefix}/:resource`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/index.vue'),
+          meta: { layout: 'admin' },
         },
       ]
 

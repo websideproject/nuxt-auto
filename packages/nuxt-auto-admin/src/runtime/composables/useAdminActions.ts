@@ -1,4 +1,5 @@
 import { useRouter } from 'vue-router'
+import { useRuntimeConfig } from '#app'
 
 // These composables are auto-imported from nuxt-auto-api when the module is used
 declare function useAutoApiDelete(resource: string): { mutate: (id: string | number, options?: { onSuccess?: () => void, onError?: (error: unknown) => void }) => void, isPending: import('vue').Ref<boolean> }

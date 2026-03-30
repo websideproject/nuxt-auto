@@ -36,8 +36,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AutoForm from './AutoForm.vue'
-
-// Composables are auto-imported
+import { useAdminResource } from '../composables/useAdminResource'
+import { useResourceForm } from '../composables/useResourceForm'
 
 const props = defineProps<{
   resourceName: string
