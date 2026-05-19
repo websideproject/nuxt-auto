@@ -203,6 +203,7 @@ interface BuildTimeResourceConfig {
 function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOptions): string {
   const imports: string[] = []
   const registryEntries: string[] = []
+  const schemaMapEntries: string[] = []
 
   // Build a map of all resource names for foreign key resolution
   const resourceNames = resources
@@ -225,6 +226,7 @@ function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOp
       const exportName = schemaImport.__exportName || resource.name
       const modulePath = ensureExtension(schemaImport.__modulePath)
       imports.push(`import { ${exportName} as ${varName}Schema } from '${modulePath}'`)
+      schemaMapEntries.push(`  '${resource.name}': ${varName}Schema`)
     }
 
     // Build resource schema entry
@@ -233,6 +235,11 @@ function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOp
   })
 
   return `${imports.join('\n')}
+
+// Map of resource names to their Drizzle table objects (for FK resolution via col.references)
+const schemaMap = {
+${schemaMapEntries.join(',\n')}
+}
 
 // Utility functions needed for schema introspection
 function formatFieldLabel(fieldName) {
@@ -371,13 +378,19 @@ function buildResourceSchemaEntry(
           // Try different variations to find the actual resource
           let targetResource = null
 
-          // 1. Check if there's a Drizzle foreign key reference
+          // 1. Use Drizzle col.references() — compare referenced table by identity against schemaMap
           if (col.references) {
-            // Extract the table name from the Drizzle reference
-            const referencedTable = col.references()
-            if (referencedTable && referencedTable.constructor && referencedTable.constructor.name) {
-              targetResource = referencedTable.constructor.name
-            }
+            try {
+              const referencedCol = col.references()
+              if (referencedCol && referencedCol.table) {
+                for (const [resourceName, resourceSchema] of Object.entries(schemaMap)) {
+                  if (resourceSchema === referencedCol.table) {
+                    targetResource = resourceName
+                    break
+                  }
+                }
+              }
+            } catch (_) {}
           }
 
           // 2. Try to match against registered resources
@@ -397,6 +410,15 @@ function buildResourceSchemaEntry(
               if (availableResources.includes(iesForm)) {
                 targetResource = iesForm
               }
+            }
+
+            // 3. Suffix match for prefixed resource names (e.g. 'project' -> 'sampleProjects')
+            if (!targetResource) {
+              const lower = baseName.toLowerCase()
+              targetResource = availableResources.find(r => {
+                const rl = r.toLowerCase()
+                return rl.endsWith(lower + 's') || rl.endsWith(lower + 'es') || rl.endsWith(lower)
+              }) || null
             }
           }
 
@@ -472,7 +494,7 @@ function buildResourceSchemaEntry(
 
       for (const col of columns) {
         // Skip certain fields
-        if (col.isPrimaryKey && col.isAutoIncrement) continue
+        if (col.isPrimaryKey) continue
         if (col.name === 'createdAt' || col.name === 'updatedAt') continue
         if (col.name === 'deletedAt') continue
 
@@ -496,6 +518,12 @@ function buildResourceSchemaEntry(
             resource: col.foreignKey.table,
             displayField: 'name',
           }
+        }
+
+        if (field.widget === 'DateTimePicker') {
+          const lowerType = (col.type || col.dataType || '').toLowerCase()
+          const isDatetime = lowerType.includes('timestamp') || lowerType.includes('datetime') || col.name.toLowerCase().endsWith('at')
+          field.options = { ...field.options, showTime: isDatetime }
         }
 
         fields.push(field)

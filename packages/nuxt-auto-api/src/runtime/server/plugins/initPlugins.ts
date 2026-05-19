@@ -1,4 +1,5 @@
 import { defineNitroPlugin } from 'nitropack/runtime'
+import { useRuntimeConfig } from '#imports'
 import {
   addMiddleware,
   addContextExtender,
@@ -41,14 +42,7 @@ export default defineNitroPlugin(async () => {
   }
 
   // Get runtime config
-  let runtimeConfig: any = {}
-  try {
-    const { useRuntimeConfig } = await import('nitropack/runtime')
-    runtimeConfig = useRuntimeConfig()
-  }
-  catch {
-    // Runtime config might not be available
-  }
+  const runtimeConfig = useRuntimeConfig()
 
   for (const plugin of plugins) {
     if (!plugin) {

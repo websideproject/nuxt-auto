@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { createError, readBody } from 'h3'
 import type { HandlerContext, M2MOperationResponse, M2MRemoveRequest } from '../../../types'
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { detectJunction, validateJunctionConfig } from '../../utils/m2m/detectJunction'
 import { validateM2MRemoveRequest, validateResourceExists, validateIdsNotEmpty, validateBatchSize, sanitizeIds } from '../../utils/m2m/validateM2M'
 import { buildM2MPermissionContext, checkM2MPermissions } from '../../utils/m2m/permissions'
@@ -52,8 +53,10 @@ export async function m2mRemoveHandler(context: HandlerContext): Promise<M2MOper
   validateIdsNotEmpty(ids)
   validateBatchSize(ids)
 
-  // Detect junction table
-  const junction = detectJunction(schema, resource, relation)
+  // Detect junction table (explicit config takes priority over heuristics)
+  const m2mRelConfig = (useRuntimeConfig(context.event as any).autoApi?.m2m?.relations as any)
+  const explicitConf = m2mRelConfig?.[resource]?.[relation]
+  const junction = detectJunction(schema, resource, relation, explicitConf?.junctionTable, explicitConf?.leftKey, explicitConf?.rightKey)
   validateJunctionConfig(junction, schema)
 
   // Sanitize IDs (convert numeric strings to numbers)

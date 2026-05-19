@@ -86,6 +86,7 @@ const isDisabled = computed(() => {
 
 const isActive = computed(() => {
   if (isDisabled.value) return false
+  if (!route?.path) return false
   return route.path === fullPath.value || route.path.startsWith(`${fullPath.value}/`)
 })
 </script>

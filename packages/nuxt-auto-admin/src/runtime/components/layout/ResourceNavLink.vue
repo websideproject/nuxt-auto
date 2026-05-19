@@ -60,6 +60,8 @@ const isDisabled = computed(() => {
 
 const isActive = computed(() => {
   if (isDisabled.value) return false
-  return route.path.startsWith(`${props.adminPrefix}/${props.resource.name}`)
+  if (!route?.path) return false
+  const base = `${props.adminPrefix}/${props.resource.name}`
+  return route.path === base || route.path.startsWith(`${base}/`)
 })
 </script>

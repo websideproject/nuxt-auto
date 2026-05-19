@@ -1,6 +1,27 @@
 import { z } from 'zod'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 
+function coerceDateField(type: z.ZodTypeAny): z.ZodTypeAny {
+  if (type instanceof z.ZodDate) return z.coerce.date()
+  if (type instanceof z.ZodOptional) {
+    const coerced = coerceDateField((type as z.ZodOptional<z.ZodTypeAny>).unwrap())
+    return z.optional(coerced)
+  }
+  if (type instanceof z.ZodNullable) {
+    const coerced = coerceDateField((type as z.ZodNullable<z.ZodTypeAny>).unwrap())
+    return z.nullable(coerced)
+  }
+  return type
+}
+
+function coerceDates(schema: z.ZodObject<any>): z.ZodObject<any> {
+  const shape: Record<string, z.ZodTypeAny> = {}
+  for (const [key, type] of Object.entries(schema.shape as Record<string, z.ZodTypeAny>)) {
+    shape[key] = coerceDateField(type)
+  }
+  return z.object(shape)
+}
+
 /**
  * Generate Zod schemas from Drizzle table using drizzle-zod
  */
@@ -10,7 +31,8 @@ export function generateSchemas(table: any, options?: {
 }) {
   try {
     // Use drizzle-zod to generate schemas from table
-    const insertSchema = createInsertSchema(table, {})
+    const rawInsertSchema = createInsertSchema(table, {})
+    const insertSchema = coerceDates(rawInsertSchema)
     const selectSchema = createSelectSchema(table, {})
 
     // For create: use the insert schema (required fields)

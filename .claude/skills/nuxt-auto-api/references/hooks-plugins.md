@@ -95,6 +95,10 @@ const MyPlugin = defineAutoApiPlugin({
 
   // Runtime: add middleware, hooks, context extensions
   runtimeSetup?: async (ctx: PluginRuntimeContext) => {
+    // ctx.runtimeConfig is the full Nitro runtimeConfig — use it instead of
+    // calling useRuntimeConfig() directly (see External Package Plugins below).
+    const myOption = ctx.runtimeConfig.public?.myModule?.option
+
     // Add middleware for specific resources/operations
     ctx.addMiddleware({
       name: 'my-middleware',
@@ -121,7 +125,7 @@ const MyPlugin = defineAutoApiPlugin({
       },
     })
 
-    // Extend HandlerContext with custom data
+    // Extend HandlerContext with custom data on every request
     ctx.extendContext(async (handlerCtx) => {
       const featureFlags = await getFeatureFlags(handlerCtx.event)
       handlerCtx.requestMeta = { ...handlerCtx.requestMeta, featureFlags }
@@ -138,6 +142,88 @@ autoApi: {
   // or plugin directory:
   // plugins: './server/plugins/auto-api',
 }
+```
+
+---
+
+## User-Land Plugin File (`server/autoapi-plugins.ts`)
+
+For app-level plugins that need Nitro auto-imports (e.g. `useRuntimeConfig`, `getCurrentSession`), export an array of plugins from a file inside the Nitro scan directory:
+
+```ts
+// apps/my-app/server/autoapi-plugins.ts
+import { defineAutoApiPlugin } from '@websideproject/nuxt-auto-api/plugins'
+
+const authPlugin = defineAutoApiPlugin({
+  name: 'better-auth',
+  runtimeSetup(ctx) {
+    ctx.extendContext(async (handlerCtx) => {
+      if (handlerCtx.user) return
+      const session = await getCurrentSession(handlerCtx.event)  // Nitro auto-import
+      if (!session?.user) return
+      handlerCtx.user = {
+        id: session.user.id,
+        email: session.user.email,
+        roles: session.user.role ? [session.user.role] : [],
+        permissions: session.user.permissions ?? [],
+        organizationId: session.session?.activeOrganizationId ?? null,
+      } as any
+    })
+  },
+})
+
+export default [authPlugin]
+```
+
+The generated virtual module `#nuxt-auto-api-plugins` imports this file. Because the file lives in `server/`, Nitro auto-imports (`getCurrentSession`, `useRuntimeConfig`, etc.) are available.
+
+---
+
+## External Package Plugins
+
+Plugins shipped inside npm/workspace packages **cannot use Nitro virtual modules** (`#imports`, `#nitro-utils`) or auto-imports — they are resolved via standard ESM outside Nitro's transform pass.
+
+**Rules for external package plugins:**
+
+1. **Use `ctx.runtimeConfig` instead of `useRuntimeConfig()`** — `initPlugins.ts` reads `useRuntimeConfig()` (via `#imports` in the built dist) and passes it to every plugin's `runtimeSetup`. Read config from `ctx.runtimeConfig`.
+
+2. **Use explicit package imports** for everything else — no auto-imports.
+
+```ts
+// packages/my-module/runtime/auto-api-plugins/my-plugin.ts
+import { defineAutoApiPlugin } from '@websideproject/nuxt-auto-api/plugins'
+import { getDatabaseAdapter } from '@websideproject/nuxt-auto-api/database'
+import { eq } from 'drizzle-orm'
+import { myTable } from '@my-package/schema'         // explicit package import
+import type { MyType } from '@my-package/types'      // explicit package import
+
+export default defineAutoApiPlugin({
+  name: 'my-plugin',
+  runtimeSetup(ctx) {
+    // ✅ Read config from ctx.runtimeConfig — not useRuntimeConfig()
+    const myConfig = (ctx.runtimeConfig.public as any)?.myModule ?? {}
+
+    ctx.extendContext(async (handlerCtx) => {
+      const { db } = getDatabaseAdapter()            // ✅ explicit import
+      const user = handlerCtx.user as any
+      if (!user?.id) return
+
+      const row = await db.select().from(myTable)
+        .where(eq(myTable.userId, user.id))
+        .limit(1)
+        .then((rows: any[]) => rows[0] ?? null)
+
+      handlerCtx.requestMeta = { ...handlerCtx.requestMeta, myData: row }
+    })
+  },
+})
+```
+
+Then import it in the app's `server/autoapi-plugins.ts`:
+
+```ts
+import myPlugin from '@my-package/runtime/auto-api-plugins/my-plugin'
+export default [authPlugin, myPlugin]
 ```
 
 ---
@@ -193,7 +279,7 @@ interface PluginRuntimeContext {
   addHook: (resource: string, hooks: ResourceHooks) => void
   addGlobalHook: (hooks: ResourceHooks) => void
   extendContext: (fn: (ctx: HandlerContext) => void|Promise<void>) => void
-  runtimeConfig: any
+  runtimeConfig: any    // Full Nitro runtimeConfig — use this instead of useRuntimeConfig()
   logger: PluginLogger
 }
 ```

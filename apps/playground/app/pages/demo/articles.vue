@@ -131,19 +131,17 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <UModal v-model="showFormModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold">
-            {{ editingArticle ? 'Edit Article' : 'Create Article' }}
-          </h3>
-        </template>
-
+    <UModal
+      v-model:open="showFormModal"
+      :title="editingArticle ? 'Edit Article' : 'Create Article'"
+    >
+      <template #body>
         <form
-          class="space-y-4"
+          id="article-form"
+          class="space-y-4 p-4"
           @submit.prevent="submitForm"
         >
-          <UFormGroup
+          <UFormField
             label="Title"
             required
           >
@@ -151,9 +149,9 @@
               v-model="formData.title"
               placeholder="Enter article title"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup
+          <UFormField
             label="Slug"
             required
           >
@@ -161,86 +159,75 @@
               v-model="formData.slug"
               placeholder="url-friendly-slug"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup
+          <UFormField
             label="Content"
             required
           >
             <UTextarea
               v-model="formData.content"
               placeholder="Enter article content"
-              rows="4"
+              :rows="4"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Published">
+          <UFormField label="Published">
             <UCheckbox
               v-model="formData.published"
               label="Publish this article"
             />
-          </UFormGroup>
-
-          <div class="flex justify-end gap-2">
-            <UButton
-              type="button"
-              variant="outline"
-              @click="closeFormModal"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              type="submit"
-              :loading="isSubmitting"
-              :disabled="!formData.title || !formData.slug || !formData.content"
-            >
-              {{ editingArticle ? 'Update' : 'Create' }}
-            </UButton>
-          </div>
+          </UFormField>
         </form>
-      </UCard>
+      </template>
+
+      <template #footer>
+        <UButton
+          variant="outline"
+          @click="closeFormModal"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          type="submit"
+          form="article-form"
+          :loading="isSubmitting"
+          :disabled="!formData.title || !formData.slug || !formData.content"
+        >
+          {{ editingArticle ? 'Update' : 'Create' }}
+        </UButton>
+      </template>
     </UModal>
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model="showDeleteModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold text-red-600">
-            Delete Article
-          </h3>
-        </template>
-
-        <div class="space-y-4">
-          <p>Are you sure you want to delete this article?</p>
-          <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded">
-            <p class="font-medium">
-              {{ deletingArticle?.title }}
-            </p>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {{ deletingArticle?.content }}
-            </p>
-          </div>
+    <UModal
+      v-model:open="showDeleteModal"
+      title="Delete Article"
+    >
+      <template #body>
+        <div class="space-y-4 p-4">
+          <p>Are you sure you want to delete <strong>{{ deletingArticle?.title }}</strong>?</p>
           <p class="text-sm text-red-600">
             This action cannot be undone.
           </p>
-
-          <div class="flex justify-end gap-2">
-            <UButton
-              variant="outline"
-              @click="closeDeleteModal"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              color="error"
-              :loading="isDeleting"
-              @click="confirmDelete"
-            >
-              Delete
-            </UButton>
-          </div>
         </div>
-      </UCard>
+      </template>
+
+      <template #footer>
+        <UButton
+          variant="outline"
+          @click="closeDeleteModal"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          color="error"
+          :loading="isDeleting"
+          @click="confirmDelete"
+        >
+          Delete
+        </UButton>
+      </template>
     </UModal>
   </div>
 </template>

@@ -204,12 +204,16 @@ function extractTargetFromReference(
   availableResources: string[],
 ): string | null {
   try {
-    // Call the references function to get the target table
-    const referencedTable = column.references?.()
+    // col.references() returns the referenced COLUMN (e.g. sampleTasks.id)
+    // We need the TABLE — accessible via column.table
+    const referencedCol = column.references?.()
 
-    if (!referencedTable) {
+    if (!referencedCol) {
       return null
     }
+
+    // Get the parent table of the referenced column
+    const referencedTable = referencedCol?.table ?? referencedCol
 
     // Find which resource this table belongs to by comparing table objects
     for (const resourceName of availableResources) {
@@ -229,16 +233,6 @@ function extractTargetFromReference(
       catch (e) {
         // getTableName might fail on some table types
       }
-    }
-
-    // If no exact match, try to extract from table metadata
-    // Some Drizzle table objects have a [Symbol] property with the table name
-    const tableName = referencedTable?.[Symbol.for('drizzle:Name')]
-      || referencedTable?._.name
-      || referencedTable?.dbName
-
-    if (tableName && availableResources.includes(tableName)) {
-      return tableName
     }
 
     return null
@@ -322,6 +316,21 @@ function findResourceName(baseResource: string, availableResources: string[]): s
   for (const variation of variations) {
     if (availableResources.includes(variation)) {
       return variation
+    }
+  }
+
+  // Suffix match (case-insensitive): handles prefixed resource names
+  // e.g., 'task' matches 'sampleTasks', 'label' matches 'sampleLabels'
+  const lowerBase = baseResource.toLowerCase()
+  for (const resource of availableResources) {
+    const lower = resource.toLowerCase()
+    if (
+      lower.endsWith(lowerBase)
+      || lower.endsWith(lowerBase + 's')
+      || lower.endsWith(lowerBase + 'es')
+      || (lowerBase.endsWith('y') && lower.endsWith(lowerBase.slice(0, -1) + 'ies'))
+    ) {
+      return resource
     }
   }
 
@@ -418,7 +427,18 @@ function matchesJunctionPattern(
     }
   }
 
-  return patterns.includes(tableName)
+  if (patterns.includes(tableName)) {
+    return true
+  }
+
+  // Substring match for prefixed resource names
+  // e.g., 'sampleTaskLabels' contains both 'task' and 'label'
+  const lowerTableName = tableName.toLowerCase()
+  if (lowerTableName.includes(leftBase.toLowerCase()) && lowerTableName.includes(rightBase.toLowerCase())) {
+    return true
+  }
+
+  return false
 }
 
 /**

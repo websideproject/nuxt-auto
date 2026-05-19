@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { createError } from 'h3'
 import type { HandlerContext, M2MListResponse, M2MListQuery } from '../../../types'
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { detectJunction, validateJunctionConfig } from '../../utils/m2m/detectJunction'
 import { validateResourceExists } from '../../utils/m2m/validateM2M'
 import { buildM2MPermissionContext, checkM2MPermissions } from '../../utils/m2m/permissions'
@@ -39,8 +40,10 @@ export async function m2mListHandler(context: HandlerContext): Promise<M2MListRe
   // Use validated query if available
   const effectiveQuery = (validated.query || query) as M2MListQuery
 
-  // Detect junction table
-  const junction = detectJunction(schema, resource, relation)
+  // Detect junction table (explicit config takes priority over heuristics)
+  const m2mRelConfig = (useRuntimeConfig(context.event as any).autoApi?.m2m?.relations as any)
+  const explicitConf = m2mRelConfig?.[resource]?.[relation]
+  const junction = detectJunction(schema, resource, relation, explicitConf?.junctionTable, explicitConf?.leftKey, explicitConf?.rightKey)
   validateJunctionConfig(junction, schema)
 
   // Verify left record exists

@@ -204,37 +204,27 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model="showDeleteModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold">
-            Confirm Bulk Delete
-          </h3>
-        </template>
-
-        <p class="text-gray-600 dark:text-gray-400">
-          Are you sure you want to delete {{ selectedForDelete.length }} posts? This action cannot be undone.
-        </p>
-
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <UButton
-              variant="ghost"
-              color="gray"
-              @click="showDeleteModal = false"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              color="error"
-              :loading="bulkDeleteMutation.isPending.value"
-              @click="handleBulkDelete"
-            >
-              Delete {{ selectedForDelete.length }} Posts
-            </UButton>
-          </div>
-        </template>
-      </UCard>
+    <UModal
+      v-model:open="showDeleteModal"
+      title="Confirm Bulk Delete"
+      :description="`Are you sure you want to delete ${selectedForDelete.length} posts? This action cannot be undone.`"
+    >
+      <template #footer>
+        <UButton
+          variant="ghost"
+          color="neutral"
+          @click="showDeleteModal = false"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          color="error"
+          :loading="bulkDeleteMutation.isPending.value"
+          @click="handleBulkDelete"
+        >
+          Delete {{ selectedForDelete.length }} Posts
+        </UButton>
+      </template>
     </UModal>
   </div>
 </template>

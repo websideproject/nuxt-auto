@@ -19,8 +19,8 @@ export async function checkM2MPermissions(
   const leftAuthConfig = handlerContext.registry?.[left.resource]?.authorization
   const rightAuthConfig = handlerContext.registry?.[right.resource]?.authorization
 
-  // 1. Check LEFT side: User must have update permission on main resource
-  await checkLeftSidePermission(left, handlerContext, leftAuthConfig)
+  // 1. Check LEFT side: read for list, update for write operations
+  await checkLeftSidePermission(left, handlerContext, leftAuthConfig, context.operation)
 
   // 2. Check RIGHT side: User must have read/update permission on related resources
   await checkRightSidePermission(right, left.resource, handlerContext, rightAuthConfig, leftAuthConfig?.permissions?.m2m)
@@ -31,37 +31,50 @@ export async function checkM2MPermissions(
 
 /**
  * Check LEFT side permission (main resource)
- * User must have update permission on the main resource
+ * List operations require read permission; write operations require update.
  */
 async function checkLeftSidePermission(
   left: M2MPermissionContext['left'],
   handlerContext: HandlerContext,
   authConfig?: ResourceAuthConfig,
+  m2mOperation?: string,
 ): Promise<void> {
-  if (!authConfig?.permissions?.update) {
-    // No update permission configured = allow
+  const isReadOperation = m2mOperation === 'list'
+  const permissionKey = isReadOperation ? 'read' : 'update'
+
+  if (!authConfig?.permissions?.[permissionKey]) {
+    // No permission configured = allow
     return
   }
 
   const hasPermission = await checkPermission(
-    authConfig.permissions.update,
+    permissionKey,
+    authConfig,
     handlerContext,
   )
 
   if (!hasPermission) {
     throw createError({
       statusCode: 403,
-      message: `Insufficient permissions to modify relations for ${left.resource}`,
+      message: isReadOperation
+        ? `Insufficient permissions to read ${left.resource}`
+        : `Insufficient permissions to modify relations for ${left.resource}`,
     })
   }
 
   // Object-level check if record is provided
   if (left.record && authConfig.objectLevel) {
-    const hasObjectLevelAccess = await authConfig.objectLevel(left.record, handlerContext)
+    // For M2M list, evaluate objectLevel as a read/get so listFilter-equivalent logic applies
+    const objectLevelCtx = isReadOperation
+      ? { ...handlerContext, operation: 'get' as const }
+      : handlerContext
+    const hasObjectLevelAccess = await authConfig.objectLevel(left.record, objectLevelCtx)
     if (!hasObjectLevelAccess) {
       throw createError({
         statusCode: 403,
-        message: `Insufficient permissions to modify this ${left.resource}`,
+        message: isReadOperation
+          ? `Insufficient permissions to read this ${left.resource}`
+          : `Insufficient permissions to modify this ${left.resource}`,
       })
     }
   }
@@ -90,17 +103,16 @@ async function checkRightSidePermission(
       || m2mConfig?.requireUpdateOnRelated?.includes(right.resource)
       || false
 
-  const permissionToCheck = requireUpdate
-    ? rightAuthConfig.permissions?.update
-    : rightAuthConfig.permissions?.read
+  const operation = requireUpdate ? 'update' : 'read'
 
-  if (!permissionToCheck) {
+  if (!rightAuthConfig.permissions?.[operation]) {
     // No permission configured = allow
     return
   }
 
   const hasPermission = await checkPermission(
-    permissionToCheck,
+    operation,
+    rightAuthConfig,
     handlerContext,
   )
 

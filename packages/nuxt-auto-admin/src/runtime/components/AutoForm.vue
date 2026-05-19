@@ -90,6 +90,9 @@ watch(
         else if (field.widget === 'NumberInput') {
           data[field.name] = field.options?.min || 0
         }
+        else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget)) {
+          data[field.name] = null
+        }
         else {
           data[field.name] = ''
         }
@@ -144,6 +147,9 @@ function resetForm() {
           else if (field.widget === 'NumberInput') {
             data[field.name] = field.options?.min || 0
           }
+          else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget)) {
+            data[field.name] = null
+          }
           else {
             data[field.name] = ''
           }
@@ -188,6 +194,18 @@ async function handleSubmit() {
         }
       })
     }
+
+    // Strip null/empty values for non-required fields (let server apply column defaults)
+    // Also strip 0 for RelationSelect (not a valid FK)
+    visibleFields.value.forEach((field) => {
+      const val = dataToSubmit[field.name]
+      if (!field.required && (val === '' || val === null || val === undefined)) {
+        delete dataToSubmit[field.name]
+      }
+      if (field.widget === 'RelationSelect' && val === 0) {
+        delete dataToSubmit[field.name]
+      }
+    })
 
     emit('submit', dataToSubmit)
   }

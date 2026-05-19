@@ -16,10 +16,12 @@ export function detectJunction(
   leftResource: string,
   rightResource: string,
   providedJunctionTable?: string,
+  providedLeftKey?: string,
+  providedRightKey?: string,
 ): DetectedJunction {
   // If junction table is explicitly provided, use it
   if (providedJunctionTable) {
-    return detectFromTableName(schema, providedJunctionTable, leftResource, rightResource)
+    return detectFromTableName(schema, providedJunctionTable, leftResource, rightResource, providedLeftKey, providedRightKey)
   }
 
   // Generate singular and plural variations
@@ -57,6 +59,7 @@ export function detectJunction(
     }
   }
 
+
   throw new Error(
     `Junction table not found for relation ${leftResource} <-> ${rightResource}. `
     + `Tried: ${uniquePatterns.slice(0, 10).join(', ')}${uniquePatterns.length > 10 ? '...' : ''}. `
@@ -72,6 +75,8 @@ function detectFromTableName(
   tableName: string,
   leftResource: string,
   rightResource: string,
+  providedLeftKey?: string,
+  providedRightKey?: string,
 ): DetectedJunction {
   const table = schema[tableName]
   if (!table) {
@@ -81,8 +86,8 @@ function detectFromTableName(
   const columns = getTableColumns(table)
   const columnNames = Object.keys(columns)
 
-  // Detect left key (pattern: {resource}Id, {resource}_id, id{Resource})
-  const leftKey = detectForeignKey(columnNames, leftResource)
+  // Use explicit keys when provided, otherwise auto-detect
+  const leftKey = providedLeftKey || detectForeignKey(columnNames, leftResource)
   if (!leftKey) {
     throw new Error(
       `Could not detect left foreign key for ${leftResource} in junction table ${tableName}. `
@@ -90,8 +95,7 @@ function detectFromTableName(
     )
   }
 
-  // Detect right key
-  const rightKey = detectForeignKey(columnNames, rightResource)
+  const rightKey = providedRightKey || detectForeignKey(columnNames, rightResource)
   if (!rightKey) {
     throw new Error(
       `Could not detect right foreign key for ${rightResource} in junction table ${tableName}. `

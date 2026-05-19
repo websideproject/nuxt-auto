@@ -9,6 +9,11 @@ function hasPermission(
   required: string | string[] | Function,
   context: HandlerContext,
 ): boolean {
+  // Wildcard — user has all permissions
+  if (userPermissions.includes('*')) {
+    return true
+  }
+
   // If required is a function, call it
   if (typeof required === 'function') {
     return required(context)

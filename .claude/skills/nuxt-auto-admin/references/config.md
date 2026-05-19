@@ -164,6 +164,32 @@ customPages: [
 
 The corresponding page component should be created at `pages/admin/analytics.vue`.
 
+### Replacing a Resource with a Custom Admin Page
+
+To skip auto-generation for a specific resource and build a custom page instead, combine `disabled` on the resource with a matching `customPages` entry. The underlying API endpoints remain fully functional.
+
+```ts
+autoAdmin: {
+  resources: {
+    orders: {
+      disabled: true,  // Hides from sidebar + suppresses auto-generated CRUD routes
+    },
+  },
+  customPages: [
+    {
+      name: 'orders',
+      label: 'Orders',
+      path: '/orders',
+      icon: 'i-heroicons-shopping-cart',
+      group: 'Commerce',
+      order: 1,
+    },
+  ],
+}
+```
+
+Create the page at `pages/admin/orders.vue`. You can use any nuxt-auto-admin components (`ResourceTable`, `ResourceForm`, `M2MRelationCard`) and composables (`useAdminRegistry`, `useAdminPermissions`) inside it — you just own the full layout and logic.
+
 ---
 
 ## Resource Groups

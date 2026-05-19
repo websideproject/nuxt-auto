@@ -105,13 +105,13 @@
       </template>
 
       <div class="space-y-4">
-        <UFormGroup label="Bearer Token">
+        <UFormField label="Bearer Token">
           <UInput
             v-model="testToken"
             placeholder="sk_test_admin_unrestricted"
             icon="i-heroicons-key"
           />
-        </UFormGroup>
+        </UFormField>
 
         <div class="flex gap-2 flex-wrap">
           <UButton
@@ -128,20 +128,20 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <UFormGroup label="Method">
+            <UFormField label="Method">
               <USelect
                 v-model="testMethod"
                 :items="['GET', 'POST', 'PATCH', 'DELETE']"
               />
-            </UFormGroup>
+            </UFormField>
           </div>
           <div>
-            <UFormGroup label="Endpoint">
+            <UFormField label="Endpoint">
               <UInput
                 v-model="testEndpoint"
                 placeholder="/api/articles"
               />
-            </UFormGroup>
+            </UFormField>
           </div>
         </div>
 
@@ -183,7 +183,7 @@
           </UButton>
         </div>
 
-        <UFormGroup
+        <UFormField
           v-if="testMethod === 'POST' || testMethod === 'PATCH'"
           label="Request Body (JSON)"
         >
@@ -193,7 +193,7 @@
             rows="3"
             class="font-mono text-sm"
           />
-        </UFormGroup>
+        </UFormField>
 
         <UButton
           :loading="isTesting"
@@ -454,19 +454,17 @@
     </UCard>
 
     <!-- Create Modal -->
-    <UModal v-model="showCreateModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold">
-            Create API Key
-          </h3>
-        </template>
-
+    <UModal
+      v-model:open="showCreateModal"
+      title="Create API Key"
+    >
+      <template #body>
         <form
-          class="space-y-4"
+          id="api-key-form"
+          class="space-y-4 p-4"
           @submit.prevent="submitCreate"
         >
-          <UFormGroup
+          <UFormField
             label="Name"
             required
           >
@@ -474,9 +472,9 @@
               v-model="createForm.name"
               placeholder="My API Key"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup
+          <UFormField
             label="Scopes"
             hint="Leave empty for unrestricted access"
           >
@@ -514,71 +512,63 @@
                 :key="preset"
                 size="xs"
                 variant="soft"
-                color="gray"
+                color="neutral"
                 @click="addScopePreset(preset)"
               >
                 {{ preset }}
               </UButton>
             </div>
-          </UFormGroup>
-
-          <div class="flex justify-end gap-2">
-            <UButton
-              variant="outline"
-              @click="showCreateModal = false"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              type="submit"
-              :loading="isCreating"
-              :disabled="!createForm.name"
-            >
-              Create
-            </UButton>
-          </div>
+          </UFormField>
         </form>
-      </UCard>
+      </template>
+
+      <template #footer>
+        <UButton
+          variant="outline"
+          @click="showCreateModal = false"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          type="submit"
+          form="api-key-form"
+          :loading="isCreating"
+          :disabled="!createForm.name"
+        >
+          Create
+        </UButton>
+      </template>
     </UModal>
 
     <!-- Delete Modal -->
-    <UModal v-model="showDeleteModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold text-red-600">
-            Delete API Key
-          </h3>
-        </template>
-
-        <div class="space-y-4">
-          <p>Are you sure you want to delete this API key?</p>
-          <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded">
-            <p class="font-medium">
-              {{ deletingKey?.name }}
-            </p>
-            <code class="text-sm text-gray-500">{{ deletingKey?.key }}</code>
-          </div>
+    <UModal
+      v-model:open="showDeleteModal"
+      title="Delete API Key"
+    >
+      <template #body>
+        <div class="space-y-3 p-4">
+          <p>Are you sure you want to delete <strong>{{ deletingKey?.name }}</strong>?</p>
           <p class="text-sm text-red-600">
             Any applications using this token will lose access immediately.
           </p>
-
-          <div class="flex justify-end gap-2">
-            <UButton
-              variant="outline"
-              @click="showDeleteModal = false"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              color="error"
-              :loading="isDeleting"
-              @click="confirmDelete"
-            >
-              Delete
-            </UButton>
-          </div>
         </div>
-      </UCard>
+      </template>
+
+      <template #footer>
+        <UButton
+          variant="outline"
+          @click="showDeleteModal = false"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          color="error"
+          :loading="isDeleting"
+          @click="confirmDelete"
+        >
+          Delete
+        </UButton>
+      </template>
     </UModal>
   </div>
 </template>

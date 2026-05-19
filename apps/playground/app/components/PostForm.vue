@@ -13,7 +13,7 @@
         @submit.prevent="handleSubmit"
       >
         <!-- Title -->
-        <UFormGroup
+        <UFormField
           label="Title"
           name="title"
           required
@@ -25,10 +25,10 @@
             size="xl"
             :disabled="loading"
           />
-        </UFormGroup>
+        </UFormField>
 
         <!-- Content -->
-        <UFormGroup
+        <UFormField
           label="Content"
           name="content"
           :error="validationErrors.content"
@@ -39,10 +39,10 @@
             :rows="12"
             :disabled="loading"
           />
-        </UFormGroup>
+        </UFormField>
 
         <!-- Author (User) -->
-        <UFormGroup
+        <UFormField
           label="Author"
           name="userId"
           required
@@ -56,10 +56,10 @@
             :disabled="loading"
             value-attribute="value"
           />
-        </UFormGroup>
+        </UFormField>
 
         <!-- Published Status -->
-        <UFormGroup
+        <UFormField
           label="Status"
           name="published"
         >
@@ -72,7 +72,7 @@
               {{ form.published ? 'Published' : 'Draft' }}
             </span>
           </div>
-        </UFormGroup>
+        </UFormField>
 
         <!-- Actions -->
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -234,7 +234,7 @@ function handleSubmit() {
     toast.add({
       title: 'Validation error',
       description: 'Please fix the errors before submitting',
-      color: 'red'
+      color: 'error'
     })
     return
   }

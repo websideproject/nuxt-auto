@@ -1,7 +1,9 @@
 <template>
   <USelectMenu
     :model-value="modelValue"
-    :options="selectOptions"
+    :items="selectOptions"
+    value-key="value"
+    label-key="label"
     :disabled="readonly"
     :required="required"
     :placeholder="placeholder || 'Select an option'"

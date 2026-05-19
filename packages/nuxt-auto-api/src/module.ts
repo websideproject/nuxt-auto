@@ -141,16 +141,8 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    // Call hook to let community modules register plugin files
-    await nuxt.callHook('autoApi:registerPlugins' as any, {
-      addFile(filePath: string) {
-        pluginFilePaths.push(filePath)
-        console.log(`[nuxt-auto-api] Plugin file registered via hook: ${filePath}`)
-      },
-    })
-
-    // Determine if we have any plugins
-    const hasPlugins = !!userPluginFilePath || pluginFilePaths.length > 0 || inlinePlugins.some(p => p.runtimeSetup)
+    // hasPlugins is checked after modules:done populates pluginFilePaths
+    const hasPlugins = !!userPluginFilePath || inlinePlugins.some(p => p.runtimeSetup)
 
     // Generate virtual module for plugins
     addTemplate({
@@ -201,6 +193,15 @@ export {
 
     // After all modules loaded, call hook and generate virtual module
     nuxt.hook('modules:done', async () => {
+      // Let other modules register plugin files — must run in modules:done so all
+      // modules have already had a chance to call nuxt.hook('autoApi:registerPlugins')
+      await nuxt.callHook('autoApi:registerPlugins' as any, {
+        addFile(filePath: string) {
+          pluginFilePaths.push(filePath)
+          console.log(`[nuxt-auto-api] Plugin file registered via hook: ${filePath}`)
+        },
+      })
+
       // Call hook to let other modules register resources
       await nuxt.callHook('autoApi:registerSchema' as any, registry)
       const resources = registry.getAll()
