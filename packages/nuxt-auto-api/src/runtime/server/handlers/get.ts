@@ -10,6 +10,7 @@ import { getSoftDeleteColumn } from '../utils/softDelete'
 import { buildTenantWhere } from '../utils/tenant'
 import { executeBeforeHook, executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { parseJsonColumns } from '../utils/parseJsonColumns'
 import { serializeResponse } from '../utils/serializeResponse'
 
 /**
@@ -114,6 +115,9 @@ export async function getHandler(context: HandlerContext): Promise<SingleRespons
 
   // Check object-level authorization
   await checkObjectLevelAuth(data, context)
+
+  // Parse JSON columns before filtering/hooks
+  data = parseJsonColumns(data, context)
 
   // Filter relation fields based on enhanced include syntax (author[id,name])
   let filteredData = filterRelationFields(data, relations)

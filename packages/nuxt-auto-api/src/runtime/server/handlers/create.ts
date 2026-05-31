@@ -2,6 +2,7 @@ import { createError } from 'h3'
 import type { HandlerContext, SingleResponse } from '../../types'
 import { executeBeforeHook, executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { parseJsonColumns } from '../utils/parseJsonColumns'
 
 /**
  * Create handler - POST /api/[resource]
@@ -44,8 +45,11 @@ export async function createHandler(context: HandlerContext): Promise<SingleResp
     })
   }
 
+  // Parse JSON columns before hooks see them
+  const parsed = parseJsonColumns(created, context)
+
   // Execute afterCreate hook (may transform data, e.g., API Token plugin)
-  const result = await executeAfterHookWithTransform('create', context, created)
+  const result = await executeAfterHookWithTransform('create', context, parsed)
 
   // Filter hidden fields from response
   const filteredData = filterHiddenFields(result, context)

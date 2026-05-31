@@ -102,6 +102,24 @@ createModuleImport(
 
 ---
 
+## JSON Columns
+
+For columns that store JSON (arrays, objects), declare them with `{ mode: 'json' }` and `.$type<T>()`. nuxt-auto-api detects this and automatically parses string values returned by the DB driver before hooks and response serialization run.
+
+```ts
+// ✅ Correct — nuxt-auto-api auto-parses on read, drizzle serializes on write
+events:     text('events',     { mode: 'json' }).notNull().default('[]').$type<string[]>(),
+metadata:   text('metadata',   { mode: 'json' }).$type<Record<string, any>>(),
+providerData: text('provider_data', { mode: 'json' }).$type<ProviderData>(),
+
+// ❌ Wrong — comes back as a raw JSON string
+events: text('events').notNull().default('[]'),   // hooks and client see '["a","b"]'
+```
+
+Detection covers: SQLite `{ mode: 'json' }`, MySQL `json()`, Postgres `json()`/`jsonb()`.
+
+---
+
 ## Schema File (`schema.ts`)
 
 Standard Drizzle table definitions. Export each table by name — this name must match the `__exportName` in `createModuleImport`.
@@ -277,6 +295,47 @@ nuxt.hook('autoApi:registerSchema', (registry) => {
 
 ---
 
+## Validation File (`validation.ts`)
+
+Provide Zod schemas for `create` and `update` to validate and transform request bodies. Use this to coerce types before they reach `beforeCreate`/`beforeUpdate` hooks.
+
+```ts
+// validation.ts
+import { z } from 'zod'
+
+export const postsValidation = {
+  create: z.object({
+    title: z.string().min(1),
+    status: z.enum(['draft', 'published']).default('draft'),
+    // Coerce incoming array to JSON string (for text columns without mode:'json')
+    // Not needed when using text({ mode: 'json' }) — drizzle handles it
+  }),
+  update: z.object({
+    title: z.string().min(1).optional(),
+    status: z.enum(['draft', 'published']).optional(),
+  }),
+}
+```
+
+Register alongside schema/auth/hooks:
+
+```ts
+nuxt.hook('autoApi:registerSchema', (registry) => {
+  registry.register('posts', {
+    schema:        createModuleImport(resolver.resolve('./schema'), 'posts'),
+    authorization: createModuleImport(resolver.resolve('./auth'),   'postsAuth'),
+    hooks:         createModuleImport(resolver.resolve('./hooks'),  'postsHooks'),
+    validation:    createModuleImport(resolver.resolve('./validation'), 'postsValidation'),
+  })
+})
+```
+
+If no `validation` is provided, nuxt-auto-api generates permissive schemas from the Drizzle column types automatically.
+
+**Validation errors return HTTP 400.** The check uses `instanceof ZodError || error?.name === 'ZodError'` so it works correctly even when multiple Zod copies exist in a monorepo.
+
+---
+
 ## `BuildTimeRegistry` Interface
 
 ```ts
@@ -290,10 +349,10 @@ interface ResourceRegistration {
   name: string
   schema: any                          // createModuleImport reference at build time
   authorization?: ResourceAuthConfig | any
-  validation?: any
+  validation?: { create?: ZodSchema; update?: ZodSchema } | any
   hooks?: ResourceHooks | any
   metadata?: Record<string, any>
-  hiddenFields?: string[]
+  hiddenFields?: string[]              // always stripped from all responses
 }
 ```
 

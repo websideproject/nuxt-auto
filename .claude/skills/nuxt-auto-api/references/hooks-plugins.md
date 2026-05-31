@@ -39,6 +39,67 @@ interface ResourceHooks {
 **Return values from `after*` hooks modify the response** sent to the client.
 **Return values from `before*` hooks modify the data** passed to the operation (except void hooks).
 
+### Hook execution order
+
+```
+beforeCreate(data, ctx)
+  → db.insert(...)
+    → parseJsonColumns(created)   ← JSON columns are parsed here
+      → afterCreate(created, ctx) ← hook sees parsed values (arrays, not strings)
+        → filterHiddenFields
+          → response
+```
+
+The same order applies to `get`, `list`, and `update`.
+
+### Critical: never mutate the raw DB result
+
+D1 (and some other drivers) may return non-writable result objects. Always **spread-copy** before modifying in an `after*` hook:
+
+```ts
+// ✅ Safe — works with all drivers
+afterCreate: async (result, ctx) => {
+  const copy = Object.assign({}, result)
+  copy.plainKey = '...'
+  delete copy.hashedKey
+  return copy
+},
+
+// ❌ Unsafe — throws silently on D1 ("cannot delete property")
+afterCreate: async (result, ctx) => {
+  delete result.hashedKey   // TypeError swallowed by errorHandling:'log'
+  return result
+},
+```
+
+### Passing data between `before*` and `after*` via `requestMeta`
+
+`ctx` is the same `HandlerContext` object throughout the pipeline. Use `ctx.requestMeta` to stash values computed in a `before*` hook so an `after*` hook can read them without a second DB call:
+
+```ts
+export const postsHooks: ResourceHooks = {
+  beforeCreate: async (data, ctx) => {
+    const plainToken = generateToken()
+    data.hashedToken = hash(plainToken)
+    ctx.requestMeta ??= {}
+    ctx.requestMeta._tokenOnce = plainToken   // stash for afterCreate
+    return data
+  },
+
+  afterCreate: async (result, ctx) => {
+    const copy = Object.assign({}, result)
+    copy.tokenOnce = ctx.requestMeta?._tokenOnce ?? null
+    if (ctx.requestMeta) delete ctx.requestMeta._tokenOnce
+    delete copy.hashedToken
+    return copy
+  },
+}
+```
+
+### After-hook error handling
+
+`after*` hooks default to `errorHandling: 'log'` — errors are **silently swallowed** and the original unmodified record is returned. If an `after*` hook appears to not run, it is likely throwing. Check server logs. Set `autoApi.hookConfig.errorHandling: 'throw'` during development to surface them.
+
 ### Static hook registration (nuxt.config.ts)
 
 ```ts

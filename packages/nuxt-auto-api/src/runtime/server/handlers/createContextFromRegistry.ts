@@ -6,9 +6,43 @@ import { generateSchemas } from '../validation/schemaGenerator'
 import { extractTenantId } from '../utils/tenant'
 import { getDatabaseAdapter } from '../database'
 import { getMiddlewareForStage, getContextExtenders } from '../plugins/pluginRegistry'
-import type { HandlerContext, MultiTenancyConfig } from '../../types'
+import type { HandlerContext, MultiTenancyConfig, ResourceAuthConfig } from '../../types'
 import type { MiddlewareStage } from '../../types/plugin'
 import { useRuntimeConfig } from '#imports'
+
+/**
+ * Shallow-merge a nuxt.config authorization override into the module's ResourceAuthConfig.
+ * Only string/array permission values survive JSON serialization in runtimeConfig, so
+ * objectLevel and listFilter are always kept from the build-time module import.
+ */
+function mergeAuthConfig(
+  base: ResourceAuthConfig | undefined,
+  override: Record<string, any> | undefined,
+): ResourceAuthConfig | undefined {
+  if (!override) return base
+  if (!base) return override as ResourceAuthConfig
+
+  const merged: ResourceAuthConfig = { ...base }
+
+  if (override.permissions) {
+    merged.permissions = { ...base.permissions, ...override.permissions }
+  }
+
+  if (override.custom) {
+    merged.custom = { ...base.custom }
+    for (const [name, cfg] of Object.entries(override.custom as Record<string, any>)) {
+      merged.custom[name] = {
+        permissions: { ...base.custom?.[name]?.permissions, ...(cfg as any)?.permissions },
+      }
+    }
+  }
+
+  // objectLevel and listFilter are functions — cannot come from runtimeConfig JSON
+  merged.objectLevel = base.objectLevel
+  merged.listFilter = base.listFilter
+
+  return merged
+}
 
 /**
  * Create handler context from virtual module registry
@@ -22,6 +56,7 @@ export async function createContextFromRegistry(
   authorize: (ctx: HandlerContext) => Promise<void>
   validate: (ctx: HandlerContext) => Promise<void>
   runMiddleware: (stage: MiddlewareStage) => Promise<void>
+  effectiveAuth: ResourceAuthConfig | undefined
 }> {
   // Import registry from virtual module (generated at build time)
   const { registry } = await import('#nuxt-auto-api-registry') as any
@@ -98,6 +133,12 @@ export async function createContextFromRegistry(
   const query = getQuery(event) as Record<string, any>
   // Note: filter parsing is now handled by validation schema
 
+  // Merge nuxt.config authorization override (strings/arrays only) with module defaults.
+  // Functions in objectLevel/listFilter always come from the build-time import.
+  const runtimeConfig = useRuntimeConfig()
+  const authOverride = (runtimeConfig.autoApi?.authorization as any)?.[resourceName]
+  const effectiveAuth = mergeAuthConfig(resourceConfig.authorization, authOverride)
+
   // Build context (tenant starts as null — populated after context extenders)
   const context: HandlerContext = {
     db,
@@ -112,15 +153,15 @@ export async function createContextFromRegistry(
     event,
     resource: resourceName,
     operation,
-    objectLevelCheck: resourceConfig.authorization?.objectLevel,
+    objectLevelCheck: effectiveAuth?.objectLevel,
     tenant: null,
     resourceConfig,
     registry, // Add full registry for accessing all resource configs
   }
 
-  // Create authorization middleware
-  const authorize = resourceConfig.authorization
-    ? createAuthorizationMiddleware(resourceConfig.authorization)
+  // Create authorization middleware using effective (merged) auth
+  const authorize = effectiveAuth
+    ? createAuthorizationMiddleware(effectiveAuth)
     : defaultAuthorize
 
   // Create validation middleware
@@ -147,7 +188,6 @@ export async function createContextFromRegistry(
 
   // Extract tenant AFTER context extenders so token/session auth can set user first.
   // Skip if an extender already set context.tenant directly (e.g. org tokens).
-  const runtimeConfig = useRuntimeConfig()
   const multiTenancyConfig = runtimeConfig.autoApi?.multiTenancy as MultiTenancyConfig | undefined
 
   if (multiTenancyConfig?.enabled && !context.tenant) {
@@ -178,5 +218,5 @@ export async function createContextFromRegistry(
     }
   }
 
-  return { context, authorize, validate, runMiddleware }
+  return { context, authorize, validate, runMiddleware, effectiveAuth }
 }

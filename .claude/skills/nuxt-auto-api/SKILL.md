@@ -81,11 +81,11 @@ GET    /api/permissions         All resource permissions
 | **[references/setup.md](references/setup.md)** | Module options, database adapters, resource registration, built-in plugins list |
 | **[references/composables-query.md](references/composables-query.md)** | useAutoApiList, useAutoApiGet, useAutoApiInfinite — all query params |
 | **[references/composables-mutations.md](references/composables-mutations.md)** | useAutoApiCreate/Update/Delete/Mutation, bulk ops, optimistic updates |
-| **[references/authorization.md](references/authorization.md)** | ResourceAuthConfig, HandlerContext, permissions, listFilter, objectLevel, fields |
-| **[references/hooks-plugins.md](references/hooks-plugins.md)** | ResourceHooks (all lifecycle events), defineAutoApiPlugin, middleware, context extenders |
+| **[references/authorization.md](references/authorization.md)** | ResourceAuthConfig, permissions, listFilter, objectLevel, fields, **custom endpoint permissions** |
+| **[references/hooks-plugins.md](references/hooks-plugins.md)** | ResourceHooks, defineAutoApiPlugin, middleware, context extenders; **hook execution order, frozen-result caveat, requestMeta bridge** |
 | **[references/m2m.md](references/m2m.md)** | M2M config, useM2MRelation, useM2MSync, useM2MAdd, useM2MRemove, useM2MBatchSync |
-| **[references/advanced.md](references/advanced.md)** | useAutoApiAggregate, usePermissions, useAllPermissions, multi-tenancy, custom endpoints |
-| **[references/module-authoring.md](references/module-authoring.md)** | Building a Nuxt module that registers resources: hook, createModuleImport, schema/auth/hooks co-location |
+| **[references/advanced.md](references/advanced.md)** | useAutoApiAggregate, usePermissions, multi-tenancy, **createEndpoint with endpointName + authorize** |
+| **[references/module-authoring.md](references/module-authoring.md)** | createModuleImport, schema/auth/hooks/validation co-location, **JSON columns (mode:'json')** |
 
 ## Progressive Loading
 

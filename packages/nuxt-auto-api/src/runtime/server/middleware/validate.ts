@@ -58,7 +58,8 @@ export function createValidationMiddleware(schemas?: {
       }
     }
     catch (error: any) {
-      if (error instanceof z.ZodError) {
+      // Use name check as fallback for monorepos where multiple Zod copies may exist
+      if (error instanceof z.ZodError || error?.name === 'ZodError') {
         throw createError({
           statusCode: 400,
           message: 'Validation error',

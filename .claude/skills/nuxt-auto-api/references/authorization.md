@@ -238,6 +238,40 @@ authorization: {
 
 ---
 
+## Custom Endpoint Permissions
+
+Named custom endpoints (created with `createEndpoint({ endpointName: '...' })`) can have their own permission gates declared in `ResourceAuthConfig.custom`. The app can override these from `nuxt.config.ts` using string/array values.
+
+```ts
+// auth.ts — module defaults (functions allowed here)
+export const postsAuth: ResourceAuthConfig = {
+  permissions: { ... },
+
+  custom: {
+    export: { permissions: { read: (ctx) => !!ctx.user } },
+    publish: { permissions: { update: (ctx) => ctx.user?.roles?.includes('editor') } },
+    archive: { permissions: { delete: 'admin' } },
+  },
+}
+```
+
+```ts
+// nuxt.config.ts — app override (strings/arrays only, no functions)
+autoApi: {
+  authorization: {
+    posts: {
+      custom: {
+        export: { permissions: { read: 'admin' } },   // tighten to admin-only
+      },
+    },
+  },
+}
+```
+
+Permission key is inferred from `operation` (`'get'`/`'list'` → `'read'`, others pass through). The collection-level `permissions.read/create/update/delete` check always runs first; `custom[name]` is an additional gate.
+
+---
+
 ## M2M Permission Config
 
 ```ts

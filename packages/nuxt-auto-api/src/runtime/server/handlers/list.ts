@@ -12,6 +12,7 @@ import { buildTenantWhere } from '../utils/tenant'
 import { parseAggregateParam, executeSimpleAggregation, validateAggregation } from '../utils/buildAggregation'
 import { executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { parseJsonColumns } from '../utils/parseJsonColumns'
 import { serializeResponse } from '../utils/serializeResponse'
 import { count, and, isNull } from 'drizzle-orm'
 
@@ -199,6 +200,9 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
     const [result] = await countQuery
     total = result?.count
   }
+
+  // Parse JSON columns before filtering/hooks
+  data = parseJsonColumns(data, context)
 
   // Filter relation fields based on enhanced include syntax (author[id,name])
   let filteredData = filterRelationFields(data, relations)

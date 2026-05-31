@@ -5,6 +5,7 @@ import { checkObjectLevelAuth } from '../middleware/authz'
 import { buildTenantWhere } from '../utils/tenant'
 import { executeBeforeHook, executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { parseJsonColumns } from '../utils/parseJsonColumns'
 
 /**
  * Update handler - PATCH /api/[resource]/[id]
@@ -77,8 +78,11 @@ export async function updateHandler(context: HandlerContext): Promise<SingleResp
     })
   }
 
+  // Parse JSON columns before hooks see them
+  const parsedUpdated = parseJsonColumns(updated, context)
+
   // Execute afterUpdate hook (may transform data)
-  const result = await executeAfterHookWithTransform('update', context, updated)
+  const result = await executeAfterHookWithTransform('update', context, parsedUpdated)
 
   // Filter hidden fields from response
   const filteredData = filterHiddenFields(result, context)

@@ -209,6 +209,35 @@ export interface ResourceAuthConfig {
       write?: string | string[] | PermissionFunction
     }
   }
+
+  /**
+   * Per-named-endpoint permissions for custom endpoints created with createEndpoint().
+   * The module defines defaults here; apps can override individual keys from nuxt.config
+   * using string/array values (e.g. `'admin'`). Function values only work from build-time imports.
+   *
+   * @example
+   * ```ts
+   * // In auth.ts (module default — can use functions)
+   * custom: {
+   *   secretRotate: { permissions: { update: (ctx) => !!ctx.user } }
+   * }
+   *
+   * // In nuxt.config.ts (app override — strings only)
+   * autoApi: {
+   *   authorization: {
+   *     webhooks: { custom: { secretRotate: { permissions: { update: 'admin' } } } }
+   *   }
+   * }
+   * ```
+   */
+  custom?: Record<string, {
+    permissions?: {
+      read?: string | string[] | PermissionFunction
+      create?: string | string[] | PermissionFunction
+      update?: string | string[] | PermissionFunction
+      delete?: string | string[] | PermissionFunction
+    }
+  }>
 }
 
 export type PermissionFunction = (context: HandlerContext) => boolean | Promise<boolean>

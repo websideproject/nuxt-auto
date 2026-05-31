@@ -188,14 +188,51 @@ export default createEndpoint({
 interface EndpointOptions<TBody, TQuery, TResponse> {
   resource?: string
   operation?: HandlerContext['operation']
+  endpointName?: string         // matches ResourceAuthConfig.custom key for per-endpoint permissions
   body?: ZodSchema              // Zod schema for request body validation
   query?: ZodSchema             // Zod schema for query string validation
   skipAuthorization?: boolean
   skipValidation?: boolean
+
+  /**
+   * Object-level authorization run after the collection-level permission check.
+   * Throw createError({ statusCode: 404/403 }) or return false to deny.
+   * Use to fetch the target object once and stash it on ctx.requestMeta for the handler.
+   */
+  authorize?: (ctx: EndpointContext<TBody, TQuery>, event: H3Event) => boolean | Promise<boolean>
+
   handler: (ctx: EndpointContext<TBody, TQuery>, event: H3Event) => Promise<TResponse>|TResponse
   transform?: (data: TResponse, ctx: EndpointContext) => any
   responseFormat?: 'auto' | 'raw'  // 'auto' = wrap in { data: ... }, 'raw' = pass-through
 }
 ```
 
-`EndpointContext` extends `HandlerContext` with `validated.body` and `validated.query` typed by the Zod schemas.
+`EndpointContext` extends `HandlerContext` with `body` and `queryParams` typed by the Zod schemas.
+
+### Object-level auth + request metadata pattern
+
+Fetch the target object once in `authorize`, stash it on `ctx.requestMeta`, and read it back in `handler` — avoids a redundant DB round-trip:
+
+```ts
+export default createEndpoint({
+  resource: 'webhooks',
+  operation: 'get',
+  endpointName: 'secret',   // gates against ResourceAuthConfig.custom.secret.permissions
+
+  authorize: async (ctx) => {
+    const hook = await ctx.db.select().from(webhooks)
+      .where(eq(webhooks.id, ctx.params.id)).limit(1)
+      .then((r: any[]) => r[0] ?? null)
+    if (!hook) throw createError({ statusCode: 404 })
+    ctx.requestMeta ??= {}
+    ctx.requestMeta.webhook = hook   // stash for handler
+    // return true/false — or throw for non-boolean denials (404, etc.)
+    return hook.userId === ctx.user?.id
+  },
+
+  handler: async (ctx) => {
+    const hook = ctx.requestMeta!.webhook    // already fetched in authorize
+    return { secret: hook.secretHint }
+  },
+})
+```

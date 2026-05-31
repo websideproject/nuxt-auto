@@ -7,6 +7,7 @@ import { serializeResponse } from './serializeResponse'
 import type { EndpointOptions, EndpointContext } from '../../types/endpoint'
 import type { HandlerContext } from '../../types'
 import type { MiddlewareStage } from '../../types/plugin'
+import { hasPermission } from '../middleware/authz'
 
 /**
  * Create a custom API endpoint with the full auto-api pipeline.
@@ -53,7 +54,28 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       await runMiddleware('pre-auth')
 
       if (!options.skipAuthorization) {
-        await result.authorize(context)
+        // When a named custom gate exists it fully replaces the base collection-level check.
+        // This lets individual endpoints open operations that are otherwise locked at the
+        // resource level (e.g. create: () => false on a resource that exposes a /checkout action).
+        const customGate = options.endpointName
+          ? result.effectiveAuth?.custom?.[options.endpointName]?.permissions
+          : undefined
+
+        if (customGate) {
+          const op = context.operation as string
+          const permKey = (op === 'list' || op === 'get' || op === 'read') ? 'read' : op
+          const customPerm = (customGate as any)[permKey]
+          if (customPerm !== undefined && !await hasPermission(context.permissions, customPerm, context)) {
+            throw createError({
+              statusCode: context.user ? 403 : 401,
+              message: context.user ? 'Forbidden' : 'Authentication required',
+            })
+          }
+        }
+        else {
+          // No custom gate — run the base collection-level gate
+          await result.authorize(context)
+        }
       }
 
       await runMiddleware('post-auth')
@@ -145,6 +167,14 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       body,
       queryParams,
       adapter: context.adapter || getDatabaseAdapter(),
+    }
+
+    // Custom object-level authorization (runs after body/query are parsed)
+    if (options.authorize) {
+      const allowed = await options.authorize(endpointContext, event)
+      if (!allowed) {
+        throw createError({ statusCode: 403, message: 'Forbidden' })
+      }
     }
 
     await runMiddleware('pre-execute')

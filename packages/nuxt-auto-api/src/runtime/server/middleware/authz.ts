@@ -2,21 +2,22 @@ import { createError } from 'h3'
 import type { HandlerContext, ResourceAuthConfig } from '../../types'
 
 /**
- * Check if user has required permissions
+ * Check if user has required permissions.
+ * Exported so createEndpoint can reuse the same resolution logic for custom endpoint gates.
  */
-function hasPermission(
+export async function hasPermission(
   userPermissions: string[],
   required: string | string[] | Function,
   context: HandlerContext,
-): boolean {
+): Promise<boolean> {
   // Wildcard — user has all permissions
   if (userPermissions.includes('*')) {
     return true
   }
 
-  // If required is a function, call it
+  // If required is a function, call it (supports async permission functions)
   if (typeof required === 'function') {
-    return required(context)
+    return await required(context)
   }
 
   // If required is a string, check if user has it
@@ -57,7 +58,7 @@ export function createAuthorizationMiddleware(config?: ResourceAuthConfig) {
     }
 
     // Check if user has required permission
-    if (!hasPermission(permissions, requiredPermission, context)) {
+    if (!await hasPermission(permissions, requiredPermission, context)) {
       throw createError({
         statusCode: user ? 403 : 401,
         message: user
@@ -103,7 +104,7 @@ export async function checkObjectLevelAuth(
 /**
  * Filter fields based on permissions
  */
-export function filterFieldsByPermission(
+export async function filterFieldsByPermission(
   data: any,
   config?: ResourceAuthConfig,
   context?: HandlerContext,
@@ -126,7 +127,7 @@ export function filterFieldsByPermission(
 
     // Check read permission
     if (fieldConfig.read) {
-      if (hasPermission(userPermissions, fieldConfig.read, context)) {
+      if (await hasPermission(userPermissions, fieldConfig.read, context)) {
         filtered[field] = value
       }
       // Field is excluded if user doesn't have read permission

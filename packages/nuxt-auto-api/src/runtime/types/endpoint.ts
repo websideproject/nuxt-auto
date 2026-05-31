@@ -35,6 +35,27 @@ export interface EndpointOptions<TBody = any, TQuery = any, TResponse = any> {
   skipAuthorization?: boolean
   /** Skip validation check */
   skipValidation?: boolean
+  /**
+   * Name of this endpoint, matched against `ResourceAuthConfig.custom[endpointName]`.
+   * When set the framework checks `custom[endpointName].permissions[operation]` (from the
+   * module default, overridable from nuxt.config) as a collection-level gate — before the
+   * `authorize` object-level callback.
+   */
+  endpointName?: string
+  /**
+   * Custom object-level authorization. Called after the middleware pipeline and Zod
+   * validation, but before the handler. Return false (or throw) to reject with 403.
+   *
+   * Use this to check object ownership without duplicating the resource's objectLevel logic:
+   * @example
+   * ```ts
+   * authorize: async (ctx) => {
+   *   const hook = await ctx.db.query.webhooks.findFirst({ where: eq(webhooks.id, ctx.params.id) })
+   *   return ctx.objectLevelCheck ? ctx.objectLevelCheck(hook, ctx) : true
+   * }
+   * ```
+   */
+  authorize?: (context: EndpointContext<TBody, TQuery>, event: H3Event) => boolean | Promise<boolean>
   /** Request handler */
   handler: (context: EndpointContext<TBody, TQuery>, event: H3Event) => Promise<TResponse> | TResponse
   /** Transform the result before sending response */
