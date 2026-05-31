@@ -1,11 +1,12 @@
 import type { AutoApiMiddleware, ContextExtender, MiddlewareStage } from '../../types/plugin'
-import type { ResourceHooks, HandlerContext } from '../../types'
+import type { ResourceHooks, HandlerContext, PermissionEvaluator } from '../../types'
 
 interface PluginRegistryState {
   middleware: AutoApiMiddleware[]
   contextExtenders: ContextExtender[]
   globalHooks: ResourceHooks[]
   resourceHooks: Record<string, ResourceHooks[]>
+  permissionEvaluators: PermissionEvaluator[]
   initialized: boolean
 }
 
@@ -20,6 +21,7 @@ function getRegistry(): PluginRegistryState {
       contextExtenders: [],
       globalHooks: [],
       resourceHooks: {},
+      permissionEvaluators: [],
       initialized: false,
     }
   }
@@ -41,6 +43,22 @@ export function addMiddleware(middleware: AutoApiMiddleware): void {
  */
 export function addContextExtender(fn: ContextExtender): void {
   getRegistry().contextExtenders.push(fn)
+}
+
+/**
+ * Register an evaluator for structured (object) permission values. Generic seam — auto-api
+ * never interprets the object; registered evaluators do. First evaluator returning a non-undefined
+ * result wins. Registered from outside via the plugin runtime context.
+ */
+export function registerPermissionEvaluator(fn: PermissionEvaluator): void {
+  getRegistry().permissionEvaluators.push(fn)
+}
+
+/**
+ * Get all registered permission evaluators (for object-form permission values).
+ */
+export function getPermissionEvaluators(): PermissionEvaluator[] {
+  return getRegistry().permissionEvaluators
 }
 
 /**

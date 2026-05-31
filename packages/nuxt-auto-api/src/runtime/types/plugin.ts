@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema'
 import type { Resolver } from '@nuxt/kit'
-import type { HandlerContext, AutoApiOptions } from './index'
+import type { HandlerContext, AutoApiOptions, PermissionEvaluator } from './index'
 
 /**
  * Middleware execution stages in the request pipeline
@@ -78,6 +78,12 @@ export interface PluginRuntimeContext {
   addGlobalHook: (hooks: import('./index').ResourceHooks) => void
   /** Register a context extender that runs on every request */
   extendContext: (fn: ContextExtender) => void
+  /**
+   * Register an evaluator for structured (object) permission values. The generic seam that lets
+   * an external package add custom permission kinds (e.g. a plan/role policy descriptor) without
+   * the framework knowing their shape. First evaluator returning non-undefined wins.
+   */
+  registerPermissionEvaluator: (fn: PermissionEvaluator) => void
   /** Runtime configuration */
   runtimeConfig: any
   /** Logger */

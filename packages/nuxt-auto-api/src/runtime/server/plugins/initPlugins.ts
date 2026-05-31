@@ -5,6 +5,7 @@ import {
   addContextExtender,
   addResourceHook,
   addGlobalHook,
+  registerPermissionEvaluator,
   markInitialized,
 } from './pluginRegistry'
 import type { PluginRuntimeContext } from '../../types/plugin'
@@ -61,6 +62,7 @@ export default defineNitroPlugin(async () => {
       addHook: addResourceHook,
       addGlobalHook,
       extendContext: addContextExtender,
+      registerPermissionEvaluator,
       runtimeConfig,
       logger: {
         ...logger,

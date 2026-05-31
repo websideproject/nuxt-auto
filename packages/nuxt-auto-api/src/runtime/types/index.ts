@@ -167,10 +167,10 @@ export interface ResourceAuthConfig {
    * Permissions required for operations
    */
   permissions?: {
-    read?: string | string[] | PermissionFunction
-    create?: string | string[] | PermissionFunction
-    update?: string | string[] | PermissionFunction
-    delete?: string | string[] | PermissionFunction
+    read?: string | string[] | PermissionFunction | PermissionObject
+    create?: string | string[] | PermissionFunction | PermissionObject
+    update?: string | string[] | PermissionFunction | PermissionObject
+    delete?: string | string[] | PermissionFunction | PermissionObject
 
     /**
      * M2M relationship permissions
@@ -205,8 +205,8 @@ export interface ResourceAuthConfig {
    */
   fields?: {
     [fieldName: string]: {
-      read?: string | string[] | PermissionFunction
-      write?: string | string[] | PermissionFunction
+      read?: string | string[] | PermissionFunction | PermissionObject
+      write?: string | string[] | PermissionFunction | PermissionObject
     }
   }
 
@@ -232,15 +232,33 @@ export interface ResourceAuthConfig {
    */
   custom?: Record<string, {
     permissions?: {
-      read?: string | string[] | PermissionFunction
-      create?: string | string[] | PermissionFunction
-      update?: string | string[] | PermissionFunction
-      delete?: string | string[] | PermissionFunction
+      read?: string | string[] | PermissionFunction | PermissionObject
+      create?: string | string[] | PermissionFunction | PermissionObject
+      update?: string | string[] | PermissionFunction | PermissionObject
+      delete?: string | string[] | PermissionFunction | PermissionObject
     }
   }>
 }
 
 export type PermissionFunction = (context: HandlerContext) => boolean | Promise<boolean>
+
+/**
+ * Structured ("object") permission value — opaque to auto-api. Evaluated by externally
+ * registered `PermissionEvaluator`s (see `registerPermissionEvaluator`). This is the generic
+ * seam for custom permission kinds (e.g. plan/role policy descriptors) — the framework never
+ * inspects the object's shape; a consumer registers an evaluator that understands it.
+ */
+export type PermissionObject = Record<string, unknown>
+
+/**
+ * Evaluates a structured (object) permission value against the request context.
+ * Return a boolean to decide; return `undefined` to defer to the next registered evaluator
+ * (i.e. "this object isn't mine"). If no evaluator handles it, the framework denies (closed).
+ */
+export type PermissionEvaluator = (
+  value: PermissionObject,
+  context: HandlerContext,
+) => boolean | Promise<boolean> | undefined
 
 export type ObjectLevelAuthFunction = (
   object: any,

@@ -34,3 +34,7 @@ export { createApiTokenPlugin } from './apiTokenPlugin'
 export type { ApiTokenPluginOptions, ApiTokenResourceConfig } from './apiTokenPlugin'
 export { defineAutoApiPlugin } from '../types/plugin'
 export type { AutoApiPlugin, PluginBuildContext, PluginRuntimeContext, AutoApiMiddleware, ContextExtender } from '../types/plugin'
+export type { PermissionEvaluator, PermissionObject, PermissionFunction, HandlerContext, ResourceAuthConfig } from '../types'
+// Register a structured-permission evaluator from anywhere (e.g. a Nitro server plugin), not just
+// the plugin runtime context. The registry is global, so this is callable at server startup.
+export { registerPermissionEvaluator, getPermissionEvaluators } from '../server/plugins/pluginRegistry'

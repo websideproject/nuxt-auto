@@ -1,15 +1,19 @@
+import { resolveObjectPermission } from '../middleware/resolveObjectPermission'
 import type {
   ResourceAuthConfig,
   HandlerContext,
   PermissionCheckResult,
   PermissionFunction,
+  PermissionObject,
 } from '../../types'
 
 /**
- * Check if a permission string/function evaluates to true
+ * Check if a permission string/function/object evaluates to true.
+ * Same logic the request gate uses (see `hasPermission`), so the `/api/permissions`
+ * introspection endpoint reflects object (descriptor) gates identically.
  */
 async function evaluatePermission(
-  permission: string | string[] | PermissionFunction | undefined,
+  permission: string | string[] | PermissionFunction | PermissionObject | undefined,
   context: HandlerContext,
 ): Promise<boolean> {
   if (!permission) {
@@ -19,6 +23,11 @@ async function evaluatePermission(
   // Function-based permission
   if (typeof permission === 'function') {
     return await permission(context)
+  }
+
+  // Structured (object) permission → registered evaluator chain (generic seam)
+  if (typeof permission === 'object' && !Array.isArray(permission)) {
+    return await resolveObjectPermission(permission as Record<string, any>, context)
   }
 
   // String or array of permission strings

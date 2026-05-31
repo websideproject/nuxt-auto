@@ -1,4 +1,5 @@
 import { createError } from 'h3'
+import { resolveObjectPermission } from './resolveObjectPermission'
 import type { HandlerContext, ResourceAuthConfig } from '../../types'
 
 /**
@@ -7,7 +8,7 @@ import type { HandlerContext, ResourceAuthConfig } from '../../types'
  */
 export async function hasPermission(
   userPermissions: string[],
-  required: string | string[] | Function,
+  required: string | string[] | Function | Record<string, any>,
   context: HandlerContext,
 ): Promise<boolean> {
   // Wildcard — user has all permissions
@@ -28,6 +29,11 @@ export async function hasPermission(
   // If required is an array, check if user has any of them
   if (Array.isArray(required)) {
     return required.some(perm => userPermissions.includes(perm))
+  }
+
+  // Structured (object) permission → hand to registered evaluators (generic seam)
+  if (required && typeof required === 'object') {
+    return await resolveObjectPermission(required, context)
   }
 
   return false

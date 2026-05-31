@@ -10,10 +10,42 @@ import type { HandlerContext, MultiTenancyConfig, ResourceAuthConfig } from '../
 import type { MiddlewareStage } from '../../types/plugin'
 import { useRuntimeConfig } from '#imports'
 
+function isPlainObject(v: any): v is Record<string, any> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
 /**
- * Shallow-merge a nuxt.config authorization override into the module's ResourceAuthConfig.
- * Only string/array permission values survive JSON serialization in runtimeConfig, so
- * objectLevel and listFilter are always kept from the build-time module import.
+ * Merge one operation's permission value: string/array → override replaces (current behaviour);
+ * object (descriptor) over object → deep-merge per key (a key set to `null` deletes it). This is
+ * what lets an app override a structured permission *as data* through `autoApi.authorization`.
+ */
+function mergePermissionValue(base: any, override: any): any {
+  if (override === undefined) return base
+  if (isPlainObject(base) && isPlainObject(override)) {
+    const out: Record<string, any> = { ...base }
+    for (const [k, v] of Object.entries(override)) {
+      if (v === null) delete out[k]
+      else out[k] = v
+    }
+    return out
+  }
+  return override
+}
+
+function mergePermissionMap(base: Record<string, any> | undefined, override: Record<string, any> | undefined): Record<string, any> | undefined {
+  if (!override) return base
+  const out: Record<string, any> = { ...base }
+  for (const [op, val] of Object.entries(override)) {
+    out[op] = mergePermissionValue(base?.[op], val)
+  }
+  return out
+}
+
+/**
+ * Merge a nuxt.config authorization override into the module's ResourceAuthConfig.
+ * Per-op: string/array values replace; object (descriptor) values deep-merge (so apps can override
+ * a structured permission as data — `null` clears a key). objectLevel/listFilter are functions and
+ * are always kept from the build-time module import.
  */
 function mergeAuthConfig(
   base: ResourceAuthConfig | undefined,
@@ -25,14 +57,14 @@ function mergeAuthConfig(
   const merged: ResourceAuthConfig = { ...base }
 
   if (override.permissions) {
-    merged.permissions = { ...base.permissions, ...override.permissions }
+    merged.permissions = mergePermissionMap(base.permissions as any, override.permissions) as any
   }
 
   if (override.custom) {
     merged.custom = { ...base.custom }
     for (const [name, cfg] of Object.entries(override.custom as Record<string, any>)) {
       merged.custom[name] = {
-        permissions: { ...base.custom?.[name]?.permissions, ...(cfg as any)?.permissions },
+        permissions: mergePermissionMap(base.custom?.[name]?.permissions as any, (cfg as any)?.permissions) as any,
       }
     }
   }
