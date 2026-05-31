@@ -182,7 +182,7 @@ Import from `@websideproject/nuxt-auto-api/plugins`:
 
 | Plugin | Purpose |
 |--------|---------|
-| `RateLimitPlugin` | Sliding-window rate limiting by IP/user |
+| `RateLimitPlugin` | Rate limiting by IP/user; pluggable store or Cloudflare RateLimit binding (`limiter`) |
 | `RequestMetadataPlugin` | Extract IP, geo, user-agent into context + DB columns |
 | `BetterAuthPlugin` | Session auth via better-auth |
 | `AuditLogPlugin` | Record all mutations with before/after snapshots |
@@ -193,7 +193,7 @@ Import from `@websideproject/nuxt-auto-api/plugins`:
 | `DataExportPlugin` | CSV/JSON export endpoints |
 | `FileUploadPlugin` | File uploads tied to records |
 | `RevisionHistoryPlugin` | Full version history with rollback |
-| `CachePlugin` | In-memory list/get caching with auto-invalidation |
+| `CachePlugin` | list/get caching with auto-invalidation; pluggable store (in-memory / Cloudflare KV) |
 | `SearchPlugin` | Full-text-like SQL LIKE/ILIKE search |
 | `FieldEncryptionPlugin` | AES-256-GCM encryption of sensitive fields |
 | `ApiTokenPlugin` | API token management with Bearer auth and scopes |

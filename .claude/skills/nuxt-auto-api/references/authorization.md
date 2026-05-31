@@ -1,6 +1,13 @@
 # Authorization
 
-Authorization is configured per-resource via `autoApi.authorization` in `nuxt.config.ts` or via the `authorization` field in `registry.register()`.
+Authorization is configured per-resource via the `authorization` field in `registry.register()` (the build-time path) or via `autoApi.authorization` in `nuxt.config.ts` (the override path).
+
+> **⚠️ Functions vs strings — this distinction is load-bearing.**
+> `autoApi.authorization` in `nuxt.config.ts` is assigned into **`runtimeConfig`** by the module, which Nuxt serializes — so **only `string` / `string[]` permission rules survive there**. `PermissionFunction`s, `listFilter`, and `objectLevel` are **silently dropped** from the config-object form and kept from the resource's build-time default.
+>
+> **Functions are only honored when declared at build time:** in a module's `auth.ts` passed to `registry.register({ authorization })`, or in an app-level build-time authorization file (string-path form of the option, where supported). The config-object form is for **string/array overrides only**.
+>
+> All the function-based examples below (`(ctx) => …`, `objectLevel`, `listFilter`) therefore belong in a **build-time `auth.ts`** (see "Authorization from Module Registration"), **not** in a `nuxt.config.ts` `authorization: { … }` object.
 
 ---
 
@@ -107,9 +114,13 @@ create: (ctx) => billing(ctx)?.features.includes('api_access') ?? false
 
 ### Org member role (`requestMeta.orgRole`)
 
-Set by the `org-role` context extender plugin (in `server/autoapi-plugins.ts`). Queries `auth_members` for the user's role in their active org. Is `null` when no active org is set in the session.
+Set by the auth context-extender plugin (in `server/autoapi-plugins.ts`). Resolved from the **`orgMemberRoles` map** on the session user — a `{ [orgId]: role }` JSON object cached in the session cookie — indexed by the session's `activeOrganizationId`. **Zero DB queries per request** (it's read from the cookie cache, not `auth_members`). Is `null` when no active org is set in the session.
 
 ```ts
+// Equivalent of what the plugin does:
+//   const map = JSON.parse(session.user.orgMemberRoles ?? '{}')   // all orgs → role
+//   ctx.requestMeta.orgRole = map[session.activeOrganizationId] ?? null   // active org only
+
 const orgRole = (ctx: any) => ctx.requestMeta?.orgRole as
   'owner' | 'admin' | 'member' | null
 
@@ -121,6 +132,8 @@ create: (ctx) => {
   return true  // no active org — fall through to personal auth
 }
 ```
+
+> `requestMeta.orgRole` is the role for the **active** org only. To gate an action on a *different* org than the active one (e.g. an explicit `?orgId=`), re-resolve from the full map: `JSON.parse(ctx.user.orgMemberRoles)[targetOrgId]` — don't assume "admin anywhere" means "admin here." The role string may be comma-separated for multi-role members (`"admin,member"`).
 
 ### Combining billing + org role
 
@@ -150,7 +163,9 @@ All three run once per request before any permission function is called.
 
 ## Examples
 
-### Role-based (string match)
+> The `authorization: { posts: { … } }` shape below is shown for brevity. **String/array** rules work in either the build-time `auth.ts` or the `nuxt.config.ts` override. **Function** rules (`(ctx) => …`), `objectLevel`, and `listFilter` only work in a build-time `auth.ts` (see "Authorization from Module Registration") — never in the `nuxt.config.ts` config object.
+
+### Role-based (string match) — works in config override OR build-time
 
 ```ts
 authorization: {
@@ -165,18 +180,17 @@ authorization: {
 }
 ```
 
-### Function-based (custom logic)
+### Function-based (custom logic) — **build-time `auth.ts` only**
 
 ```ts
-authorization: {
-  posts: {
-    permissions: {
-      read: (ctx) => ctx.user !== null,
-      create: (ctx) => ctx.user?.roles?.includes('editor'),
-      update: async (ctx) => {
-        const user = await getUserWithPlan(ctx.db, ctx.user!.id)
-        return user.plan === 'pro'
-      },
+// auth.ts → registry.register({ authorization }). NOT valid in nuxt.config (serialized away).
+export const postsAuth: ResourceAuthConfig = {
+  permissions: {
+    read: (ctx) => ctx.user !== null,
+    create: (ctx) => ctx.user?.roles?.includes('editor'),
+    update: async (ctx) => {
+      const user = await getUserWithPlan(ctx.db, ctx.user!.id)
+      return user.plan === 'pro'
     },
   },
 }
@@ -307,6 +321,33 @@ export const postsAuth: ResourceAuthConfig = {
     ctx.user ? undefined : eq(table.status, 'published'),
 }
 ```
+
+This is the **build-time** path — functions, `listFilter`, `objectLevel`, and `fields` all work here, because `auth.ts` is imported at build time (via `createModuleImport`), not serialized into `runtimeConfig`.
+
+---
+
+## Overriding a module's authorization from the app
+
+A module ships its default `ResourceAuthConfig` via `registry.register()` (above). An app can change it, with an important limitation:
+
+| You want to override with… | How | Works? |
+|---|---|---|
+| A **string / string[]** permission (per operation, or `custom.<name>`) | `autoApi.authorization.<resource>` in `nuxt.config.ts` — shallow-merged over the module default per operation | ✅ |
+| A **function** (`PermissionFunction`), `listFilter`, or `objectLevel` | the config object form **cannot** carry these (serialized into `runtimeConfig`) | ❌ |
+
+```ts
+// nuxt.config.ts — STRING/ARRAY overrides only; merged over the module's auth.ts default
+autoApi: {
+  authorization: {
+    posts: {
+      permissions: { create: 'admin' },                          // tighten create to admin
+      custom: { export: { permissions: { read: 'admin' } } },    // tighten a custom endpoint
+    },
+  },
+}
+```
+
+To override a module gate with a **function** today, either (a) have the module read its requirement from its own module options so you tune it via the module's configKey, or (b) re-register the resource with your own build-time `auth.ts`. (A build-time app-level override file — a string-path form of `authorization`, resolved like `autoApi.plugins` — would close this gap; not currently available.)
 
 ---
 

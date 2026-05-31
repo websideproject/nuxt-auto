@@ -207,6 +207,42 @@ autoApi: {
 
 ---
 
+## Built-in backends: rate-limit & cache (pluggable stores)
+
+`createRateLimitPlugin` and `createCachePlugin` keep state in process memory by default
+(`InMemoryRateLimitStore` / `InMemoryCacheStore`). **On Cloudflare Workers each isolate has its
+own memory** → rate limits leak and cache hit-rate is poor. Inject a shared backend instead.
+
+```ts
+// counter store (full X-RateLimit-* headers)
+interface RateLimitStore { increment(key, windowMs): Promise<{ count, resetAt }>, reset?(key): Promise<void> }
+// decision limiter — shape == Cloudflare RateLimit binding, pass env.RATE_LIMITER straight through
+interface RateLimitLimiter { limit(args: { key: string }): Promise<{ success: boolean }> }
+interface CacheStore { get(key), set(key, value, ttlMs), deleteByPrefix(prefix) }   // all async
+```
+
+```ts
+// Rate limit on Cloudflare — native binding, plan-aware via billing context.
+// limiter runs pre-auth, AFTER auth/billing extenders → ctx.requestMeta.billing is set.
+createRateLimitPlugin({
+  byUser: true,
+  limiter: (ctx) => {
+    const env = ctx.event.context.cloudflare?.env
+    const paid = ctx.requestMeta?.billing?.isActive || ctx.requestMeta?.billing?.isTrialing
+    return paid ? env?.PAID_USER_RATE_LIMITER : env?.FREE_USER_RATE_LIMITER
+  },
+})
+```
+
+Notes: `limiter` takes precedence over `store`; CF binding returns only `{ success }` so headers are
+best-effort (`X-RateLimit-Limit` + `Retry-After`). `failOpen` defaults `true`. `byIp` prefers
+`CF-Connecting-IP`. Cache keys for tenant-scoped resources must include the auth scope (`keyGenerator`)
+or only cache public read-mostly resources. `limiter`/`keyGenerator`/`store` are **functions** → wire
+them in `server/autoapi-plugins.ts` (build-time), not serializable `nuxt.config`. See the Rate Limiting
+and Plugin Catalog docs for stores (KV/Redis) and `wrangler.toml` setup.
+
+---
+
 ## User-Land Plugin File (`server/autoapi-plugins.ts`)
 
 For app-level plugins that need Nitro auto-imports (e.g. `useRuntimeConfig`, `getCurrentSession`), export an array of plugins from a file inside the Nitro scan directory:
