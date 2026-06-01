@@ -35,6 +35,8 @@ export type { ApiTokenPluginOptions, ApiTokenResourceConfig } from './apiTokenPl
 export { defineAutoApiPlugin } from '../types/plugin'
 export type { AutoApiPlugin, PluginBuildContext, PluginRuntimeContext, AutoApiMiddleware, ContextExtender } from '../types/plugin'
 export type { PermissionEvaluator, PermissionObject, PermissionFunction, HandlerContext, ResourceAuthConfig } from '../types'
-// Register a structured-permission evaluator from anywhere (e.g. a Nitro server plugin), not just
-// the plugin runtime context. The registry is global, so this is callable at server startup.
-export { registerPermissionEvaluator, getPermissionEvaluators } from '../server/plugins/pluginRegistry'
+// Register a structured-permission evaluator or a per-request context extender from anywhere
+// (e.g. a Nitro server plugin), not just the plugin runtime context. The registry is global, so
+// these are callable at server startup. A context extender runs once per request before
+// authorization and can attach data/resolvers onto the handler context (auto-api never inspects it).
+export { registerPermissionEvaluator, getPermissionEvaluators, addContextExtender } from '../server/plugins/pluginRegistry'

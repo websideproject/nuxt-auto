@@ -58,11 +58,16 @@ export function useAutoApiEndpointMutation<TData = any, TBody = Record<string, a
  * TanStack query for a custom endpoint URL.
  * Mirrors useAutoApiGet but works with any path and query params.
  *
+ * Endpoints built with `createEndpoint` and `responseFormat: 'auto'` wrap the payload in
+ * `{ data: … }`. Pass `unwrap: true` to return the inner `data` directly, typed as `TData`,
+ * so callers don't hand-unwrap (and can't crash on the envelope shape). Default stays the raw
+ * response for back-compat with existing consumers.
+ *
  * @example
- * const { data, isPending } = useAutoApiEndpointQuery(
- *   '/api/billing/seats/check',
- *   computed(() => ({ orgId: props.orgId })),
- *   { queryKey: computed(() => ['billing', 'seats-check', props.orgId]) },
+ * const { data, isPending } = useAutoApiEndpointQuery<EntitlementsMe>(
+ *   '/api/entitlements/me',
+ *   undefined,
+ *   { queryKey: ['entitlements', 'me'], unwrap: true },
  * )
  */
 export function useAutoApiEndpointQuery<TData = any>(
@@ -71,13 +76,15 @@ export function useAutoApiEndpointQuery<TData = any>(
   options?: {
     queryKey: MaybeRef<QueryKey>
     toast?: AutoApiToastOptions
+    /** Strip the auto-api `{ data }` envelope and return the inner payload typed as `TData`. */
+    unwrap?: boolean
   } & Omit<UseQueryOptions<TData, Error>, 'queryKey' | 'queryFn'>,
 ) {
   const urlRef = computed(() => unref(url))
   const paramsRef = computed(() => unref(params))
   const queryKeyRef = computed(() => unref(options?.queryKey ?? [urlRef.value, paramsRef.value]))
 
-  const { queryKey: _, toast: toastOptions, ...queryOptions } = options ?? {}
+  const { queryKey: _, toast: toastOptions, unwrap, ...queryOptions } = options ?? {}
 
   return useQuery<TData, Error>({
     queryKey: queryKeyRef,
@@ -89,7 +96,10 @@ export function useAutoApiEndpointQuery<TData = any>(
               .map(([k, v]) => [k, String(v)]),
           ).toString()
         : ''
-      return await $fetch<TData>(`${urlRef.value}${query}`)
+      const res = await $fetch<any>(`${urlRef.value}${query}`)
+      // Unwrap auto-api's own `{ data }` envelope when asked (and only when present).
+      if (unwrap && res && typeof res === 'object' && 'data' in res) return res.data as TData
+      return res as TData
     },
     ...queryOptions,
   } as any)

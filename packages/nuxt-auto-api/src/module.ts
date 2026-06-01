@@ -81,6 +81,21 @@ export default defineNuxtModule<ModuleOptions>({
     // Collect plugin file paths from community modules via hook
     const pluginFilePaths: string[] = []
 
+    // addFile'd plugin files are imported by the generated `#nuxt-auto-api-plugins` virtual module.
+    // Inline them into the Nitro bundle so esbuild applies a full TypeScript transform (enums,
+    // parameter properties, etc.) instead of a strip-only load. This runs late enough that
+    // pluginFilePaths has been populated by the autoApi:registerPlugins hook (modules:done).
+    nuxt.hook('nitro:config', (nitroConfig) => {
+      if (pluginFilePaths.length === 0) return
+      nitroConfig.externals = nitroConfig.externals || {}
+      nitroConfig.externals.inline = nitroConfig.externals.inline || []
+      for (const filePath of pluginFilePaths) {
+        if (!nitroConfig.externals.inline.includes(filePath)) {
+          nitroConfig.externals.inline.push(filePath)
+        }
+      }
+    })
+
     // Determine user plugin source
     const userPlugins = options.plugins
     let userPluginFilePath: string | null = null
@@ -579,6 +594,16 @@ export interface PluginRegistrationContext {
    * nuxt.hook('autoApi:registerPlugins', (ctx) => {
    *   ctx.addFile(resolver.resolve('./runtime/my-plugin'))
    * })
+   *
+   * Authoring constraints — the file (and everything it imports) is loaded via the generated
+   * `#nuxt-auto-api-plugins` virtual module, not scanned as a Nitro server file:
+   *  - **Use the plugin runtime context, not Nitro auto-imports.** Read config via
+   *    `runtimeSetup(ctx) { ctx.runtimeConfig }`, not a bare `useRuntimeConfig()`.
+   *  - **Import siblings via package-subpath, not deep relative paths**, so resolution is stable.
+   *  - The file is inlined into the bundle (full TS transform), so enums / parameter properties
+   *    are fine — but a plugin that only needs the request context (no `ctx` registrar work) is
+   *    better written as a Nitro server plugin that calls `addContextExtender` /
+   *    `registerPermissionEvaluator` from `@websideproject/nuxt-auto-api/plugins`.
    */
   addFile(filePath: string): void
 }
