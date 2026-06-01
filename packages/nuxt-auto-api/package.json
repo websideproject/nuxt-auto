@@ -38,8 +38,8 @@
       "import": "./dist/module.mjs"
     },
     "./utils": {
-      "types": "./dist/runtime/server/utils/index.d.ts",
-      "import": "./dist/runtime/server/utils/index.js"
+      "types": "./dist/runtime/server/utils.public.d.ts",
+      "import": "./dist/runtime/server/utils.public.js"
     },
     "./plugins": {
       "types": "./dist/runtime/plugins/index.d.ts",
@@ -50,8 +50,8 @@
       "import": "./dist/runtime/server/database/index.js"
     },
     "./composables": {
-      "types": "./dist/runtime/composables/index.d.ts",
-      "import": "./dist/runtime/composables/index.js"
+      "types": "./dist/runtime/composables.public.d.ts",
+      "import": "./dist/runtime/composables.public.js"
     }
   },
   "main": "./dist/module.mjs",

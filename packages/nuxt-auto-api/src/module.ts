@@ -1,4 +1,4 @@
-import { defineNuxtModule, createResolver, addServerHandler, addServerImportsDir, addTemplate, addPlugin, addImportsDir } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerHandler, addServerImportsDir, addServerImports, addTemplate, addPlugin, addImportsDir } from '@nuxt/kit'
 import type { AutoApiOptions, ResourceRegistration, AutoApiPlugin } from './runtime/types'
 import type { PluginBuildContext } from './runtime/types/plugin'
 
@@ -35,15 +35,24 @@ export default defineNuxtModule<ModuleOptions>({
     // Add composables for auto-import
     addImportsDir(resolver.resolve('./runtime/composables'))
 
-    // Add server utilities
+    // Add server utilities. The `./utils` dir holds only leaf source files (the public barrel lives
+    // at `./runtime/server/utils.public.ts`, outside the scan) so each symbol is registered once —
+    // no "Duplicated imports" warnings. The database adapter helpers live in `./database`, so
+    // register those few explicitly to keep them auto-imported server-side.
     addServerImportsDir(resolver.resolve('./runtime/server/utils'))
+    addServerImports(
+      ['initializeDatabase', 'getDatabaseAdapter', 'createAdapter'].map(name => ({
+        name,
+        from: resolver.resolve('./runtime/server/database/index'),
+      })),
+    )
 
     // Alias sub-path exports so they always resolve to source — works in both stub and full-build modes
     nuxt.hook('nitro:config', (nitroConfig) => {
       nitroConfig.alias = nitroConfig.alias || {}
       nitroConfig.alias['@websideproject/nuxt-auto-api/plugins'] = resolver.resolve('./runtime/plugins/index')
       nitroConfig.alias['@websideproject/nuxt-auto-api/database'] = resolver.resolve('./runtime/server/database/index')
-      nitroConfig.alias['@websideproject/nuxt-auto-api/utils'] = resolver.resolve('./runtime/server/utils/index')
+      nitroConfig.alias['@websideproject/nuxt-auto-api/utils'] = resolver.resolve('./runtime/server/utils.public')
     })
 
     // Add runtime config
