@@ -2,6 +2,7 @@ import { computed, unref } from 'vue'
 import { useQuery, useInfiniteQuery } from '@tanstack/vue-query'
 import type { UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
+import { prerenderSafeEnabled } from './prerenderEnabled'
 
 export interface ListQueryParams {
   filter?: Record<string, any>
@@ -70,6 +71,7 @@ export function useAutoApiList<T = any>(
       return response
     },
     ...options,
+    enabled: prerenderSafeEnabled((options as any)?.enabled),
   } as any)
 }
 
@@ -100,8 +102,8 @@ export function useAutoApiGet<T = any>(
       )
       return response
     },
-    enabled: computed(() => !!idRef.value),
     ...options,
+    enabled: prerenderSafeEnabled((options as any)?.enabled, () => !!idRef.value),
   } as any)
 }
 
@@ -148,5 +150,6 @@ export function useAutoApiInfinite<T = any>(
     },
     initialPageParam: undefined,
     ...options,
+    enabled: prerenderSafeEnabled((options as any)?.enabled),
   } as any)
 }

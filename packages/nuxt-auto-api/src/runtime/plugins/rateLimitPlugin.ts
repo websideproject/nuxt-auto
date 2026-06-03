@@ -88,24 +88,24 @@ interface RateLimitEntry {
  */
 export class InMemoryRateLimitStore implements RateLimitStore {
   private store = new Map<string, RateLimitEntry>()
-  private cleanupTimer: ReturnType<typeof setInterval> | null = null
 
   constructor() {
-    this.cleanupTimer = setInterval(() => {
-      const now = Date.now()
-      for (const [key, entry] of this.store.entries()) {
-        if (now > entry.resetAt) this.store.delete(key)
-      }
-    }, 60000)
-    if (this.cleanupTimer && typeof this.cleanupTimer === 'object' && 'unref' in this.cleanupTimer) {
-      this.cleanupTimer.unref()
-    }
+    // No periodic timer: Cloudflare Workers disallow setInterval/setTimeout in global scope, and
+    // this store can be constructed at plugin-setup (isolate init). Entries reset lazily in
+    // increment(); stale keys are swept there opportunistically once the store grows large.
   }
 
   async increment(key: string, windowMs: number): Promise<{ count: number, resetAt: number }> {
     const now = Date.now()
     const entry = this.store.get(key)
     if (!entry || now > entry.resetAt) {
+      // Opportunistic sweep of expired keys when the map grows (replaces the periodic timer),
+      // bounding memory for keys that never come back.
+      if (this.store.size > 10_000) {
+        for (const [k, e] of this.store) {
+          if (now > e.resetAt) this.store.delete(k)
+        }
+      }
       const fresh = { count: 1, resetAt: now + windowMs }
       this.store.set(key, fresh)
       return fresh

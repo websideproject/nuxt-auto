@@ -46,18 +46,11 @@ interface CacheEntry {
  */
 export class InMemoryCacheStore implements CacheStore {
   private cache = new Map<string, CacheEntry>()
-  private cleanupTimer: ReturnType<typeof setInterval> | null = null
 
   constructor(private opts: { maxEntries: number, cleanupMs: number }) {
-    this.cleanupTimer = setInterval(() => {
-      const now = Date.now()
-      for (const [key, entry] of this.cache.entries()) {
-        if (now > entry.expiresAt) this.cache.delete(key)
-      }
-    }, opts.cleanupMs)
-    if (this.cleanupTimer && typeof this.cleanupTimer === 'object' && 'unref' in this.cleanupTimer) {
-      this.cleanupTimer.unref()
-    }
+    // No periodic timer: Cloudflare Workers disallow setInterval/setTimeout in global scope, and
+    // this store can be constructed at plugin-setup (isolate init). Expiry is lazy in get(); stale
+    // entries are also swept in evictIfNeeded() when the store fills. (opts.cleanupMs is unused.)
   }
 
   async get(key: string): Promise<any | undefined> {
@@ -80,6 +73,13 @@ export class InMemoryCacheStore implements CacheStore {
 
   private evictIfNeeded() {
     if (this.cache.size <= this.opts.maxEntries) return
+    // Drop expired entries first (this replaces the old periodic timer sweep)…
+    const now = Date.now()
+    for (const [key, entry] of this.cache) {
+      if (now > entry.expiresAt) this.cache.delete(key)
+    }
+    if (this.cache.size <= this.opts.maxEntries) return
+    // …then evict oldest-expiring until under the limit.
     const entries = [...this.cache.entries()]
     entries.sort((a, b) => a[1].expiresAt - b[1].expiresAt)
     const toRemove = entries.slice(0, entries.length - this.opts.maxEntries)

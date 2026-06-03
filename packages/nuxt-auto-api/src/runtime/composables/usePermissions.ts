@@ -3,6 +3,7 @@ import type { UseQueryOptions } from '@tanstack/vue-query'
 import { computed, unref } from 'vue'
 import type { MaybeRef } from 'vue'
 import type { PermissionQueryResponse, PermissionCheckResult } from '../types'
+import { prerenderSafeEnabled } from './prerenderEnabled'
 
 interface AllPermissionsResponse {
   user: any
@@ -29,6 +30,7 @@ export function useAllPermissions(
     },
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     ...options,
+    enabled: prerenderSafeEnabled((options as any)?.enabled),
   } as any)
 }
 
@@ -68,6 +70,7 @@ export function usePermissions(
       },
       staleTime: 1000 * 60 * 5, // Cache for 5 minutes
       ...options,
+      enabled: prerenderSafeEnabled((options as any)?.enabled),
     } as any)
 
     const canCreate = computed(() => query.data.value?.canCreate ?? false)

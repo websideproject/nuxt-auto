@@ -118,12 +118,13 @@ class TokenCache {
   private byRecordKey = new Map<string, string>() // "resource:id" → hash
   private ttlMs: number
   private maxEntries: number
-  private cleanupTimer: ReturnType<typeof setInterval> | null = null
 
   constructor(ttlMs: number, maxEntries: number) {
     this.ttlMs = ttlMs
     this.maxEntries = maxEntries
-    this.cleanupTimer = setInterval(() => this.cleanup(), ttlMs).unref()
+    // No periodic timer: Cloudflare Workers disallow setInterval/setTimeout in global scope,
+    // and runtimeSetup constructs this at isolate init. Expiry is handled lazily in get() (per
+    // entry on read) and stale entries are swept in set() when the cache fills — see below.
   }
 
   get(hash: string): CachedToken | null {
@@ -137,10 +138,14 @@ class TokenCache {
   }
 
   set(entry: CachedToken): void {
-    // Evict oldest if over limit (Map keeps insertion order)
     if (this.byHash.size >= this.maxEntries) {
-      const oldest = this.byHash.keys().next().value
-      if (oldest) this.deleteByHash(oldest)
+      // At capacity: first drop any expired entries (replaces the old periodic timer sweep),
+      // then evict the oldest if still full (Map keeps insertion order).
+      this.cleanup()
+      if (this.byHash.size >= this.maxEntries) {
+        const oldest = this.byHash.keys().next().value
+        if (oldest) this.deleteByHash(oldest)
+      }
     }
     this.byHash.set(entry.hash, entry)
     this.byRecordKey.set(`${entry.resource}:${entry.recordId}`, entry.hash)

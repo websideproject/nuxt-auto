@@ -4,6 +4,7 @@ import type { UseMutationOptions, UseQueryOptions, QueryKey } from '@tanstack/vu
 import type { MaybeRef } from 'vue'
 import type { AutoApiToastOptions } from '../types/toast'
 import { useAutoApiToast } from './useAutoApiToast'
+import { prerenderSafeEnabled } from './prerenderEnabled'
 
 /**
  * TanStack mutation for a custom endpoint URL.
@@ -102,5 +103,6 @@ export function useAutoApiEndpointQuery<TData = any>(
       return res as TData
     },
     ...queryOptions,
+    enabled: prerenderSafeEnabled((queryOptions as any)?.enabled),
   } as any)
 }

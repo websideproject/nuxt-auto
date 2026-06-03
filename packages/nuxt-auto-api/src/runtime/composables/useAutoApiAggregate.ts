@@ -2,6 +2,7 @@ import { computed, unref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import type { UseQueryOptions } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
+import { prerenderSafeEnabled } from './prerenderEnabled'
 
 export interface AggregateOptions {
   aggregate?: 'count' | 'sum' | 'avg' | 'min' | 'max' | string[]
@@ -107,5 +108,6 @@ export function useAutoApiAggregate<T = AggregateResult>(
       return await $fetch<T>(url)
     },
     ...queryOptions,
+    enabled: prerenderSafeEnabled((queryOptions as any)?.enabled),
   } as any)
 }

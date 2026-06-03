@@ -4,6 +4,7 @@ import type { UseQueryOptions } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
 import type { M2MListResponse, M2MListQuery } from '../types'
 import { autoApiKeys } from './queryKeys'
+import { prerenderSafeEnabled } from './prerenderEnabled'
 
 /**
  * Query M2M relations with TanStack Query
@@ -74,8 +75,8 @@ export function useM2MRelation<T = any>(
       )
       return response
     },
-    enabled: computed(() => !!idRef.value && !!relationRef.value),
     staleTime: 5 * 60 * 1000, // 5 minutes
     ...options,
+    enabled: prerenderSafeEnabled((options as any)?.enabled, () => !!idRef.value && !!relationRef.value),
   } as any)
 }
