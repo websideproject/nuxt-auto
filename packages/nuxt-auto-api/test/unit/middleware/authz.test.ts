@@ -220,7 +220,7 @@ describe('Authorization Middleware', () => {
   })
 
   describe('filterFieldsByPermission', () => {
-    it('should filter fields based on read permissions', () => {
+    it('should filter fields based on read permissions', async () => {
       const config = {
         fields: {
           email: {
@@ -244,7 +244,7 @@ describe('Authorization Middleware', () => {
         password: 'secret',
       }
 
-      const result = filterFieldsByPermission(data, config as any, context as any)
+      const result = await filterFieldsByPermission(data, config as any, context as any)
 
       expect(result).toEqual({
         id: 1,
@@ -252,7 +252,7 @@ describe('Authorization Middleware', () => {
       })
     })
 
-    it('should include fields when user has required permission', () => {
+    it('should include fields when user has required permission', async () => {
       const config = {
         fields: {
           email: {
@@ -271,7 +271,7 @@ describe('Authorization Middleware', () => {
         email: 'john@test.com',
       }
 
-      const result = filterFieldsByPermission(data, config as any, context as any)
+      const result = await filterFieldsByPermission(data, config as any, context as any)
 
       expect(result).toEqual({
         id: 1,
@@ -279,7 +279,7 @@ describe('Authorization Middleware', () => {
       })
     })
 
-    it('should return all fields when no config', () => {
+    it('should return all fields when no config', async () => {
       const context = createMockContext({
         user: createMockUser('user'),
       })
@@ -290,18 +290,18 @@ describe('Authorization Middleware', () => {
         email: 'john@test.com',
       }
 
-      const result = filterFieldsByPermission(data, undefined, context as any)
+      const result = await filterFieldsByPermission(data, undefined, context as any)
 
       expect(result).toEqual(data)
     })
 
-    it('should return all fields when no context', () => {
+    it('should return all fields when no context', async () => {
       const data = {
         id: 1,
         name: 'John',
       }
 
-      const result = filterFieldsByPermission(data, {} as any, undefined)
+      const result = await filterFieldsByPermission(data, {} as any, undefined)
 
       expect(result).toEqual(data)
     })
