@@ -67,7 +67,7 @@
   },
   "peerDependencies": {
     "@nuxt/ui": "^4.0.0",
-    "@websideproject/nuxt-auto-api": "workspace:*"
+    "@websideproject/nuxt-auto-api": "workspace:*",
     "h3": "^1.15.0"
   },
   "devDependencies": {
