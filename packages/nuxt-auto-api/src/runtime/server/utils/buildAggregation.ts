@@ -1,5 +1,5 @@
 import { useRuntimeConfig } from 'nitropack/runtime'
-import { count, sum, avg, min, max, sql } from 'drizzle-orm'
+import { count, sum, avg, min, max, sql, and } from 'drizzle-orm'
 import type { AggregationQuery, AggregationFunction } from '../../types'
 import { buildWhereClause } from './buildWhereClause'
 
@@ -225,6 +225,7 @@ export async function executeComplexAggregation(
   db: any,
   table: any,
   aggregationQuery: AggregationQuery,
+  extraWhere?: any,
 ): Promise<any[]> {
   const { aggregates, groupBy: groupByFields, having, filter } = aggregationQuery
 
@@ -244,13 +245,11 @@ export async function executeComplexAggregation(
   // Build query
   let query = db.select(selection).from(table)
 
-  // Add where clause from filter
-  if (filter) {
-    const whereClause = buildWhereClause(filter, table)
-    if (whereClause) {
-      query = query.where(whereClause)
-    }
-  }
+  // Add where clause from filter, ANDed with any caller-supplied extra condition (e.g. soft-delete).
+  const filterWhere = filter ? buildWhereClause(filter, table) : undefined
+  const conditions = [filterWhere, extraWhere].filter(Boolean)
+  if (conditions.length === 1) query = query.where(conditions[0])
+  else if (conditions.length > 1) query = query.where(and(...conditions))
 
   // Add group by
   if (groupBy && groupBy.length > 0) {

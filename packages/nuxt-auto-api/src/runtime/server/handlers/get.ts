@@ -6,7 +6,7 @@ import { filterFields } from '../utils/filterFields'
 import { filterRelationFields } from '../utils/filterRelationFields'
 import { cleanRelationsConfig } from '../utils/cleanRelationsConfig'
 import { checkObjectLevelAuth } from '../middleware/authz'
-import { getSoftDeleteColumn } from '../utils/softDelete'
+import { getSoftDeleteColumn, canViewSoftDeleted } from '../utils/softDelete'
 import { buildTenantWhere } from '../utils/tenant'
 import { executeBeforeHook, executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
@@ -101,11 +101,10 @@ export async function getHandler(context: HandlerContext): Promise<SingleRespons
     })
   }
 
-  // Check if soft-deleted
+  // Check if soft-deleted — hide unless the caller may view trash (global/org admin or viewDeleted gate).
   const softDeleteCol = getSoftDeleteColumn(table)
   if (softDeleteCol && data[softDeleteCol] !== null) {
-    // Record is soft-deleted, only return if user has permission
-    if (!context.permissions.includes('admin')) {
+    if (!(await canViewSoftDeleted(context))) {
       throw createError({
         statusCode: 404,
         message: `${resource} with id ${id} not found`,

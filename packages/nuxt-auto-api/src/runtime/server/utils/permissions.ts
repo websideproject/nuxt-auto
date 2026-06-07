@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm'
+import { createError } from 'h3'
 import { resolveObjectPermission } from '../middleware/resolveObjectPermission'
 import type {
   ResourceAuthConfig,
@@ -12,7 +14,7 @@ import type {
  * Same logic the request gate uses (see `hasPermission`), so the `/api/permissions`
  * introspection endpoint reflects object (descriptor) gates identically.
  */
-async function evaluatePermission(
+export async function evaluatePermission(
   permission: string | string[] | PermissionFunction | PermissionObject | undefined,
   context: HandlerContext,
 ): Promise<boolean> {
@@ -108,4 +110,84 @@ export async function getResourcePermissions(
   }
 
   return result
+}
+
+/**
+ * Assert that the current user has `operation` permission on `resource`, optionally
+ * checking the object-level gate against `recordId`. Throws 401/403 on failure.
+ *
+ * Used by custom endpoints (e.g. restore) that must authorize against a *different*
+ * resource's permission than the one they are registered under.
+ *
+ * The operation map: 'restore' and 'purge' fall back to 'update' / 'delete'
+ * unless the resource's auth config has a dedicated `softDelete.restore` / `softDelete.purge`.
+ */
+export async function assertResourcePermission(
+  resource: string,
+  operation: 'create' | 'read' | 'update' | 'delete' | 'restore' | 'purge',
+  context: HandlerContext,
+  opts: { recordId?: string | number } = {},
+): Promise<void> {
+  // Look up the resource's auth config from the registry (virtual module, runtime-only).
+  // Resilient: if the registry can't be loaded (e.g. isolated unit tests), treat it as
+  // "no explicit config" and fall back to the safe defaults below — restore/purge must
+  // never fail *open* just because the registry wasn't reachable.
+  let authConfig: ResourceAuthConfig | undefined
+  try {
+    const { registry } = await (import('#nuxt-auto-api-registry' as string) as any)
+    authConfig = registry?.[resource]?.authorization
+  }
+  catch {
+    authConfig = undefined
+  }
+
+  // Resolve the effective permission for this operation.
+  //  • restore → permissions.restore ?? softDelete.restore ?? permissions.update ?? 'admin'
+  //  • purge   → permissions.purge   ?? softDelete.purge   ?? permissions.delete ?? 'admin'
+  //    (destructive/recovery ops; org admins/custom roles enabled via explicit config above.)
+  //  • create/read/update/delete: the configured permission, or undefined (= allowed; the
+  //    request pipeline already ran the base authorize for these).
+  let effectivePermission: string | string[] | PermissionFunction | PermissionObject | undefined
+  if (operation === 'restore' || operation === 'purge') {
+    const perms = authConfig?.permissions as any
+    const sd = authConfig?.softDelete as any
+    const firstClass = operation === 'restore' ? perms?.restore : perms?.purge
+    const override = operation === 'restore' ? sd?.restore : sd?.purge
+    const baseOp = operation === 'restore' ? 'update' : 'delete'
+    if (firstClass !== undefined) effectivePermission = firstClass
+    else if (override !== undefined) effectivePermission = override
+    else if (perms?.[baseOp] !== undefined) effectivePermission = perms[baseOp]
+    else effectivePermission = 'admin'
+  }
+  else {
+    effectivePermission = authConfig?.permissions?.[operation]
+  }
+
+  // evaluatePermission(undefined) === true, so create/read/update/delete with no config are
+  // allowed; restore/purge always carry a concrete permission (override/base/default 'admin').
+  const allowed = await evaluatePermission(effectivePermission, context)
+
+  if (!allowed) {
+    throw createError({
+      statusCode: context.user ? 403 : 401,
+      message: context.user
+        ? `Forbidden: You don't have permission to ${operation} ${resource}`
+        : 'Authentication required',
+    })
+  }
+
+  // Object-level check when a recordId is supplied.
+  if (opts.recordId !== undefined && authConfig?.objectLevel) {
+    const table = context.schema?.[resource]
+    if (table) {
+      const pid = /^\d+$/.test(String(opts.recordId)) ? Number(opts.recordId) : opts.recordId
+      const [record] = await context.db?.select().from(table).where(eq(table.id, pid)) ?? []
+      if (record) {
+        const allowed = await authConfig.objectLevel(record, context)
+        if (!allowed) {
+          throw createError({ statusCode: 403, message: 'Forbidden: insufficient object-level permission' })
+        }
+      }
+    }
+  }
 }

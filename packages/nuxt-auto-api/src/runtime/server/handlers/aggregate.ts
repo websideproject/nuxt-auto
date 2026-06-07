@@ -6,8 +6,8 @@ import {
   validateAggregation,
 } from '../utils/buildAggregation'
 import { buildTenantWhere } from '../utils/tenant'
-import { getSoftDeleteColumn } from '../utils/softDelete'
-import { and, isNull } from 'drizzle-orm'
+import { getSoftDeleteColumn, canViewSoftDeleted } from '../utils/softDelete'
+import { isNull, isNotNull } from 'drizzle-orm'
 
 /**
  * Aggregate handler - GET /api/[resource]/aggregate
@@ -53,20 +53,19 @@ export async function aggregateHandler(context: HandlerContext): Promise<Aggrega
     filter: query.filter as Record<string, any>,
   }
 
-  // Apply soft delete filter
+  // Soft-delete filter — applied as a real SQL condition (extraWhere), consistent with list.ts:
+  //  • onlyDeleted (+ may view) → deleted rows only
+  //  • includeDeleted (+ may view) → no filter (live + deleted)
+  //  • otherwise → live rows only (deleted hidden)
+  let softDeleteWhere: any
   const softDeleteCol = getSoftDeleteColumn(table)
   if (softDeleteCol) {
     const includeDeleted = query.includeDeleted === true || query.includeDeleted === 'true'
-    const canViewDeleted = context.permissions.includes('admin')
+    const onlyDeleted = query.onlyDeleted === true || query.onlyDeleted === 'true'
+    const canViewDeleted = await canViewSoftDeleted(context)
 
-    if (!includeDeleted || !canViewDeleted) {
-      // Add to filter
-      if (!aggregationQuery.filter) {
-        aggregationQuery.filter = {}
-      }
-      // Note: This is a simplified approach
-      // In production, you'd want to merge this with existing filters more carefully
-    }
+    if (onlyDeleted && canViewDeleted) softDeleteWhere = isNotNull(table[softDeleteCol])
+    else if (!includeDeleted || !canViewDeleted) softDeleteWhere = isNull(table[softDeleteCol])
   }
 
   // Apply tenant scoping
@@ -77,8 +76,8 @@ export async function aggregateHandler(context: HandlerContext): Promise<Aggrega
     aggregationQuery.filter[context.tenant.field] = context.tenant.id
   }
 
-  // Execute aggregation
-  const results = await executeComplexAggregation(db, table, aggregationQuery)
+  // Execute aggregation (soft-delete condition ANDed in via extraWhere)
+  const results = await executeComplexAggregation(db, table, aggregationQuery, softDeleteWhere)
 
   // Transform results to separate group fields from aggregates
   const transformedResults = results.map((row: any) => {

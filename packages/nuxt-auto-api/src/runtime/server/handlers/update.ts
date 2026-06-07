@@ -3,6 +3,7 @@ import { createError } from 'h3'
 import type { HandlerContext, SingleResponse } from '../../types'
 import { checkObjectLevelAuth } from '../middleware/authz'
 import { buildTenantWhere } from '../utils/tenant'
+import { getSoftDeleteColumn, canViewSoftDeleted } from '../utils/softDelete'
 import { executeBeforeHook, executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
 import { parseJsonColumns } from '../utils/parseJsonColumns'
@@ -38,6 +39,16 @@ export async function updateHandler(context: HandlerContext): Promise<SingleResp
   const [existing] = await db.select().from(table).where(whereClause)
 
   if (!existing) {
+    throw createError({
+      statusCode: 404,
+      message: `${resource} with id ${id} not found`,
+    })
+  }
+
+  // A trashed row is not editable through the normal update path — it's "gone" until restored.
+  // (Restoring goes through the dedicated restore endpoint.) Hidden unless the caller may view trash.
+  const softDeleteCol = getSoftDeleteColumn(table)
+  if (softDeleteCol && existing[softDeleteCol] != null && !(await canViewSoftDeleted(context))) {
     throw createError({
       statusCode: 404,
       message: `${resource} with id ${id} not found`,

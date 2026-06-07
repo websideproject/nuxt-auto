@@ -9,6 +9,9 @@ export default defineConfig({
     // never needed.) See test/helpers/nitro-stub.ts.
     alias: {
       'nitropack/runtime': fileURLToPath(new URL('./test/helpers/nitro-stub.ts', import.meta.url)),
+      // The auto-api registry is a build-time virtual module; tests stub it (empty by default →
+      // safe-default permission resolution; set per-test via setRegistry()). See registry-stub.ts.
+      '#nuxt-auto-api-registry': fileURLToPath(new URL('./test/helpers/registry-stub.ts', import.meta.url)),
     },
   },
 })

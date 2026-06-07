@@ -52,6 +52,21 @@
     "./composables": {
       "types": "./dist/runtime/composables.public.d.ts",
       "import": "./dist/runtime/composables.public.js"
+    },
+    "./schema/sqlite": {
+      "types": "./dist/runtime/schema/sqlite.d.ts",
+      "import": "./dist/runtime/schema/sqlite.js",
+      "default": "./dist/runtime/schema/sqlite.js"
+    },
+    "./schema/pg": {
+      "types": "./dist/runtime/schema/pg.d.ts",
+      "import": "./dist/runtime/schema/pg.js",
+      "default": "./dist/runtime/schema/pg.js"
+    },
+    "./schema/mysql": {
+      "types": "./dist/runtime/schema/mysql.d.ts",
+      "import": "./dist/runtime/schema/mysql.js",
+      "default": "./dist/runtime/schema/mysql.js"
     }
   },
   "main": "./dist/module.mjs",

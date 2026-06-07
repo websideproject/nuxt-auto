@@ -10,7 +10,21 @@
 export { defineAutoApiHandler } from './utils/defineAutoApiHandler'
 export type { AutoApiHandlerOptions } from './utils/defineAutoApiHandler'
 
-export { checkPermission, checkFieldPermission, getResourcePermissions } from './utils/permissions'
+export { checkPermission, checkFieldPermission, getResourcePermissions, assertResourcePermission, evaluatePermission } from './utils/permissions'
+
+// Soft-delete helpers (detection + companion columns + view-deleted gate + stamp builders)
+export {
+  getSoftDeleteColumn,
+  getSoftDeleteCompanions,
+  supportsSoftDelete,
+  canViewSoftDeleted,
+  buildSoftDeleteUpdates,
+  buildRestoreUpdates,
+} from './utils/softDelete'
+export { cascadeSoftDelete } from './utils/softDeleteCascade'
+export { restoreSoftDeletedBatch, purgeSoftDeletedBatch } from './utils/softDeleteBatch'
+export type { BatchResult } from './utils/softDeleteBatch'
+export { recordRevisionIfPresent } from './utils/revisionRecord'
 
 // Database adapter
 export { initializeDatabase, getDatabaseAdapter, createAdapter } from './database'

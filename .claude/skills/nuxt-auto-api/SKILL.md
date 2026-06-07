@@ -86,6 +86,7 @@ GET    /api/permissions         All resource permissions
 | **[references/m2m.md](references/m2m.md)** | M2M config, useM2MRelation, useM2MSync, useM2MAdd, useM2MRemove, useM2MBatchSync |
 | **[references/advanced.md](references/advanced.md)** | useAutoApiAggregate, usePermissions, multi-tenancy, **createEndpoint with endpointName + authorize** |
 | **[references/module-authoring.md](references/module-authoring.md)** | createModuleImport, schema/auth/hooks/validation co-location, **JSON columns (mode:'json')** |
+| **[references/schema-presets.md](references/schema-presets.md)** | Cross-engine `id`/`timestamps`/`softDelete`/`tenant`/`audit`/`liveUnique` presets — "import = feature on" |
 
 ## Progressive Loading
 
@@ -97,6 +98,7 @@ GET    /api/permissions         All resource permissions
 - Many-to-many relationships? → [references/m2m.md](references/m2m.md)
 - Aggregations, permissions, multi-tenancy? → [references/advanced.md](references/advanced.md)
 - Building a Nuxt module that ships resources? → [references/module-authoring.md](references/module-authoring.md)
+- Defining cross-cutting table columns (timestamps/softDelete/audit)? → [references/schema-presets.md](references/schema-presets.md)
 
 **DO NOT read all files at once.**
 

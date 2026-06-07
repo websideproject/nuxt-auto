@@ -3,10 +3,12 @@ import { eq, and, inArray } from 'drizzle-orm'
 import { createError } from 'h3'
 import type { HandlerContext, BulkOperationResponse } from '../../types'
 import { checkObjectLevelAuth } from '../middleware/authz'
-import { getSoftDeleteColumn } from '../utils/softDelete'
+import { getSoftDeleteColumn, buildSoftDeleteUpdates } from '../utils/softDelete'
+import { cascadeSoftDelete } from '../utils/softDeleteCascade'
 import { buildTenantWhere } from '../utils/tenant'
 import { executeBeforeHook, executeAfterHook } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { assertResourcePermission } from '../utils/permissions'
 import { getDatabaseAdapter } from '../database'
 
 /**
@@ -341,6 +343,17 @@ export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOp
   }
 
   const softDeleteCol = getSoftDeleteColumn(table)
+  // `?force=true` purges (hard-delete) a soft-deletable resource — gated by the purge permission.
+  const wantForce = (context.query as any)?.force === 'true' || (context.query as any)?.force === true
+  const doSoftDelete = !!softDeleteCol && !wantForce
+  if (softDeleteCol && wantForce) {
+    await assertResourcePermission(resource, 'purge', context)
+  }
+  // One deletionId for the whole batch so a batch restore/purge acts on the unit.
+  const deletionId = String((context.query as any)?.deletionId ?? crypto.randomUUID())
+  const reason = (context.query as any)?.reason ?? null
+  const userId = context.user?.id ? String(context.user.id) : null
+  const cascade = (context.resourceConfig as any)?.authorization?.softDelete?.cascade
   const results: any[] = []
   const errors: Array<{ index: number, id: string | number, error: string }> = []
 
@@ -368,10 +381,13 @@ export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOp
         // Execute beforeDelete hook
         await executeBeforeHook('delete', context, undefined, id)
 
-        // Perform delete (soft or hard)
-        if (softDeleteCol) {
+        // Perform delete (soft or hard/purge)
+        if (doSoftDelete) {
+          if (cascade !== 'off') {
+            await cascadeSoftDelete({ ...context, db: tx }, resource, id, deletionId, { reason })
+          }
           await tx.update(table)
-            .set({ [softDeleteCol]: new Date() })
+            .set(buildSoftDeleteUpdates(table, { deletionId, reason, userId }))
             .where(eq(table.id, id))
         }
         else {

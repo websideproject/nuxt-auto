@@ -7,14 +7,14 @@ import { filterFields } from '../utils/filterFields'
 import { filterRelationFields } from '../utils/filterRelationFields'
 import { cleanRelationsConfig } from '../utils/cleanRelationsConfig'
 import { encodeCursor, buildCursorWhere } from '../utils/cursor'
-import { getSoftDeleteColumn } from '../utils/softDelete'
+import { getSoftDeleteColumn, canViewSoftDeleted } from '../utils/softDelete'
 import { buildTenantWhere } from '../utils/tenant'
 import { parseAggregateParam, executeSimpleAggregation, validateAggregation } from '../utils/buildAggregation'
 import { executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
 import { parseJsonColumns } from '../utils/parseJsonColumns'
 import { serializeResponse } from '../utils/serializeResponse'
-import { count, and, isNull } from 'drizzle-orm'
+import { count, and, isNull, isNotNull } from 'drizzle-orm'
 
 /**
  * List handler - GET /api/[resource]
@@ -70,11 +70,17 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
   if (softDeleteCol) {
     const notDeletedClause = isNull(table[softDeleteCol])
 
-    // Include deleted if explicitly requested AND user has permission
+    // Include deleted if explicitly requested AND user has permission.
+    // canViewDeleted: global admin OR org admin/owner OR per-resource softDelete.viewDeleted config.
     const includeDeleted = effectiveQuery.includeDeleted === true || effectiveQuery.includeDeleted === 'true'
-    const canViewDeleted = context.permissions.includes('admin')
+    const onlyDeleted = effectiveQuery.onlyDeleted === true || effectiveQuery.onlyDeleted === 'true'
+    const canViewDeleted = await canViewSoftDeleted(context)
 
-    if (!includeDeleted || !canViewDeleted) {
+    if (onlyDeleted && canViewDeleted) {
+      // Pure trash view: show only soft-deleted rows.
+      whereClause = whereClause ? and(whereClause, isNotNull(table[softDeleteCol])) : isNotNull(table[softDeleteCol])
+    }
+    else if (!includeDeleted || !canViewDeleted) {
       whereClause = whereClause ? and(whereClause, notDeletedClause) : notDeletedClause
     }
   }

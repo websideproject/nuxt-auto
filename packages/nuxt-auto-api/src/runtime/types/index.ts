@@ -173,9 +173,40 @@ export interface ResourceAuthConfig {
     delete?: string | string[] | PermissionFunction | PermissionObject
 
     /**
+     * Restore a soft-deleted row (POST /:id/restore + batch restore).
+     * Falls back to `softDelete.restore` → `update` → `'admin'` when unset.
+     */
+    restore?: string | string[] | PermissionFunction | PermissionObject
+    /**
+     * Permanently purge a soft-deleted row (DELETE ?force=true + batch purge).
+     * Falls back to `softDelete.purge` → `delete` → `'admin'` when unset.
+     */
+    purge?: string | string[] | PermissionFunction | PermissionObject
+    /**
+     * See soft-deleted rows in list/get/aggregate (`?includeDeleted` / `?onlyDeleted`).
+     * Falls back to global admin OR org admin/owner when unset.
+     */
+    viewDeleted?: string | string[] | PermissionFunction | PermissionObject
+
+    /**
      * M2M relationship permissions
      */
     m2m?: M2MPermissionConfig
+  }
+
+  /**
+   * Soft-delete behaviour for this resource. Permission keys here are an alternative home for
+   * restore/purge/viewDeleted (kept beside the other soft-delete knobs); `permissions.restore`
+   * etc. take precedence when both are set.
+   */
+  softDelete?: {
+    restore?: string | string[] | PermissionFunction | PermissionObject
+    purge?: string | string[] | PermissionFunction | PermissionObject
+    viewDeleted?: string | string[] | PermissionFunction | PermissionObject
+    /** Cascade soft-delete to FK children. `'auto'` (default) mirrors each FK's onDelete; `'off'` disables. */
+    cascade?: 'auto' | 'off'
+    /** Trash retention before the purge task hard-deletes (days; 0 = never). */
+    retentionDays?: number
   }
 
   /**
