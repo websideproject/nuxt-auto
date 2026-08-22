@@ -107,16 +107,25 @@ export async function createContextFromRegistry(
     const path = event.path.split('?')[0]
     const pathParts = path.split('/').filter(Boolean)
 
+    // - /api/{resource}/:id/restore (restore a soft-deleted row)
+    //
     // For routes with :id, resource is second-to-last part
     // For routes with /bulk or /aggregate suffix, resource is second-to-last part
     // For routes without :id, resource is last part
+    // For /:id/restore the id sits BETWEEN the two, so the resource is third from the end.
     const hasId = getRouterParam(event, 'id') !== undefined
     const lastPart = pathParts[pathParts.length - 1]
     const hasOperationSuffix = lastPart === 'bulk' || lastPart === 'aggregate' || lastPart === 'permissions'
+    // Without this arm `POST /api/{resource}/{id}/restore` resolved the resource to the ID and threw
+    // `Resource "<uuid>" not found in registry` — i.e. the restore route has never worked for any
+    // resource, in any app, since it shipped. Soft delete was one-way in practice.
+    const isSuffixAfterId = hasId && lastPart === 'restore'
 
-    resourceName = hasId || hasOperationSuffix
-      ? pathParts[pathParts.length - 2]
-      : pathParts[pathParts.length - 1]
+    resourceName = isSuffixAfterId
+      ? pathParts[pathParts.length - 3]
+      : hasId || hasOperationSuffix
+        ? pathParts[pathParts.length - 2]
+        : pathParts[pathParts.length - 1]
   }
 
   // Get resource config from registry
@@ -183,11 +192,15 @@ export async function createContextFromRegistry(
     query,
     validated: {},
     event,
+    runtimeConfig: useRuntimeConfig(), // captured here (bundled) so registry-loaded auth.ts reads ctx.runtimeConfig
     resource: resourceName,
     operation,
     objectLevelCheck: effectiveAuth?.objectLevel,
     tenant: null,
     resourceConfig,
+    // The MERGED config, so field-level read/write enforcement honours a nuxt.config override the same way
+    // the operation-level gate does (`resourceConfig.authorization` is the module's declaration alone).
+    effectiveAuth,
     registry, // Add full registry for accessing all resource configs
   }
 

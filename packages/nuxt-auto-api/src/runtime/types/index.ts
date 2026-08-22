@@ -351,6 +351,13 @@ export interface HandlerContext {
   event: H3Event
 
   /**
+   * The resolved Nuxt/Nitro runtime config, captured once in the bundled context-builder. Registry-
+   * loaded auth config files (auth.ts) are NOT auto-import-transformed, so they must read config from
+   * here — `ctx.runtimeConfig` — rather than a bare `useRuntimeConfig()` (mirrors the plugin context).
+   */
+  runtimeConfig?: any
+
+  /**
    * Resource name
    */
   resource: string
@@ -384,6 +391,14 @@ export interface HandlerContext {
    * Resource configuration from registry
    */
   resourceConfig?: ResourceRegistration
+
+  /**
+   * The resource's authorization config AFTER the nuxt.config override has been merged in.
+   *
+   * `resourceConfig.authorization` is the module's build-time declaration alone, so anything reading it
+   * directly ignores an app-level override. Field-level read/write enforcement uses this.
+   */
+  effectiveAuth?: ResourceAuthConfig
 
   /**
    * Full resource registry (for accessing all resource configs)

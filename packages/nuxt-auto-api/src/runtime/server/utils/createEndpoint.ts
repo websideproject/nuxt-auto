@@ -1,5 +1,6 @@
 import type { H3Event, EventHandler } from 'h3'
 import { defineEventHandler, readBody, getQuery, createError } from 'h3'
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { createContextFromRegistry } from '../handlers/createContextFromRegistry'
 import { getDatabaseAdapter } from '../database'
 import { getContextExtenders, getMiddlewareForStage } from '../plugins/pluginRegistry'
@@ -109,6 +110,7 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
         query: getQuery(event) as Record<string, any>,
         validated: {},
         event,
+        runtimeConfig: useRuntimeConfig(),
         resource: '',
         operation: options.operation || inferOperation(event),
       }

@@ -8,6 +8,7 @@ import { cascadeSoftDelete } from '../utils/softDeleteCascade'
 import { buildTenantWhere } from '../utils/tenant'
 import { executeBeforeHook, executeAfterHook } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { assertWritableFields, filterReadableFields } from '../utils/fieldPermissions'
 import { assertResourcePermission } from '../utils/permissions'
 import { getDatabaseAdapter } from '../database'
 
@@ -69,6 +70,10 @@ export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOp
       if (context.tenant) {
         itemData = { ...itemData, [context.tenant.field]: context.tenant.id }
       }
+
+      // Refuse fields the caller may not write, before the hook. Reported per ITEM rather than thrown for
+      // the batch, because that is how every other rejection in this loop is reported.
+      await assertWritableFields(items[i], context)
 
       // Execute beforeCreate hook
       itemData = await executeBeforeHook('create', context, itemData)
@@ -134,8 +139,8 @@ export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOp
     }
   }
 
-  // Filter hidden fields from all results
-  const filteredResults = filterHiddenFields(results, context)
+  // Filter hidden fields from all results, then the fields this caller may not read.
+  const filteredResults = await filterReadableFields(filterHiddenFields(results, context), context)
 
   return {
     data: filteredResults,
@@ -228,6 +233,9 @@ export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOp
         // Check object-level authorization
         await checkObjectLevelAuth(existing, context)
 
+        // Refuse fields the caller may not write, before the hook.
+        await assertWritableFields(data, context)
+
         // Execute beforeUpdate hook
         const processedData = await executeBeforeHook('update', context, data, id)
 
@@ -283,8 +291,8 @@ export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOp
     await performUpdate(db)
   }
 
-  // Filter hidden fields from all results
-  const filteredResults = filterHiddenFields(results, context)
+  // Filter hidden fields from all results, then the fields this caller may not read.
+  const filteredResults = await filterReadableFields(filterHiddenFields(results, context), context)
 
   return {
     data: filteredResults,

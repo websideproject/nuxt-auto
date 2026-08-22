@@ -32,11 +32,17 @@ export const articles = sqliteTable('articles', {
   ...audit(),
   ...sd.columns,
 }, t => [
-  ...sd.indexes(t),
-  ...tenant.indexes(t),
+  ...sd.indexes(t),          // articles_trash_idx (deletedAt) + articles_batch_idx (deletionId)
+  ...tenant.indexes(t),      // articles_tenant_org_idx
   liveUnique(t, t.slug, 'articles_slug_live'),
 ])
 ```
+
+> Index names from `softDelete()`/`tenant` are **auto-namespaced with the table name** (`<table>_trash_idx`
+> etc.) — required because SQLite/Postgres index names must be globally unique, so two tables adopting the
+> preset don't collide. The table name is read from the column inside the index callback; you don't pass it.
+> Detection of "is this table soft-deletable" requires a **nullable** `deleted_at` OR a preset companion
+> column — so a NOT-NULL domain `deleted_at` is not misdetected.
 
 ## Preset → auto-api feature map
 

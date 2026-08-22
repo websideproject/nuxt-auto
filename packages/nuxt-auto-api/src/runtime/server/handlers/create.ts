@@ -2,6 +2,7 @@ import { createError } from 'h3'
 import type { HandlerContext, SingleResponse } from '../../types'
 import { executeBeforeHook, executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { assertWritableFields, filterReadableFields } from '../utils/fieldPermissions'
 import { parseJsonColumns } from '../utils/parseJsonColumns'
 
 /**
@@ -32,6 +33,10 @@ export async function createHandler(context: HandlerContext): Promise<SingleResp
     data[context.tenant.field] = context.tenant.id
   }
 
+  // Refuse fields the CALLER may not write — before the hook, so the server's own derived writes
+  // (tenancy injection, totals, evidence-dropping) are not gated by what the caller may set.
+  await assertWritableFields(data, context)
+
   // Execute beforeCreate hook (can modify data)
   data = await executeBeforeHook('create', context, data)
 
@@ -52,7 +57,9 @@ export async function createHandler(context: HandlerContext): Promise<SingleResp
   const result = await executeAfterHookWithTransform('create', context, parsed)
 
   // Filter hidden fields from response
-  const filteredData = filterHiddenFields(result, context)
+  let filteredData = filterHiddenFields(result, context)
+  // …and the fields this caller may not read (`fields[x].read`).
+  filteredData = await filterReadableFields(filteredData, context)
 
   return {
     data: filteredData,

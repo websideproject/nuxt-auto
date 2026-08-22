@@ -10,6 +10,7 @@ import { getSoftDeleteColumn, canViewSoftDeleted } from '../utils/softDelete'
 import { buildTenantWhere } from '../utils/tenant'
 import { executeBeforeHook, executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { filterReadableFields } from '../utils/fieldPermissions'
 import { parseJsonColumns } from '../utils/parseJsonColumns'
 import { serializeResponse } from '../utils/serializeResponse'
 
@@ -123,6 +124,10 @@ export async function getHandler(context: HandlerContext): Promise<SingleRespons
 
   // Filter hidden fields (including nested relations)
   filteredData = filterHiddenFields(filteredData, context)
+
+  // …and the fields this caller may not read (`fields[x].read`). Root resource only — see
+  // `utils/fieldPermissions.ts`.
+  filteredData = await filterReadableFields(filteredData, context) as typeof filteredData
 
   // Filter fields if requested (applies to root resource only, preserves relations)
   if (effectiveQuery.fields) {

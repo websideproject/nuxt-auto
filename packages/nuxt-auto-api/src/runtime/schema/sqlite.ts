@@ -101,10 +101,27 @@ export function json(name: string): any {
  * Creates a partial unique index that only applies to non-deleted (live) rows.
  * SQLite/D1 supports WHERE clauses on indexes natively.
  *
+ * Accepts one column or several — `liveUnique(t, [t.orgId, t.slug], 'x')` for a composite.
+ *
+ * **Why it validates rather than trusting its argument.** This used to take a single column and simply
+ * forward it to `.on()`. Passing an array (a composite index, the obvious thing to try) or a mistyped
+ * column name (`t.slugg` → `undefined`) both produced `ON "table" ()` — syntactically invalid SQL that
+ * nothing complains about until `drizzle-kit` generates a migration and D1 rejects it, by which point the
+ * cause is several files away from the error. It shipped a broken index twice that way. Failing here, at
+ * schema-definition time, puts the error next to the mistake.
+ *
  * @param t - the table object (second arg to sqliteTable)
- * @param col - the column to make unique (e.g. t.slug)
+ * @param col - the column, or array of columns, to make unique (e.g. t.slug)
  * @param name - index name prefix (must be unique per table)
  */
 export function liveUnique(t: any, col: any, name: string): any {
-  return uniqueIndex(`${name}_uq`).on(col).where(sql`${t.deletedAt} is null`)
+  const cols = Array.isArray(col) ? col : [col]
+  if (!cols.length || cols.some(c => c == null)) {
+    throw new Error(
+      `liveUnique("${name}"): expected a column or a non-empty array of columns, got `
+      + `${Array.isArray(col) ? `an array of ${cols.length} with ${cols.filter(c => c == null).length} empty slot(s)` : String(col)}. `
+      + `A missing column here emits \`ON table ()\`, which only fails at migration time.`,
+    )
+  }
+  return uniqueIndex(`${name}_uq`).on(...cols).where(sql`${t.deletedAt} is null`)
 }

@@ -12,6 +12,7 @@ import { buildTenantWhere } from '../utils/tenant'
 import { parseAggregateParam, executeSimpleAggregation, validateAggregation } from '../utils/buildAggregation'
 import { executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { filterReadableFields } from '../utils/fieldPermissions'
 import { parseJsonColumns } from '../utils/parseJsonColumns'
 import { serializeResponse } from '../utils/serializeResponse'
 import { count, and, isNull, isNotNull } from 'drizzle-orm'
@@ -215,6 +216,10 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
 
   // Filter hidden fields (including nested relations)
   filteredData = filterHiddenFields(filteredData, context)
+
+  // …and the fields this caller may not read (`fields[x].read`). Root resource only — see
+  // `utils/fieldPermissions.ts`.
+  filteredData = await filterReadableFields(filteredData, context) as typeof filteredData
 
   // Filter fields if requested (applies to root resource only, preserves relations)
   if (effectiveQuery.fields) {

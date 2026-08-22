@@ -123,6 +123,32 @@ describe('schema presets — liveUnique', () => {
     expect(idx.config.where).toBeDefined() // partial — WHERE deleted_at IS NULL
   })
 
+  // OUT-7. This took a single column and forwarded it straight to `.on()`, so an ARRAY (the obvious way
+  // to ask for a composite) or a mistyped column name (`t.slugg` → undefined) both emitted `ON "t" ()` —
+  // invalid SQL that nothing notices until drizzle-kit generates a migration and D1 rejects it. It
+  // shipped a broken index twice that way.
+  it('sqlite liveUnique accepts an array of columns, for a composite', () => {
+    const sd = sqlitePresets.softDelete()
+    const t = sqliteTable('posts', {
+      id: text('id').primaryKey(),
+      orgId: text('org_id').notNull(),
+      slug: text('slug').notNull(),
+      ...sd.columns,
+    }, tbl => [sqlitePresets.liveUnique(tbl, [tbl.orgId, tbl.slug], 'posts_org_slug_live')])
+    const idx = getSqliteConfig(t).indexes[0]
+    expect(idx.config.name).toBe('posts_org_slug_live_uq')
+    expect(idx.config.columns.map((c: any) => c.name)).toEqual(['org_id', 'slug'])
+    expect(idx.config.where).toBeDefined()
+  })
+
+  it('sqlite liveUnique throws on a missing column instead of emitting `ON table ()`', () => {
+    const t: any = {}
+    // A mistyped column name is `undefined`, which is exactly how this failed in the wild.
+    expect(() => sqlitePresets.liveUnique(t, undefined, 'posts_typo')).toThrow(/liveUnique\("posts_typo"\)/)
+    expect(() => sqlitePresets.liveUnique(t, [], 'posts_empty')).toThrow(/non-empty array/)
+    expect(() => sqlitePresets.liveUnique(t, [{ name: 'slug' }, undefined], 'posts_hole')).toThrow(/empty slot/)
+  })
+
   it('mysql liveUnique warns (no filtered index support) — manual migration required', () => {
     // Contract: MySQL has no partial indexes, so liveUnique cannot create a correct
     // "unique among live rows" constraint. It warns and points the dev at liveUniqueMysql()

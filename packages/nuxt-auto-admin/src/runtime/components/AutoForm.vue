@@ -183,17 +183,21 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
-    // Filter out readonly fields for edit mode
+    // Filter out readonly fields — in BOTH modes.
+    //
+    // ⚠ It used to be edit-only. Since S29.4 `fields[x].write` is enforced by the API (a body containing
+    // a field the caller may not write is refused with 403 and nothing is applied), and `useResourceForm`
+    // marks such fields readonly. A create that still submitted them would fail on a field the user
+    // cannot change and did not touch — and a readonly input is one the server owns in either mode, so
+    // there was never a reason to send it.
     let dataToSubmit = { ...formData.value }
 
-    if (props.mode === 'edit') {
-      visibleFields.value.forEach((field) => {
-        if (field.readonly) {
-          const { [field.name]: _, ...rest } = dataToSubmit
-          dataToSubmit = rest
-        }
-      })
-    }
+    visibleFields.value.forEach((field) => {
+      if (field.readonly) {
+        const { [field.name]: _, ...rest } = dataToSubmit
+        dataToSubmit = rest
+      }
+    })
 
     // Strip null/empty values for non-required fields (let server apply column defaults)
     // Also strip 0 for RelationSelect (not a valid FK)

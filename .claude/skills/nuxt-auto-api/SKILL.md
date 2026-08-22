@@ -60,9 +60,13 @@ GET    /api/{name}              List (filter, sort, paginate, include relations)
 GET    /api/{name}/:id          Get by ID
 POST   /api/{name}              Create
 PATCH  /api/{name}/:id          Update
-DELETE /api/{name}/:id          Delete (soft-delete if deletedAt column exists)
-POST   /api/{name}/:id/restore  Restore soft-deleted
+DELETE /api/{name}/:id          Delete (soft-delete if deletedAt column exists; ?force=true purges — needs `purge` perm)
+POST   /api/{name}/:id/restore  Restore soft-deleted (restores its cascade batch too)
 GET    /api/{name}/permissions  Per-resource permissions
+
+# Soft-delete trash batches (module-auto-softdelete; act on a whole cascade group by deletionId)
+POST   /api/softdelete/batches/:deletionId/restore   Restore every row in the batch
+POST   /api/softdelete/batches/:deletionId/purge     Permanently purge the batch
 POST   /api/{name}/bulk         Bulk create
 PATCH  /api/{name}/bulk         Bulk update
 DELETE /api/{name}/bulk         Bulk delete

@@ -6,6 +6,7 @@ import { buildTenantWhere } from '../utils/tenant'
 import { getSoftDeleteColumn, canViewSoftDeleted } from '../utils/softDelete'
 import { executeBeforeHook, executeAfterHookWithTransform } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { assertWritableFields, filterReadableFields } from '../utils/fieldPermissions'
 import { parseJsonColumns } from '../utils/parseJsonColumns'
 
 /**
@@ -69,6 +70,9 @@ export async function updateHandler(context: HandlerContext): Promise<SingleResp
     })
   }
 
+  // Refuse fields the CALLER may not write — before the hook, for the reason given in create.ts.
+  await assertWritableFields(data, context)
+
   // Execute beforeUpdate hook (can modify data)
   data = await executeBeforeHook('update', context, data, id)
 
@@ -96,7 +100,8 @@ export async function updateHandler(context: HandlerContext): Promise<SingleResp
   const result = await executeAfterHookWithTransform('update', context, parsedUpdated)
 
   // Filter hidden fields from response
-  const filteredData = filterHiddenFields(result, context)
+  let filteredData = filterHiddenFields(result, context)
+  filteredData = await filterReadableFields(filteredData, context)
 
   return {
     data: filteredData,

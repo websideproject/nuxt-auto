@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { readBody, getQuery, createError } from 'h3'
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { getDatabaseAdapter } from '../database'
 import { getContextExtenders } from '../plugins/pluginRegistry'
 import { serializeResponse } from './serializeResponse'
@@ -46,6 +47,7 @@ export async function getAutoApiContext(
     query: getQuery(event) as Record<string, any>,
     validated: {},
     event,
+    runtimeConfig: useRuntimeConfig(),
     resource: opts?.resource || '',
     operation: opts?.operation || 'get',
   }

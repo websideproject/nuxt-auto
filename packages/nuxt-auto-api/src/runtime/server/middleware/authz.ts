@@ -107,45 +107,15 @@ export async function checkObjectLevelAuth(
   }
 }
 
-/**
- * Filter fields based on permissions
- */
-export async function filterFieldsByPermission(
-  data: any,
-  config?: ResourceAuthConfig,
-  context?: HandlerContext,
-): any {
-  if (!config?.fields || !context) {
-    return data
-  }
-
-  const filtered: any = {}
-  const userPermissions = context.permissions
-
-  for (const [field, value] of Object.entries(data)) {
-    const fieldConfig = config.fields[field]
-
-    if (!fieldConfig) {
-      // No restrictions on this field
-      filtered[field] = value
-      continue
-    }
-
-    // Check read permission
-    if (fieldConfig.read) {
-      if (await hasPermission(userPermissions, fieldConfig.read, context)) {
-        filtered[field] = value
-      }
-      // Field is excluded if user doesn't have read permission
-    }
-    else {
-      // No read restriction
-      filtered[field] = value
-    }
-  }
-
-  return filtered
-}
+// ⚠ `filterFieldsByPermission` used to live here. It implemented the read half of `fields[x]` and **no
+// handler ever called it** — its only caller in the repo was its own unit test, which passed for as long
+// as it existed while every restricted column was served to every reader. It has been deleted rather than
+// wired up, because it is the reason nobody looked: a green test over an implementation that is not
+// reachable reads exactly like a working feature.
+//
+// Enforcement now lives in `../utils/fieldPermissions.ts` and is called by create/update/get/list/bulk. It
+// evaluates through `checkFieldPermission` rather than `hasPermission` below — see that file's header for
+// why the `*` wildcard short-circuit is the wrong evaluator for a field gate.
 
 /**
  * Default authorization middleware

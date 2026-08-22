@@ -196,6 +196,27 @@ export const postsAuth: ResourceAuthConfig = {
 }
 ```
 
+### Soft-delete permissions (restore / purge / viewDeleted)
+
+First-class permission keys for soft-deletable resources (same value types as read/create/update/delete;
+entitlement-gate objects work too). Optional typed `softDelete{}` block is the alternative home + holds
+`cascade`/`retentionDays`.
+
+```ts
+export const articlesAuth: ResourceAuthConfig = {
+  permissions: {
+    update: 'editor',
+    restore: 'editor',       // POST /:id/restore (+ batch)   — falls back: restore → softDelete.restore → update → 'admin'
+    purge: 'admin',          // DELETE /:id?force=true (+ batch) — purge → softDelete.purge → delete → 'admin'
+    viewDeleted: 'editor',   // ?includeDeleted / ?onlyDeleted  — else global admin OR org admin/owner
+  },
+  softDelete: { restore: 'editor', purge: 'admin', viewDeleted: 'editor', cascade: 'auto', retentionDays: 30 },
+}
+```
+
+Defaults never fail-open (unconfigured restore/purge require `admin`). Registry-loaded `auth.ts` reads
+config from **`ctx.runtimeConfig`**, never a bare `useRuntimeConfig()` (see module-authoring).
+
 ### Object-level authorization (post-fetch)
 
 Applied per item after the list query. Use `listFilter` for performance with large datasets.
@@ -249,6 +270,19 @@ authorization: {
   },
 }
 ```
+
+**Enforcement contract** (both halves are enforced by the CRUD handlers):
+
+- `read` **filters** the field out of the response; `write` **refuses** the request with `403` naming the
+  fields, before anything is written — a body mixing an allowed field with a denied one changes nothing.
+- The write gate reads the **request body, before hooks**, so a hook's own derived writes are not gated.
+- Declaring only `read` does not restrict writing (and vice versa).
+- ⚠ The `*` permission wildcard does **not** open a field gate — `read: () => false` holds for a platform
+  admin, and `/permissions` reports exactly what is enforced.
+- ⚠ **Root resource only** — a denied column reached through `?include=` is still returned; use
+  `hiddenFields` for that.
+- `useResourceForm` in nuxt-auto-admin marks non-writable fields readonly, so generated forms never submit
+  a field the API will refuse.
 
 ---
 

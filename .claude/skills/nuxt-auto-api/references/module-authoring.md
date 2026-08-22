@@ -213,8 +213,24 @@ export const postsAuth: ResourceAuthConfig = {
       write: (ctx) => ctx.user?.roles?.includes('admin'),
     },
   },
+
+  // Soft-delete recovery/destructive gates (first-class; see references/authorization.md)
+  // restore/purge/viewDeleted resolve like the others, with safe 'admin' defaults.
+  // permissions: { restore: 'editor', purge: 'admin', viewDeleted: 'editor' },
+  // softDelete:   { cascade: 'auto', retentionDays: 30 },
 }
 ```
+
+> ⚠ **`auth.ts` (and `schema.ts`/`hooks.ts`) are registry-loaded** — imported by Node's ESM loader, NOT
+> processed by Nitro's auto-import transform. So a **bare `useRuntimeConfig()`** in them is `undefined`
+> at runtime and throws. Read config from the handler context — **`ctx.runtimeConfig`** — instead:
+> ```ts
+> // ✗ const seats = useRuntimeConfig().billing?.seats   // ReferenceError at runtime
+> // ✓ const seats = (ctx.runtimeConfig as any)?.billing?.seats
+> ```
+> (Mirrors the plugin-context rule: plugins read `runtimeSetup(ctx) { ctx.runtimeConfig }`.) Likewise,
+> only `import type` or package-subpath imports are safe in these files — never extensionless relative
+> runtime imports.
 
 ---
 

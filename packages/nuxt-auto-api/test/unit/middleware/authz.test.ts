@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createAuthorizationMiddleware, checkObjectLevelAuth, filterFieldsByPermission } from '../../../src/runtime/server/middleware/authz'
+import { createAuthorizationMiddleware, checkObjectLevelAuth } from '../../../src/runtime/server/middleware/authz'
 import { createMockContext, createMockUser } from '../../helpers/mocks'
 
 describe('Authorization Middleware', () => {
@@ -216,94 +216,6 @@ describe('Authorization Middleware', () => {
       const object = { userId: 1, title: 'Test' }
 
       await expect(checkObjectLevelAuth(object, context as any)).resolves.not.toThrow()
-    })
-  })
-
-  describe('filterFieldsByPermission', () => {
-    it('should filter fields based on read permissions', async () => {
-      const config = {
-        fields: {
-          email: {
-            read: ['admin'],
-          },
-          password: {
-            read: ['admin'],
-          },
-        },
-      }
-
-      const context = createMockContext({
-        user: createMockUser('user'),
-        permissions: ['read'],
-      })
-
-      const data = {
-        id: 1,
-        name: 'John',
-        email: 'john@test.com',
-        password: 'secret',
-      }
-
-      const result = await filterFieldsByPermission(data, config as any, context as any)
-
-      expect(result).toEqual({
-        id: 1,
-        name: 'John',
-      })
-    })
-
-    it('should include fields when user has required permission', async () => {
-      const config = {
-        fields: {
-          email: {
-            read: ['admin', 'user'],
-          },
-        },
-      }
-
-      const context = createMockContext({
-        user: createMockUser('user'),
-        permissions: ['read', 'user'],
-      })
-
-      const data = {
-        id: 1,
-        email: 'john@test.com',
-      }
-
-      const result = await filterFieldsByPermission(data, config as any, context as any)
-
-      expect(result).toEqual({
-        id: 1,
-        email: 'john@test.com',
-      })
-    })
-
-    it('should return all fields when no config', async () => {
-      const context = createMockContext({
-        user: createMockUser('user'),
-      })
-
-      const data = {
-        id: 1,
-        name: 'John',
-        email: 'john@test.com',
-      }
-
-      const result = await filterFieldsByPermission(data, undefined, context as any)
-
-      expect(result).toEqual(data)
-    })
-
-    it('should return all fields when no context', async () => {
-      const data = {
-        id: 1,
-        name: 'John',
-      }
-
-      const result = await filterFieldsByPermission(data, {} as any, undefined)
-
-      expect(result).toEqual(data)
     })
   })
 })

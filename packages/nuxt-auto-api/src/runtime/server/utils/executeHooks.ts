@@ -109,11 +109,13 @@ export async function executeBeforeHook(
       // Note: In parallel mode, each hook receives the original data
       const results = await Promise.all(
         hooks.map((hook) => {
-          const args = operation === 'update' || operation === 'delete' || operation === 'get'
+          const args = operation === 'update' || operation === 'get'
             ? [id, currentData, context]
-            : operation === 'list'
-              ? [context]
-              : [currentData, context]
+            : operation === 'delete'
+              ? [id, context]
+              : operation === 'list'
+                ? [context]
+                : [currentData, context]
           return executeSingleHook(hook, args, hookName, timeout)
         }),
       )
@@ -129,11 +131,13 @@ export async function executeBeforeHook(
     else {
       // Execute hooks sequentially (default)
       for (const hook of hooks) {
-        const args = operation === 'update' || operation === 'delete' || operation === 'get'
+        const args = operation === 'update' || operation === 'get'
           ? [id, currentData, context]
-          : operation === 'list'
-            ? [context]
-            : [currentData, context]
+          : operation === 'delete'
+            ? [id, context]
+            : operation === 'list'
+              ? [context]
+              : [currentData, context]
 
         const result = await executeSingleHook(hook, args, hookName, timeout)
 

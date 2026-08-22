@@ -12,6 +12,11 @@ export type { AutoApiHandlerOptions } from './utils/defineAutoApiHandler'
 
 export { checkPermission, checkFieldPermission, getResourcePermissions, assertResourcePermission, evaluatePermission } from './utils/permissions'
 
+// Field-level read/write enforcement. The CRUD handlers apply these already; they are exported so a custom
+// endpoint that writes or returns a resource's columns can honour the same `fields[x]` declarations
+// instead of quietly bypassing them.
+export { assertWritableFields, deniedWriteFields, filterReadableFields } from './utils/fieldPermissions'
+
 // Soft-delete helpers (detection + companion columns + view-deleted gate + stamp builders)
 export {
   getSoftDeleteColumn,
