@@ -110,6 +110,8 @@ import { useAdminResource } from '../../../composables/useAdminResource'
 import { useAdminActions } from '../../../composables/useAdminActions'
 import { useAdminPermissions } from '../../../composables/useAdminPermissions'
 import { useAdminConfig } from '../../../composables/useAdminConfig'
+// Explicit: Nuxt does not auto-import into files inside node_modules, which is where this module runs from.
+import { useToast } from '#imports'
 
 defineOptions({ name: 'AdminResourceListPage' })
 

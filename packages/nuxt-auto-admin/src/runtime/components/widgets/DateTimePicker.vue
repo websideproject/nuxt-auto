@@ -24,7 +24,10 @@
               :model-value="calendarDateOnly"
               @update:model-value="handleCalendarPick"
             />
-            <div v-if="showTime" class="flex items-center gap-2 mt-2 px-1">
+            <div
+              v-if="showTime"
+              class="flex items-center gap-2 mt-2 px-1"
+            >
               <UInput
                 type="number"
                 :model-value="currentHour"

@@ -8,11 +8,17 @@ await suspense().catch(() => {})
 <template>
   <div>
     <ul id="labels">
-      <li v-for="label in data?.data ?? []" :key="label.id">
+      <li
+        v-for="label in data?.data ?? []"
+        :key="label.id"
+      >
         {{ label.name }}
       </li>
     </ul>
-    <p v-if="error" id="error">
+    <p
+      v-if="error"
+      id="error"
+    >
       {{ (error as any).statusCode }}
     </p>
   </div>

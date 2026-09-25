@@ -40,6 +40,16 @@ export default defineNuxtModule<ModuleOptions>({
     // Add tailwindcss support
     nuxt.options.css.unshift(resolver.resolve('./runtime/assets/css/main.css'))
 
+    // The admin is an authenticated, client-driven app: render its routes on the client. Server-rendering them
+    // hydrated per-user state (permissions, the resource registry, query results) that the client computes
+    // differently — hydration mismatches on every page — and buys nothing (no SEO behind a login).
+    // An app's own routeRules for these paths win.
+    const prefix = (options.prefix || '/admin').replace(/\/+$/, '')
+    nuxt.options.routeRules ||= {}
+    for (const rule of [prefix, `${prefix}/**`]) {
+      nuxt.options.routeRules[rule] = { ssr: false, ...nuxt.options.routeRules[rule] }
+    }
+
     // Add runtime config
     // Assigned as a plain record: the generated runtime-config type is inferred from one app's values.
     ;(nuxt.options.runtimeConfig.public as Record<string, unknown>).autoAdmin = {

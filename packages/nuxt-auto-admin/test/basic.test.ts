@@ -21,6 +21,16 @@ describe('nuxt-auto-admin module', async () => {
     expect(html).toBeTruthy()
   })
 
+  it('renders admin pages on the client (no server-rendered per-user state to mismatch on hydration)', async () => {
+    for (const path of ['/admin', '/admin/posts']) {
+      const html = await $fetch<string>(path, { responseType: 'text' })
+      // The client-only shell: an empty app root, no rendered page content.
+      expect(html).toContain('data-ssr="false"')
+      expect(html).toMatch(/<div id="__nuxt"[^>]*><\/div>/)
+      expect(html).not.toContain('Manage all')
+    }
+  })
+
   // ─── Admin API endpoints ──────────────────────────────────────────────────
 
   it('does not expose the removed POST /api/admin/m2m/sync', async () => {

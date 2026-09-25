@@ -102,8 +102,11 @@
       "peerDependencies": {
         "@nuxt/ui": "^4.0.0",
         "@websideproject/nuxt-auto-api": "workspace:*",
-        "h3": "^1.15.0",
+        "h3": "^1.15.0 || ^2.0.0-0",
       },
+      "optionalPeers": [
+        "h3",
+      ],
     },
     "packages/nuxt-auto-api": {
       "name": "@websideproject/nuxt-auto-api",
@@ -131,6 +134,9 @@
       "peerDependencies": {
         "h3": "^1.15.0 || ^2.0.0-0",
       },
+      "optionalPeers": [
+        "h3",
+      ],
     },
   },
   "trustedDependencies": [

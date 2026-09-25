@@ -97,6 +97,8 @@ import type { FieldConfig } from '../types'
 import { formatFieldLabel } from '../utils/fieldTypeMapping'
 import MultiRelationSelect from './widgets/MultiRelationSelect.vue'
 import { useM2MRelation, useM2MSync } from '@websideproject/nuxt-auto-api/composables'
+// Explicit: Nuxt does not auto-import into files inside node_modules, which is where this module runs from.
+import { useToast } from '#imports'
 // useM2MRelation and useM2MSync are auto-imported from nuxt-auto-api
 
 const props = defineProps<{
