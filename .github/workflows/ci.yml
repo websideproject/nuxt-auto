@@ -88,29 +88,37 @@ jobs:
         run: bun install
       - name: Use the Nuxt 5 nightly
         working-directory: packages/nuxt-auto-api
-        run: bun add -d nuxt@npm:nuxt-nightly@5x @nuxt/kit@npm:@nuxt/kit-nightly@5x @nuxt/schema@npm:@nuxt/schema-nightly@5x
+        # `5x` is a dist-tag; bun reads it as a version range inside an npm: alias, so resolve it with npm first.
+        run: |
+          V=$(npm view nuxt-nightly@5x version)
+          echo "Nuxt 5 nightly: $V"
+          bun add -d nuxt@npm:nuxt-nightly@$V @nuxt/kit@npm:@nuxt/kit-nightly@$V @nuxt/schema@npm:@nuxt/schema-nightly@$V
       - name: Prepare
         run: bun run dev:prepare
       - name: Test
         working-directory: packages/nuxt-auto-api
         run: bun run test
 
-#  publish:
-#    runs-on: ubuntu-latest
-#    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
-#    needs: [build, lint, typecheck, test]
-#    steps:
-#      - uses: actions/checkout@v4
-#        with:
-#          fetch-depth: 0
-#      - uses: oven-sh/setup-bun@v2
-#        with:
-#          bun-version: latest
-#      - name: Install dependencies
-#        run: bun install --frozen-lockfile
-#      - name: Prepare
-#        run: bun run dev:prepare
-#      - name: Build modules
-#        run: bun run build
-#      - name: Publish
-#        run: bunx pkg-pr-new publish --compact --no-template './packages/nuxt-auto-api' './packages/nuxt-auto-admin'
+  # PR previews: every pull request publishes installable builds of both packages to pkg.pr.new and comments the
+  # install commands on the PR. Requires the pkg.pr.new GitHub App on the repo: https://github.com/apps/pkg-pr-new
+  # --peerDeps: admin's peer `@websideproject/nuxt-auto-api: workspace:*` is otherwise shipped as-is and the preview
+  # cannot be installed; with it the peer is set to the API's version, which the preview API satisfies.
+  preview:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: [build, lint, typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Prepare
+        run: bun run dev:prepare
+      - name: Build modules
+        run: bun run build
+      - name: Publish previews
+        run: bunx pkg-pr-new publish --compact --no-template --peerDeps './packages/nuxt-auto-api' './packages/nuxt-auto-admin'
