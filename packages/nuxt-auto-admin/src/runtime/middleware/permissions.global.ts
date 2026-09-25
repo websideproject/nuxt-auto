@@ -26,7 +26,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  const resourceOrPage = pathParts[0]
+  const resourceOrPage = pathParts[0]!
 
   // Check if this is a resource route
   const { getResource } = useAdminRegistry()

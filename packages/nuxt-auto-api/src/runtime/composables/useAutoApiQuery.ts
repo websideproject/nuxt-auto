@@ -1,6 +1,6 @@
 import { computed, unref } from 'vue'
 import { useQuery, useInfiniteQuery } from '@tanstack/vue-query'
-import type { UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/vue-query'
+import type { InfiniteData, UseInfiniteQueryOptions, UseInfiniteQueryReturnType, UseQueryOptions, UseQueryReturnType } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
 import { prerenderSafeEnabled } from './prerenderEnabled'
 import { useAutoApiPath } from './autoApiPath'
@@ -50,7 +50,7 @@ export interface GetResponse<T> {
  */
 export function useAutoApiList<T = any>(
   resource: MaybeRef<string>,
-  params?: MaybeRef<ListQueryParams>,
+  params?: MaybeRef<ListQueryParams | undefined>,
   options?: Omit<UseQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
   const path = useAutoApiPath()
@@ -83,7 +83,7 @@ export function useAutoApiList<T = any>(
     },
     ...options,
     enabled: prerenderSafeEnabled((options as any)?.enabled),
-  } as any)
+  } as any) as UseQueryReturnType<ListResponse<T>, Error>
 }
 
 /**
@@ -97,7 +97,7 @@ export function useAutoApiList<T = any>(
 export function useAutoApiGet<T = any>(
   resource: MaybeRef<string>,
   id: MaybeRef<string | number>,
-  params?: MaybeRef<Pick<ListQueryParams, 'include' | 'fields'>>,
+  params?: MaybeRef<Pick<ListQueryParams, 'include' | 'fields'> | undefined>,
   options?: Omit<UseQueryOptions<GetResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
   const path = useAutoApiPath()
@@ -117,7 +117,7 @@ export function useAutoApiGet<T = any>(
     },
     ...options,
     enabled: prerenderSafeEnabled((options as any)?.enabled, () => !!idRef.value),
-  } as any)
+  } as any) as UseQueryReturnType<GetResponse<T>, Error>
 }
 
 /**
@@ -131,7 +131,7 @@ export function useAutoApiGet<T = any>(
  */
 export function useAutoApiInfinite<T = any>(
   resource: MaybeRef<string>,
-  params?: MaybeRef<Omit<ListQueryParams, 'cursor'>>,
+  params?: MaybeRef<Omit<ListQueryParams, 'cursor'> | undefined>,
   options?: Omit<UseInfiniteQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>,
 ) {
   const path = useAutoApiPath()
@@ -165,5 +165,5 @@ export function useAutoApiInfinite<T = any>(
     initialPageParam: undefined,
     ...options,
     enabled: prerenderSafeEnabled((options as any)?.enabled),
-  } as any)
+  } as any) as UseInfiniteQueryReturnType<InfiniteData<ListResponse<T>>, Error>
 }

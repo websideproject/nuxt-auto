@@ -42,7 +42,7 @@
           <div class="text-center space-y-3">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900">
               <UIcon
-                name="i-lucide-document-text"
+                name="i-lucide-file-text"
                 class="text-blue-600 dark:text-blue-400"
                 size="24"
               />

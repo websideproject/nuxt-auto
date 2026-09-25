@@ -55,7 +55,7 @@ const widgetComponent = computed(() => {
 
   if (!componentLoader) {
     console.warn(`Widget "${widgetName}" not found, falling back to TextInput`)
-    return defineAsyncComponent(widgetComponentMap.TextInput)
+    return defineAsyncComponent(widgetComponentMap.TextInput!)
   }
 
   return defineAsyncComponent(componentLoader)

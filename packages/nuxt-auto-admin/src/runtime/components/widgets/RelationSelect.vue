@@ -105,8 +105,9 @@ const allOptions = computed(() => {
   const options = [...searchOptions.value]
 
   // Add selected option at the top if it exists and isn't already in the list
-  if (selectedOption.value && !options.some(opt => opt.value === selectedOption.value.value)) {
-    options.unshift(selectedOption.value)
+  const selected = selectedOption.value
+  if (selected && !options.some(opt => opt.value === selected.value)) {
+    options.unshift(selected)
   }
 
   return options

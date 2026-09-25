@@ -164,7 +164,7 @@ const emit = defineEmits<{
 const resourceNameValue = computed(() => unref(props.resourceName))
 
 const { resource } = useAdminResource(resourceNameValue.value)
-const { data: permissions } = usePermissions(resourceNameValue.value)
+const { permissions } = usePermissions(resourceNameValue.value)
 
 const canCreate = computed(() => permissions.value?.canCreate ?? true)
 const canUpdate = computed(() => permissions.value?.canUpdate ?? true)

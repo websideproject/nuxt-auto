@@ -7,7 +7,7 @@ import {
   addLayout,
 } from '@nuxt/kit'
 import type { ModuleOptions } from './runtime/types'
-import type { BuildTimeRegistry } from '@websideproject/nuxt-auto-api'
+import type { BuildTimeRegistry, ResourceRegistration } from '@websideproject/nuxt-auto-api'
 
 export type { ModuleOptions }
 
@@ -41,7 +41,8 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.css.unshift(resolver.resolve('./runtime/assets/css/main.css'))
 
     // Add runtime config
-    nuxt.options.runtimeConfig.public.autoAdmin = {
+    // Assigned as a plain record: the generated runtime-config type is inferred from one app's values.
+    ;(nuxt.options.runtimeConfig.public as Record<string, unknown>).autoAdmin = {
       prefix: options.prefix,
       branding: options.branding,
       features: options.features,
@@ -57,7 +58,10 @@ export default defineNuxtModule<ModuleOptions>({
     // modules:done fires, all subscribers have populated the registry.
     let capturedRegistry: BuildTimeRegistry | null = null
 
-    nuxt.hook('autoApi:registerSchema' as unknown as 'close', async (registry: BuildTimeRegistry) => {
+    // `autoApi:registerSchema` is typed by nuxt-auto-api's NuxtHooks augmentation. In an app that applies; in this
+    // workspace the admin resolves its own copy of @nuxt/schema, so the augmentation does not reach it — hence the
+    // explicitly typed call.
+    ;(nuxt.hook as (name: string, fn: (registry: BuildTimeRegistry) => void) => void)('autoApi:registerSchema', (registry) => {
       capturedRegistry = registry
     })
 
@@ -172,11 +176,7 @@ export default defineNuxtModule<ModuleOptions>({
   },
 })
 
-interface BuildTimeResource {
-  name: string
-  schema: unknown
-  [key: string]: unknown
-}
+type BuildTimeResource = ResourceRegistration
 
 interface BuildTimeResourceConfig {
   displayName?: string
@@ -207,7 +207,7 @@ function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOp
     .map(r => r.name)
 
   resources.forEach((resource, index) => {
-    const resourceConfig: BuildTimeResourceConfig = options.resources?.[resource.name] || {}
+    const resourceConfig = (options.resources?.[resource.name] || {}) as BuildTimeResourceConfig
 
     // Skip disabled resources
     if (resourceConfig.disabled) {

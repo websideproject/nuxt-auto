@@ -1,6 +1,6 @@
 import { computed, unref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import type { UseQueryOptions } from '@tanstack/vue-query'
+import type { UseQueryOptions, UseQueryReturnType } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
 import type { M2MListResponse, M2MListQuery } from '../types'
 import { autoApiKeys } from './queryKeys'
@@ -28,7 +28,7 @@ export function useM2MRelation<T = any>(
   resource: MaybeRef<string>,
   id: MaybeRef<string | number>,
   relation: MaybeRef<string>,
-  params?: MaybeRef<M2MListQuery>,
+  params?: MaybeRef<M2MListQuery | undefined>,
   options?: Omit<UseQueryOptions<M2MListResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
   const path = useAutoApiPath()
@@ -82,5 +82,5 @@ export function useM2MRelation<T = any>(
     staleTime: 5 * 60 * 1000, // 5 minutes
     ...options,
     enabled: prerenderSafeEnabled((options as any)?.enabled, () => !!idRef.value && !!relationRef.value),
-  } as any)
+  } as any) as UseQueryReturnType<M2MListResponse<T>, Error>
 }

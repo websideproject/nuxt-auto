@@ -110,7 +110,6 @@ import { useAdminResource } from '../../../composables/useAdminResource'
 import { useAdminActions } from '../../../composables/useAdminActions'
 import { useAdminPermissions } from '../../../composables/useAdminPermissions'
 import { useAdminConfig } from '../../../composables/useAdminConfig'
-import { useToast } from '@nuxt/ui/runtime/composables/useToast'
 
 defineOptions({ name: 'AdminResourceListPage' })
 

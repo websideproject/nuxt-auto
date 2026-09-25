@@ -1,6 +1,6 @@
 import { computed, unref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import type { UseQueryOptions } from '@tanstack/vue-query'
+import type { UseQueryOptions, UseQueryReturnType } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
 import { prerenderSafeEnabled } from './prerenderEnabled'
 import { useAutoApiPath } from './autoApiPath'
@@ -79,5 +79,5 @@ export function useAutoApiAggregate<T = AggregateResponse>(
     },
     ...queryOptions,
     enabled: prerenderSafeEnabled((queryOptions as any)?.enabled),
-  } as any)
+  } as any) as UseQueryReturnType<T, Error>
 }

@@ -70,7 +70,7 @@ const breadcrumbs = computed(() => {
   if (pathSegments.length === 0) return crumbs
 
   // Resource name (first segment)
-  const resourceName = pathSegments[0]
+  const resourceName = pathSegments[0]!
   crumbs.push({
     label: formatResourceName(resourceName),
     to: pathSegments.length === 1 ? undefined : `${adminPrefix}/${resourceName}`,
@@ -96,7 +96,7 @@ const breadcrumbs = computed(() => {
 
   // Action (third segment - edit, etc)
   if (pathSegments.length > 2) {
-    const action = pathSegments[2]
+    const action = pathSegments[2]!
     crumbs.push({ label: formatAction(action) })
   }
 

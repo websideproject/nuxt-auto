@@ -1,4 +1,4 @@
-import type { ResourceAuthConfig, ResourceHooks, ValidationSchema } from '@websideproject/nuxt-auto-api/runtime/types'
+import type { ResourceAuthConfig, ResourceHooks, ValidationSchema } from '@websideproject/nuxt-auto-api'
 
 /**
  * Admin panel module options

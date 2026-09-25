@@ -114,36 +114,19 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
-import { useRuntimeConfig } from '#app'
 import { getJunctionTableNames } from '../../composables/useM2MDetection'
 import { useAdminConfig } from '../../composables/useAdminConfig'
 import { useAdminRegistry } from '../../composables/useAdminRegistry'
-import type { ResourceSchema } from '../../types'
+import type { CustomPageConfig, ResourceSchema } from '../../types'
 
-interface SidebarItem {
-  name: string
-  type: 'resource' | 'page'
-  order?: number
-  group?: string
-  [key: string]: unknown
-}
+type SidebarItem = (ResourceSchema & { type: 'resource' }) | (CustomPageConfig & { type: 'page' })
+type CustomPage = CustomPageConfig
 
-interface CustomPage {
-  name: string
-  path: string
-  label: string
-  icon: string
-  group?: string
-  order?: number
-  [key: string]: unknown
-}
-
-const config = useRuntimeConfig()
-const adminPrefix = config.public.autoAdmin?.prefix || '/admin'
-const branding = computed(() => config.public.autoAdmin?.branding || { title: 'Admin Panel' })
-const customPages = computed(() => config.public.autoAdmin?.customPages || [])
-
-const { permissions: _permissionConfig } = useAdminConfig()
+const adminConfig = useAdminConfig()
+const adminPrefix = adminConfig.prefix
+const branding = computed(() => ({ title: 'Admin Panel', ...adminConfig.branding }))
+const customPages = computed(() => adminConfig.customPages ?? [])
+const { permissions: _permissionConfig } = adminConfig
 
 // Load all resources from registry
 const { allResources, getResourcesByGroup, isLoading } = useAdminRegistry()
@@ -195,21 +178,19 @@ const groupedItems = computed(() => {
   const { Default: _default, ...rest } = resourceGroups
 
   Object.entries(rest).forEach(([group, resources]) => {
-    if (!groups[group]) groups[group] = []
     const filteredResources = resources.filter(r => !isJunctionResource(r))
-    groups[group].push(...filteredResources.map(r => ({ ...r, type: 'resource' as const })))
+    ;(groups[group] ??= []).push(...filteredResources.map(r => ({ ...r, type: 'resource' as const })))
   })
 
   // Add grouped custom pages
   const groupedPages = (customPages.value as CustomPage[]).filter(p => p.group)
   groupedPages.forEach((page) => {
-    if (!groups[page.group!]) groups[page.group!] = []
-    groups[page.group!].push({ ...page, type: 'page' as const })
+    ;(groups[page.group!] ??= []).push({ ...page, type: 'page' as const })
   })
 
   // Sort items within each group by order
-  Object.keys(groups).forEach((group) => {
-    groups[group].sort((a, b) => (a.order || 0) - (b.order || 0))
+  Object.values(groups).forEach((items) => {
+    items.sort((a, b) => (a.order || 0) - (b.order || 0))
   })
 
   return groups

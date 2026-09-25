@@ -90,7 +90,7 @@ watch(
         else if (field.widget === 'NumberInput') {
           data[field.name] = field.options?.min || 0
         }
-        else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget)) {
+        else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget ?? '')) {
           data[field.name] = null
         }
         else {
@@ -147,7 +147,7 @@ function resetForm() {
           else if (field.widget === 'NumberInput') {
             data[field.name] = field.options?.min || 0
           }
-          else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget)) {
+          else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget ?? '')) {
             data[field.name] = null
           }
           else {

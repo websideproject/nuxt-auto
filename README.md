@@ -20,14 +20,14 @@
 
 [![license](https://img.shields.io/github/license/websideproject/nuxt-auto?color=black)](https://github.com/websideproject/nuxt-auto/blob/main/LICENSE)
 
-Schema-driven fullstack Nuxt with a reusable admin. Generate APIs and admin panels from your Drizzle schema with built-in authentication and authorization.
+Secure REST APIs and an admin panel for Nuxt, generated from your Drizzle schema — deny-by-default authorization, multi-tenancy, validation and typed TanStack Query composables.
 
 ## 📦 Modules
 
 This monorepo contains two complementary Nuxt modules:
 
 ### [@websideproject/nuxt-auto-api](./packages/nuxt-auto-api)
-Schema-driven API generation from Drizzle schema with auth and authz.
+Secure REST APIs from your Drizzle schema: deny-by-default authorization, multi-tenancy, soft delete, M2M, bulk and aggregations, with TanStack Query composables.
 
 ### [@websideproject/nuxt-auto-admin](./packages/nuxt-auto-admin)
 Auto-generated admin panel from Drizzle schema.
@@ -36,10 +36,13 @@ Auto-generated admin panel from Drizzle schema.
 
 <!-- automd:file src=".github/snippets/features.md" -->
 
-- 🎯 **Schema-Driven** - Generate API endpoints and admin UI from your Drizzle schema
-- 🔐 **Auth & AuthZ Built-in** - Authentication and authorization out of the box
-- 📦 **Reusable Admin Panel** - Auto-generated admin interface based on your schema
-- 🚀 **Type-Safe** - Full TypeScript support with type inference from your schema
+- 🎯 **Schema-driven** - CRUD, filtering, sorting, pagination, nested relations, bulk, aggregations and many-to-many from your Drizzle tables
+- 🔐 **Secure by default** - every operation is denied until you declare who may do it; row visibility (tenant, `listFilter`, `objectLevel`) applies to every route; server-owned columns can't be written from a request
+- 🏢 **Multi-tenant** - organization scoping resolved on the server and failing closed, ready for better-auth organizations
+- 🧩 **Bring your own auth** - a better-auth plugin is included; any session works through a context extender
+- ⚡ **Typed, SSR-aware composables** - TanStack Query with cache invalidation, optimistic updates and permission checks for the UI
+- 🗄️ **Any Drizzle engine** - SQLite, Cloudflare D1, Turso, Postgres, MySQL and PlanetScale
+- 📦 **Admin panel** - generated from the same resources with `@websideproject/nuxt-auto-admin`
 
 <!-- /automd -->
 
@@ -125,16 +128,16 @@ Contributions are welcome! Feel free to open an issue or submit a pull request.
 
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
 # Generate type stubs
-pnpm run dev:prepare
+bun run dev:prepare
 
 # Start the playground
-pnpm run dev
+bun run dev
 
 # Run tests
-pnpm run test
+bun run test
 ```
 
 <!-- /automd -->

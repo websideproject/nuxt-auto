@@ -2,14 +2,14 @@ Contributions are welcome! Feel free to open an issue or submit a pull request.
 
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
 # Generate type stubs
-pnpm run dev:prepare
+bun run dev:prepare
 
 # Start the playground
-pnpm run dev
+bun run dev
 
 # Run tests
-pnpm run test
+bun run test
 ```

@@ -115,7 +115,7 @@ export function formatDisplayValue(value: unknown, column: ColumnMetadata): stri
     || column.name.toLowerCase().endsWith('at')
   ) {
     try {
-      const date = new Date(value)
+      const date = new Date(value as string | number | Date)
       return date.toLocaleString()
     }
     catch {
