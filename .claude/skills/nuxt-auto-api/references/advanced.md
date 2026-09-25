@@ -1,9 +1,9 @@
-# Advanced: Aggregations, Permissions, Multi-Tenancy
+# Advanced: Aggregations, Permissions, Multi-Tenancy, Custom Endpoints
 
 ## `useAutoApiAggregate<T>` — SQL Aggregations
 
 ```ts
-const { data, isLoading } = useAutoApiAggregate<AggregateResult>(
+const { data, isLoading } = useAutoApiAggregate<AggregateResponse>(
   'orders',
   aggregateOptions,    // MaybeRef<AggregateOptions>
   queryOptions?
@@ -14,50 +14,36 @@ const { data, isLoading } = useAutoApiAggregate<AggregateResult>(
 
 ```ts
 interface AggregateOptions {
-  aggregate?: 'count' | 'sum' | 'avg' | 'min' | 'max' | string[]
-  field?: string                    // field to aggregate (required for sum/avg/min/max)
-  groupBy?: string | string[]       // group by field(s)
-  having?: Record<string, any>      // filter on aggregated values
-  filter?: Record<string, any>      // WHERE filter before aggregation
+  aggregate: string | string[]       // 'count', 'count(field)', 'sum(field)', 'avg(field)', 'min(field)', 'max(field)'
+  groupBy?: string | string[]
+  having?: Record<string, any>       // on aggregate ALIASES: { count: { $gt: 5 } }
+  filter?: Record<string, any>       // WHERE before aggregation (readable columns only)
 }
 ```
+
+Aliases: `count`, `count_<field>`, `<fn>_<field>` (e.g. `sum_amount`). Response: `{ data: Array<{ group?: {…}, …aliases }>, meta: { total } }`.
 
 ### Examples
 
 ```ts
-// Count all posts
 useAutoApiAggregate('posts', { aggregate: 'count' })
-// → { _count: 142 }
+// → { data: [{ count: 142 }] }
 
-// Sum revenue by status
-useAutoApiAggregate('orders', {
-  aggregate: 'sum',
-  field: 'amount',
-  groupBy: 'status',
-})
-// → [{ status: 'paid', _sum: 48200 }, { status: 'pending', _sum: 3100 }]
+useAutoApiAggregate('orders', { aggregate: 'sum(amount)', groupBy: 'status' })
+// → { data: [{ group: { status: 'paid' }, sum_amount: 48200 }, { group: { status: 'pending' }, sum_amount: 3100 }] }
 
-// Average order value, only completed orders
 useAutoApiAggregate('orders', {
-  aggregate: 'avg',
-  field: 'amount',
+  aggregate: ['count', 'sum(amount)', 'avg(amount)'],
+  groupBy: ['month', 'region'],
+  having: { count: { $gt: 5 } },
   filter: { status: 'completed' },
 })
-
-// Multiple aggregations
-useAutoApiAggregate('orders', {
-  aggregate: ['count', 'sum', 'avg'],
-  field: 'amount',
-  groupBy: ['month', 'region'],
-  having: { _count: { gt: 5 } },  // only groups with more than 5 orders
-})
 ```
 
-### Cache key
+Rules: gated by `permissions.aggregate` (falls back to `read`); rows are scoped like the list (tenant, `listFilter`,
+soft delete); unknown/hidden fields and malformed expressions are a 400.
 
-```ts
-['autoapi', resourceName, 'aggregate', aggregateOptions]
-```
+Cache key: `['autoapi', resourceName, 'aggregate', aggregateOptions]`
 
 ---
 
@@ -66,23 +52,13 @@ useAutoApiAggregate('orders', {
 ```ts
 const {
   permissions,     // Ref<PermissionCheckResult | undefined>
-  canCreate,       // Ref<boolean>
-  canRead,         // Ref<boolean>
-  canUpdate,       // Ref<boolean>
-  canDelete,       // Ref<boolean>
+  canCreate, canRead, canUpdate, canDelete,   // Ref<boolean>
   isLoading,
   error,
-} = usePermissions(
-  'posts',          // MaybeRef<string>
-  options?: {
-    individual?: boolean  // default: false — use global /api/permissions endpoint
-  }
-)
+} = usePermissions('posts', { individual?: boolean })
 ```
 
-By default uses `GET /api/permissions` (fetches all resources at once, cached as `['permissions', 'all']`). Set `individual: true` to use `GET /api/posts/permissions`.
-
-### `PermissionCheckResult`
+By default uses `GET /api/permissions` (all resources, cached as `['permissions', 'all']`). `individual: true` uses `GET /api/posts/permissions`.
 
 ```ts
 interface PermissionCheckResult {
@@ -90,95 +66,116 @@ interface PermissionCheckResult {
   canRead: boolean
   canUpdate: boolean
   canDelete: boolean
-  fields?: {
-    [fieldName: string]: {
-      canRead: boolean
-      canWrite: boolean
-    }
-  }
+  canRestore?: boolean
+  canPurge?: boolean
+  canViewDeleted?: boolean
+  fields?: { [field: string]: { canRead: boolean, canWrite: boolean } }
 }
 ```
 
----
+These are for UI (hide buttons); the server still decides every request.
 
-## `useAllPermissions` — All resource permissions
-
-Fetches all resource permissions in one request. More efficient than calling `usePermissions` per resource.
+## `useAllPermissions`
 
 ```ts
-const { data, isLoading } = useAllPermissions(options?)
-
-// data.value = {
-//   user: { id: 1, ... },
-//   permissions: {
-//     posts:    { canCreate: true, canRead: true, canUpdate: true, canDelete: false },
-//     comments: { canCreate: true, canRead: true, canUpdate: false, canDelete: false },
-//   }
-// }
+const { data } = useAllPermissions()
+// data.value = { user, permissions: { posts: { canCreate, … }, comments: { … } } }
 ```
-
-Cache key: `['permissions', 'all']`
 
 ---
 
 ## Multi-Tenancy
 
-Configure in `autoApi.multiTenancy`:
-
 ```ts
-multiTenancy: {
-  enabled: true,
-  tenantIdField: 'organizationId',     // default: 'organizationId'
-
-  // How to resolve the current tenant from the request
-  getTenantId: async (event) => {
-    const session = await getAuthSession(event)
-    return session?.user?.organizationId ?? null
+// nuxt.config.ts
+autoApi: {
+  multiTenancy: {
+    enabled: true,
+    tenantIdField: 'organizationId',   // column on scoped tables (default)
+    userTenantField: 'organizationId', // property of ctx.user holding the active tenant (default: tenantIdField)
+    scopedResources: '*',              // or ['posts', 'tasks']
+    excludedResources: ['plans'],      // global tables that happen to have the column
   },
-
-  // Which resources enforce tenant isolation
-  scopedResources: '*',                // all resources
-  // scopedResources: ['posts', 'tasks'],
-  excludedResources: ['plans', 'features'],
-
-  // Who can bypass tenant scoping
-  allowCrossTenantAccess: (user) => user.roles?.includes('superadmin'),
-
-  // Reject requests with no resolvable tenant
-  requireTenant: false,
 }
 ```
 
-When tenant isolation is active:
-- **List**: WHERE `tenantId = <current>` is automatically appended
-- **Get**: Returns 404 if `tenantId` doesn't match
-- **Create**: Automatically sets `tenantId` on new records
-- **Update/Delete**: Only affects records belonging to the current tenant
+The tenant is resolved **on the server only**, first match wins:
+
+1. `ctx.tenant` set by a context extender (`addContextExtender` from `@websideproject/nuxt-auto-api/plugins`)
+2. `event.context.tenantId` set by your server middleware
+3. `ctx.user[userTenantField]` — the better-auth plugin maps `session.activeOrganizationId` there
+
+No header or query parameter is ever read. `getTenantId`, `allowCrossTenantAccess` and `requireTenant` were removed and fail the build.
+
+When scoped:
+- every route (list, get, update, delete, restore, bulk, aggregate, `?include=`, both M2M sides) filters to the tenant; other tenants' rows are **404**
+- create stamps the tenant column; the column is stripped from every body (can't move rows)
+- **fails closed**: no tenant → 403 (401 anonymous) "An active tenant is required"
+
+Cross-tenant staff:
+
+```ts
+addContextExtender((ctx) => {
+  if (ctx.user?.roles?.includes('superadmin'))
+    ctx.tenant = { id: ctx.user.organizationId ?? '', field: 'organizationId', canAccessAllTenants: true }
+})
+```
 
 ---
 
 ## Custom Endpoints
 
-Use `createEndpoint()` (from `@websideproject/nuxt-auto-api/utils`) to build custom server routes with shared auth/validation:
+`createEndpoint()` (auto-imported; also `@websideproject/nuxt-auto-api/utils`):
 
 ```ts
 // server/api/posts/export.get.ts
-import { createEndpoint } from '@websideproject/nuxt-auto-api/utils'
 import { z } from 'zod'
+import { posts } from '~~/server/database/schema'
 
 export default createEndpoint({
   resource: 'posts',
-  operation: 'list',       // re-uses list authorization
+  operation: 'list',       // gate = the resource's `read` permission (undeclared → denied)
   query: z.object({ format: z.enum(['csv', 'json']).default('json') }),
-  skipAuthorization: false,
-  handler: async (ctx, event) => {
-    const posts = await ctx.db.query.posts.findMany({ ... })
-    if (ctx.validated.query.format === 'csv') {
-      return toCsv(posts)
-    }
-    return { data: posts }
+  handler: async (ctx) => {
+    // The gate does NOT scope rows — apply the same row rules as the list:
+    const rows = await ctx.db.select().from(posts).where(rowScope(ctx, 'posts', posts))
+    return ctx.queryParams.format === 'csv' ? toCsv(rows) : rows
   },
-  responseFormat: 'raw',   // bypass the { data: } wrapper
+})
+```
+
+- Resource-bound: auth + plugin middleware + the resource's permission for `operation` + validation, then your handler.
+- `endpointName`: `authorization.custom[name].permissions` decides the ops it declares; undeclared ops fall back to the resource gate.
+- Standalone (no `resource`) and `getAutoApiContext(event)`: caller resolved, **nothing authorized** — gate it yourself.
+- Handlers return the payload; `responseFormat: 'auto'` (default) wraps it in `{ data }`. Never hand-wrap.
+
+### Row access helpers
+
+| Helper | Use |
+|---|---|
+| `findAuthorizedRow(ctx, resource, id, { softDeleted? })` | One row; invisible → 404, objectLevel fails → 403 |
+| `findAuthorizedRows(ctx, resource, ids)` | Visible subset of ids |
+| `rowScope(ctx, resource, table, { softDeleted? })` | SQL condition (tenant + listFilter + soft delete) |
+| `passesObjectLevel(ctx, resource, row)` | Run objectLevel |
+| `assertResourcePermission(resource, op, ctx, { recordId? })` | 401/403 for any registered resource |
+| `protectedFieldsFor(ctx, resource, table, 'create'\|'update')` + `stripProtectedFields` | Drop server-owned columns from input |
+| `tenantWriteField(ctx, resource, table)` | Tenant column to stamp on writes |
+| `insertReturning` / `updateReturning` | Rows back on every dialect (MySQL has no RETURNING) |
+
+### Object-level auth before the handler
+
+```ts
+export default createEndpoint({
+  resource: 'webhooks',
+  operation: 'get',
+  endpointName: 'secret',
+  authorize: async (ctx) => {
+    const hook = await findAuthorizedRow(ctx, 'webhooks', ctx.params.id)  // 404/403 thrown for you
+    ctx.requestMeta ??= {}
+    ctx.requestMeta.webhook = hook   // stash for the handler
+    return hook.userId === ctx.user?.id
+  },
+  handler: async ctx => ({ secret: ctx.requestMeta!.webhook.secretHint }),
 })
 ```
 
@@ -188,51 +185,14 @@ export default createEndpoint({
 interface EndpointOptions<TBody, TQuery, TResponse> {
   resource?: string
   operation?: HandlerContext['operation']
-  endpointName?: string         // matches ResourceAuthConfig.custom key for per-endpoint permissions
-  body?: ZodSchema              // Zod schema for request body validation
-  query?: ZodSchema             // Zod schema for query string validation
-  skipAuthorization?: boolean
+  endpointName?: string
+  body?: ZodSchema
+  query?: ZodSchema
+  skipAuthorization?: boolean   // the resource gate only — you still scope rows
   skipValidation?: boolean
-
-  /**
-   * Object-level authorization run after the collection-level permission check.
-   * Throw createError({ statusCode: 404/403 }) or return false to deny.
-   * Use to fetch the target object once and stash it on ctx.requestMeta for the handler.
-   */
-  authorize?: (ctx: EndpointContext<TBody, TQuery>, event: H3Event) => boolean | Promise<boolean>
-
-  handler: (ctx: EndpointContext<TBody, TQuery>, event: H3Event) => Promise<TResponse>|TResponse
-  transform?: (data: TResponse, ctx: EndpointContext) => any
-  responseFormat?: 'auto' | 'raw'  // 'auto' = wrap in { data: ... }, 'raw' = pass-through
+  authorize?: (ctx, event) => boolean | Promise<boolean>
+  handler: (ctx, event) => Promise<TResponse> | TResponse
+  transform?: (data, ctx) => any
+  responseFormat?: 'auto' | 'raw'
 }
-```
-
-`EndpointContext` extends `HandlerContext` with `body` and `queryParams` typed by the Zod schemas.
-
-### Object-level auth + request metadata pattern
-
-Fetch the target object once in `authorize`, stash it on `ctx.requestMeta`, and read it back in `handler` — avoids a redundant DB round-trip:
-
-```ts
-export default createEndpoint({
-  resource: 'webhooks',
-  operation: 'get',
-  endpointName: 'secret',   // gates against ResourceAuthConfig.custom.secret.permissions
-
-  authorize: async (ctx) => {
-    const hook = await ctx.db.select().from(webhooks)
-      .where(eq(webhooks.id, ctx.params.id)).limit(1)
-      .then((r: any[]) => r[0] ?? null)
-    if (!hook) throw createError({ statusCode: 404 })
-    ctx.requestMeta ??= {}
-    ctx.requestMeta.webhook = hook   // stash for handler
-    // return true/false — or throw for non-boolean denials (404, etc.)
-    return hook.userId === ctx.user?.id
-  },
-
-  handler: async (ctx) => {
-    const hook = ctx.requestMeta!.webhook    // already fetched in authorize
-    return { secret: hook.secretHint }
-  },
-})
 ```

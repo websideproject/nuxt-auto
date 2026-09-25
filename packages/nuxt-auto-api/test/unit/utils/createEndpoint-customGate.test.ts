@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { createEndpoint } from '../../../src/runtime/server/utils/createEndpoint'
 
 // NEW behaviour ("Improve custom endpoint"): a NAMED custom gate (`endpointName`) whose permissions
 // fully REPLACE the base collection-level authorize — so an endpoint can open an operation that the
@@ -23,12 +24,10 @@ vi.mock('../../../src/runtime/server/handlers/createContextFromRegistry', () => 
   createContextFromRegistry: vi.fn(async () => ({ context: h.context, authorize: h.authorize, validate: h.validate, runMiddleware: h.runMiddleware, effectiveAuth: h.effectiveAuth })),
 }))
 vi.mock('../../../src/runtime/server/database', () => ({
-  getDatabaseAdapter: vi.fn(() => ({ engine: 'better-sqlite3', db: {}, atomic: vi.fn(), getMutationCount: vi.fn(), supportsReturning: true, supportsNativeBatch: false })),
+  getDatabaseAdapter: vi.fn(() => ({ engine: 'better-sqlite3', db: {}, atomic: vi.fn(), getMutationCount: vi.fn(), supportsReturning: true, supportsNativeBatch: false, supportsTransactions: true })),
 }))
 vi.mock('../../../src/runtime/server/plugins/pluginRegistry', () => ({ getContextExtenders: () => [], getMiddlewareForStage: () => [] }))
 vi.mock('../../../src/runtime/server/utils/serializeResponse', () => ({ serializeResponse: (d: any) => d }))
-
-import { createEndpoint } from '../../../src/runtime/server/utils/createEndpoint'
 
 const run = (opts: any) => createEndpoint(opts)({ method: 'POST', path: '/api/orders', context: {} } as any)
 

@@ -5,6 +5,7 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
 import { eq } from 'drizzle-orm'
 import { createMockContext } from '../helpers/mocks'
 import { resetRegistry } from '../helpers/registry-stub'
+import { registryFor } from '../helpers/context'
 import { deleteHandler } from '../../src/runtime/server/handlers/delete'
 import { restoreHandler } from '../../src/runtime/server/handlers/restore'
 import { cascadeSoftDelete } from '../../src/runtime/server/utils/softDeleteCascade'
@@ -49,6 +50,8 @@ function ctx(db: any, resource: string, opts: { id?: string, op?: string, query?
     query: opts.query ?? {},
     permissions: opts.perms ?? ['admin'],
     user: { id: 'u1', permissions: opts.perms ?? ['admin'] },
+    // Every resource open — this file is about cascade mechanics, not authorization.
+    registry: registryFor(schema),
   })
 }
 
@@ -164,8 +167,11 @@ describe('Cascade soft-delete (P15.2) + batch (P15.3)', () => {
   it('batch restore denies when caller lacks restore permission', async () => {
     await seedProject()
     const { deletionId } = await deleteHandler(ctx(db, 'projects', { id: 'p1' }) as any)
-    await expect(
-      restoreSoftDeletedBatch(ctx(db, 'projects', { perms: ['user'] }) as any, deletionId!),
-    ).rejects.toMatchObject({ statusCode: 403 })
+    const restoreNeedsAdmin = { permissions: { read: true, delete: true, restore: 'admin' } }
+    const userCtx = { ...ctx(db, 'projects', { perms: ['user'] }), registry: registryFor(schema, { projects: restoreNeedsAdmin, tasks: restoreNeedsAdmin }) }
+    await expect(restoreSoftDeletedBatch(userCtx as any, deletionId!)).rejects.toMatchObject({ statusCode: 403 })
+    // …and nothing was restored (all-or-nothing).
+    const [project] = await db.select().from(projects).where(eq(projects.id, 'p1'))
+    expect(project.deletedAt).not.toBeNull()
   })
 })

@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setupTestDatabase, seedDatabase, cleanDatabase } from '../helpers/setup'
 import * as baseSchema from '../helpers/schema'
-import { createHandler } from '../../src/runtime/server/handlers/create'
-import { updateHandler } from '../../src/runtime/server/handlers/update'
 import { createMockContext } from '../helpers/mocks'
 import { createValidationMiddleware } from '../../src/runtime/server/middleware/validate'
 import { z } from 'zod'

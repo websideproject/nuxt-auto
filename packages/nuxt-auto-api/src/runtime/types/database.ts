@@ -33,4 +33,9 @@ export interface DatabaseAdapter {
   supportsReturning: boolean
   /** Whether the engine supports native batch operations (D1, Turso) */
   supportsNativeBatch: boolean
+  /**
+   * Whether `atomic()` is a real transaction (rolled back on error). `false` on D1, which has no
+   * interactive transactions: `atomic()` then runs the function directly and earlier writes stay.
+   */
+  supportsTransactions: boolean
 }

@@ -204,10 +204,10 @@ async function handleSubmit() {
     visibleFields.value.forEach((field) => {
       const val = dataToSubmit[field.name]
       if (!field.required && (val === '' || val === null || val === undefined)) {
-        delete dataToSubmit[field.name]
+        Reflect.deleteProperty(dataToSubmit, field.name)
       }
       if (field.widget === 'RelationSelect' && val === 0) {
-        delete dataToSubmit[field.name]
+        Reflect.deleteProperty(dataToSubmit, field.name)
       }
     })
 

@@ -232,9 +232,6 @@ export default defineNuxtConfig({
 
   autoApi: {
     prefix: '/api',
-    database: {
-      client: 'better-sqlite3',
-    },
   },
 
   autoAdmin: {

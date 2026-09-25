@@ -4,6 +4,8 @@ import { computed, unref } from 'vue'
 import type { MaybeRef } from 'vue'
 import type { PermissionQueryResponse, PermissionCheckResult } from '../types'
 import { prerenderSafeEnabled } from './prerenderEnabled'
+import { useAutoApiPath } from './autoApiPath'
+import { useAutoApiFetch } from './autoApiFetch'
 
 interface AllPermissionsResponse {
   user: any
@@ -22,12 +24,11 @@ interface AllPermissionsResponse {
 export function useAllPermissions(
   options?: Omit<UseQueryOptions<AllPermissionsResponse>, 'queryKey' | 'queryFn'>,
 ) {
-  return useQuery({
+  const path = useAutoApiPath()
+  const fetcher = useAutoApiFetch()
+  return useQuery<AllPermissionsResponse>({
     queryKey: ['permissions', 'all'],
-    queryFn: async () => {
-      const response = await $fetch<AllPermissionsResponse>('/api/permissions')
-      return response
-    },
+    queryFn: () => fetcher<AllPermissionsResponse>(path('permissions')),
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     ...options,
     enabled: prerenderSafeEnabled((options as any)?.enabled),
@@ -56,18 +57,15 @@ export function usePermissions(
     individual?: boolean
   },
 ) {
+  const path = useAutoApiPath()
+  const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
 
   // Use individual endpoint if requested
   if (options?.individual) {
-    const query = useQuery({
+    const query = useQuery<PermissionQueryResponse>({
       queryKey: computed(() => ['permissions', resourceRef.value]),
-      queryFn: async () => {
-        const response = await $fetch<PermissionQueryResponse>(
-          `/api/${resourceRef.value}/permissions`,
-        )
-        return response
-      },
+      queryFn: () => fetcher<PermissionQueryResponse>(path(resourceRef.value, 'permissions')),
       staleTime: 1000 * 60 * 5, // Cache for 5 minutes
       ...options,
       enabled: prerenderSafeEnabled((options as any)?.enabled),

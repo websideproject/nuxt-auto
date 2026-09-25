@@ -91,8 +91,12 @@ function parseScopes(value: unknown): string[] | null {
   if (value == null) return null
   if (Array.isArray(value)) return value as string[]
   if (typeof value === 'string') {
-    try { return JSON.parse(value) }
-    catch { return null }
+    try {
+      return JSON.parse(value)
+    }
+    catch {
+      return null
+    }
   }
   return null
 }
@@ -589,7 +593,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
             }
             else {
               // Block direct writes to the secret field
-              delete updated[c.secretField]
+              Reflect.deleteProperty(updated, c.secretField)
             }
 
             return updated

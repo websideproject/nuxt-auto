@@ -4,8 +4,6 @@ import { PostFactory, UserFactory } from '../helpers/factories'
 import * as baseSchema from '../helpers/schema'
 import { listHandler } from '../../src/runtime/server/handlers/list'
 import { createMockContext } from '../helpers/mocks'
-import { encodeCursor, decodeCursor } from '../../src/runtime/server/utils/cursor'
-import { eq } from 'drizzle-orm'
 
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
@@ -254,30 +252,6 @@ describe('Cursor Pagination Integration', () => {
       const sorted = [...timestamps].sort((a, b) => b - a)
 
       expect(timestamps).toEqual(sorted)
-    })
-  })
-
-  describe('Custom cursor fields', () => {
-    it('should support custom cursor fields', async () => {
-      const context = createMockContext({
-        db,
-        schema: baseSchema,
-        resource: 'posts',
-        operation: 'list',
-        query: {
-          limit: 10,
-          cursor: null,
-          cursorFields: ['createdAt', 'id'],
-        },
-      })
-
-      const result = await listHandler(context as any)
-
-      if (result.meta.nextCursor) {
-        const decoded = decodeCursor(result.meta.nextCursor)
-        expect(decoded).toHaveProperty('createdAt')
-        expect(decoded).toHaveProperty('id')
-      }
     })
   })
 

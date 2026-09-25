@@ -4,7 +4,6 @@ import { schema as baseSchema } from '../helpers/schema'
 import { listHandler } from '../../src/runtime/server/handlers/list'
 import { getHandler } from '../../src/runtime/server/handlers/get'
 import { updateHandler } from '../../src/runtime/server/handlers/update'
-import { deleteHandler } from '../../src/runtime/server/handlers/delete'
 import { createAuthorizationMiddleware } from '../../src/runtime/server/middleware/authz'
 import { createMockContext, createMockUser } from '../helpers/mocks'
 

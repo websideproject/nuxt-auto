@@ -6,6 +6,7 @@ import { getHandler } from '../../src/runtime/server/handlers/get'
 import { createHandler } from '../../src/runtime/server/handlers/create'
 import { updateHandler } from '../../src/runtime/server/handlers/update'
 import { createMockContext } from '../helpers/mocks'
+import { OPEN } from '../helpers/context'
 
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
@@ -41,6 +42,7 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password', 'apiKey'],
         },
       })
@@ -69,6 +71,7 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password'],
         },
       })
@@ -98,6 +101,7 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password'],
         },
       })
@@ -128,6 +132,7 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password'],
         },
       })
@@ -147,11 +152,13 @@ describe('Hidden Fields Integration', () => {
         users: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password', 'apiKey'], // Users resource config
         },
         posts: {
           name: 'posts',
           schema: baseSchema.posts,
+          authorization: OPEN,
           hiddenFields: [], // Posts resource has no hidden fields
         },
       }
@@ -194,16 +201,19 @@ describe('Hidden Fields Integration', () => {
         users: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password', 'apiKey'],
         },
         posts: {
           name: 'posts',
           schema: baseSchema.posts,
+          authorization: OPEN,
           hiddenFields: [],
         },
         comments: {
           name: 'comments',
           schema: baseSchema.comments,
+          authorization: OPEN,
           hiddenFields: [],
         },
       }
@@ -253,11 +263,13 @@ describe('Hidden Fields Integration', () => {
         users: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password', 'apiKey'],
         },
         posts: {
           name: 'posts',
           schema: baseSchema.posts,
+          authorization: OPEN,
           hiddenFields: [],
         },
       }
@@ -302,11 +314,13 @@ describe('Hidden Fields Integration', () => {
         users: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password', 'apiKey'],
         },
         posts: {
           name: 'posts',
           schema: baseSchema.posts,
+          authorization: OPEN,
           hiddenFields: [],
         },
       }
@@ -351,6 +365,7 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'users',
           schema: baseSchema.users,
+          authorization: OPEN,
           hiddenFields: ['password', 'resetToken', 'apiKey', 'twoFactorSecret'],
         },
       })
@@ -379,6 +394,7 @@ describe('Hidden Fields Integration', () => {
         resourceConfig: {
           name: 'posts',
           schema: baseSchema.posts,
+          authorization: OPEN,
           hiddenFields: undefined,
         },
       })

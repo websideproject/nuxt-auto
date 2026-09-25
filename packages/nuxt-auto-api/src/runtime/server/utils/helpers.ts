@@ -1,10 +1,8 @@
 import type { H3Event } from 'h3'
 import { readBody, getQuery, createError } from 'h3'
-import { useRuntimeConfig } from 'nitropack/runtime'
+import { getAuthConfig } from './authConfig'
 import { getDatabaseAdapter } from '../database'
-import { getContextExtenders } from '../plugins/pluginRegistry'
 import { serializeResponse } from './serializeResponse'
-import { filterHiddenFields } from './filterHiddenFields'
 import type { HandlerContext } from '../../types'
 
 /**
@@ -24,46 +22,16 @@ export async function getAutoApiContext(
   event: H3Event,
   opts?: { resource?: string, operation?: HandlerContext['operation'] },
 ): Promise<HandlerContext> {
-  let adapter
-  let db
-  try {
-    adapter = getDatabaseAdapter()
-    db = adapter.db
+  const { createCallerContext } = await import('../handlers/createContextFromRegistry')
+  const context = await createCallerContext(event, opts?.operation || 'get')
+  if (opts?.resource) {
+    context.resource = opts.resource
+    context.resourceConfig = context.registry?.[opts.resource]
+    context.effectiveAuth = getAuthConfig(context, opts.resource)
   }
-  catch {
-    db = (globalThis as any).__autoApiDb
-  }
-
-  const user = (event.context as any).user || null
-  const permissions = (event.context as any).permissions || user?.permissions || []
-
-  const context: HandlerContext = {
-    db,
-    adapter,
-    schema: {},
-    user,
-    permissions,
-    params: (event.context as any).params || {},
-    query: getQuery(event) as Record<string, any>,
-    validated: {},
-    event,
-    runtimeConfig: useRuntimeConfig(),
-    resource: opts?.resource || '',
-    operation: opts?.operation || 'get',
-  }
-
-  // Run context extenders from plugins
-  const extenders = getContextExtenders()
-  for (const ext of extenders) {
-    await ext(context)
-  }
-
   return context
 }
 
-/**
- * Validate request body against a Zod schema. Throws 400 on failure.
- */
 export async function validateBody<T>(event: H3Event, schema: any): Promise<T> {
   const rawBody = await readBody(event).catch(() => null)
   const result = schema.safeParse(rawBody)

@@ -28,16 +28,34 @@ export default defineNuxtConfig({
   modules: ['@websideproject/nuxt-auto-api'],
   autoApi: {
     prefix: '/api',
-    database: { client: 'd1' },
   },
 })
 
-// server/plugins/register-api.ts — register resources via hook
-export default defineNitroPlugin((nitroApp) => {
-  // Resources are registered at build time via nuxt hook:
-  // nuxt.hook('autoApi:registerSchema', (registry) => { registry.register(...) })
+// modules/blog/index.ts — resources are registered at BUILD time from a Nuxt module
+import { defineNuxtModule, createResolver } from '@nuxt/kit'
+import { createModuleImport } from '@websideproject/nuxt-auto-api'
+
+export default defineNuxtModule({
+  setup(_, nuxt) {
+    const r = createResolver(import.meta.url)
+    nuxt.hook('autoApi:registerSchema', (registry) => {
+      registry.register('posts', {
+        schema: createModuleImport(r.resolve('./schema'), 'posts'),
+        authorization: createModuleImport(r.resolve('./auth'), 'postsAuth'), // REQUIRED — see below
+      })
+    })
+  },
 })
+
+// modules/blog/auth.ts
+export const postsAuth: ResourceAuthConfig = {
+  permissions: { read: true, create: ctx => !!ctx.user, update: 'posts:write', delete: 'admin' },
+}
 ```
+
+**Deny by default:** an undeclared operation is refused (401 anon / 403 signed in); a resource with no
+`authorization` refuses everything. `'*'` in `ctx.permissions` passes all. Rows the caller can't see (tenant,
+`listFilter`, soft delete, `objectLevel`) are 404 on every route. Unknown/hidden fields in filter/sort/fields are 400.
 
 ```vue
 <!-- pages/posts.vue -->
@@ -63,10 +81,6 @@ PATCH  /api/{name}/:id          Update
 DELETE /api/{name}/:id          Delete (soft-delete if deletedAt column exists; ?force=true purges — needs `purge` perm)
 POST   /api/{name}/:id/restore  Restore soft-deleted (restores its cascade batch too)
 GET    /api/{name}/permissions  Per-resource permissions
-
-# Soft-delete trash batches (module-auto-softdelete; act on a whole cascade group by deletionId)
-POST   /api/softdelete/batches/:deletionId/restore   Restore every row in the batch
-POST   /api/softdelete/batches/:deletionId/purge     Permanently purge the batch
 POST   /api/{name}/bulk         Bulk create
 PATCH  /api/{name}/bulk         Bulk update
 DELETE /api/{name}/bulk         Bulk delete
@@ -75,6 +89,7 @@ GET    /api/{name}/:id/relations/:rel       List M2M
 POST   /api/{name}/:id/relations/:rel       Sync M2M
 POST   /api/{name}/:id/relations/:rel/add   Add M2M
 DELETE /api/{name}/:id/relations/:rel/remove Remove M2M
+POST   /api/{name}/:id/relations/batch      Sync several relations
 GET    /api/permissions         All resource permissions
 ```
 
@@ -91,6 +106,8 @@ GET    /api/permissions         All resource permissions
 | **[references/advanced.md](references/advanced.md)** | useAutoApiAggregate, usePermissions, multi-tenancy, **createEndpoint with endpointName + authorize** |
 | **[references/module-authoring.md](references/module-authoring.md)** | createModuleImport, schema/auth/hooks/validation co-location, **JSON columns (mode:'json')** |
 | **[references/schema-presets.md](references/schema-presets.md)** | Cross-engine `id`/`timestamps`/`softDelete`/`tenant`/`audit`/`liveUnique` presets — "import = feature on" |
+
+Whole-batch restore/purge (by `deletionId`) is a server util: `restoreSoftDeletedBatch(ctx, id)` / `purgeSoftDeletedBatch(ctx, id)` — all-or-nothing, permission + visibility checked per row.
 
 ## Progressive Loading
 

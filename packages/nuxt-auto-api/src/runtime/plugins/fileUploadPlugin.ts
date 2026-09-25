@@ -152,7 +152,7 @@ export function createFileUploadPlugin(options: FileUploadPluginOptions): AutoAp
                 })
                 fileUrl = blob.pathname || blob.url
               }
-              catch (err) {
+              catch {
                 throw createError({ statusCode: 500, message: 'Blob storage not available' })
               }
             }

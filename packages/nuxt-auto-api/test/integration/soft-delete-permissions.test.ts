@@ -3,11 +3,13 @@ import { eq } from 'drizzle-orm'
 import { setupTestDatabase, seedDatabase, cleanDatabase } from '../helpers/setup'
 import * as baseSchema from '../helpers/schema'
 import { createMockContext } from '../helpers/mocks'
-import { setRegistry, resetRegistry } from '../helpers/registry-stub'
+import * as registryStub from '../helpers/registry-stub'
 import { deleteHandler } from '../../src/runtime/server/handlers/delete'
 import { restoreHandler } from '../../src/runtime/server/handlers/restore'
 import { listHandler } from '../../src/runtime/server/handlers/list'
 import { registerPermissionEvaluator } from '../../src/runtime/server/plugins/pluginRegistry'
+
+const { setRegistry, resetRegistry } = registryStub
 
 vi.stubGlobal('useRuntimeConfig', () => ({ public: {}, autoApi: {} }))
 
@@ -55,19 +57,29 @@ describe('Soft-delete restore/purge permission config', () => {
       query: opts.query ?? {},
       permissions: opts.perms ?? [],
       user: { id: 1, permissions: opts.perms ?? [] },
+      registry: registryStub.registry, // what createContextFromRegistry provides in a real request
     })
   }
 
   // ── restore config override ──────────────────────────────────────────────
   describe('restore', () => {
-    it('default (no config) → admin restores, non-admin 403', async () => {
+    it('default (no config) → denied, even for a permission named "admin"; only the * wildcard passes', async () => {
       const id = await softDeleteFirst()
       await expect(restoreHandler(ctx({ perms: ['user'], id }) as any)).rejects.toMatchObject({ statusCode: 403 })
-
-      const id2 = testData.posts[1].id
-      await db.update(baseSchema.posts).set({ deletedAt: new Date() }).where(eq(baseSchema.posts.id, id2))
-      const res = await restoreHandler(ctx({ perms: ['admin'], id: id2 }) as any)
+      await expect(restoreHandler(ctx({ perms: ['admin'], id }) as any)).rejects.toMatchObject({ statusCode: 403 })
+      const res = await restoreHandler(ctx({ perms: ['*'], id }) as any)
       expect(res.restored).toBe(true)
+    })
+
+    it('falls back to the update permission', async () => {
+      setRegistry({ posts: { authorization: { permissions: { update: 'editor' } } } })
+      const id = await softDeleteFirst()
+      await expect(restoreHandler(ctx({ perms: ['user'], id }) as any)).rejects.toMatchObject({ statusCode: 403 })
+      expect((await restoreHandler(ctx({ perms: ['editor'], id }) as any)).restored).toBe(true)
+    })
+
+    it('checks the permission before looking the row up (a denied caller learns nothing about existence)', async () => {
+      await expect(restoreHandler(ctx({ perms: ['user'], id: 999_999 }) as any)).rejects.toMatchObject({ statusCode: 403 })
     })
 
     it('permissions.restore overrides the default (editor allowed)', async () => {
@@ -109,13 +121,13 @@ describe('Soft-delete restore/purge permission config', () => {
 
   // ── purge (force=true) config override ────────────────────────────────────
   describe('purge', () => {
-    it('default → admin purges (hard delete), non-admin 403', async () => {
+    it('default (no config) → denied; the * wildcard purges (hard delete)', async () => {
       const id = await softDeleteFirst()
       await expect(
-        deleteHandler(ctx({ perms: ['user'], op: 'delete', id, query: { force: 'true' } }) as any),
+        deleteHandler(ctx({ perms: ['admin'], op: 'delete', id, query: { force: 'true' } }) as any),
       ).rejects.toMatchObject({ statusCode: 403 })
 
-      const res = await deleteHandler(ctx({ perms: ['admin'], op: 'delete', id, query: { force: 'true' } }) as any)
+      const res = await deleteHandler(ctx({ perms: ['*'], op: 'delete', id, query: { force: 'true' } }) as any)
       expect(res.success).toBe(true)
       expect(res.softDeleted).toBe(false)
       const [gone] = await db.select().from(baseSchema.posts).where(eq(baseSchema.posts.id, id))

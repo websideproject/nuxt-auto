@@ -1,4 +1,4 @@
-import { eq, and, inArray, sql, count } from 'drizzle-orm'
+import { eq, and, inArray, sql } from 'drizzle-orm'
 import type { M2MBatchOperation, M2MBatchResult, DetectedJunction } from '../../../types'
 import { getDatabaseAdapter } from '../../database'
 
@@ -137,10 +137,9 @@ export async function executeBatchM2M(
   operation: M2MBatchOperation,
 ): Promise<M2MBatchResult> {
   const { toAdd, toRemove, metadata } = operation
-  const junctionTable = junction.table
 
   // Use adapter for engine-agnostic transaction handling
-  let adapter
+  let adapter: ReturnType<typeof getDatabaseAdapter> | undefined
   try {
     adapter = getDatabaseAdapter()
   }
@@ -225,7 +224,7 @@ export async function executeBatchM2MWithChunking(
     return executeBatchM2M(db, junction, leftId, operation)
   }
 
-  let adapter
+  let adapter: ReturnType<typeof getDatabaseAdapter> | undefined
   try {
     adapter = getDatabaseAdapter()
   }
@@ -252,7 +251,8 @@ export async function executeBatchM2MWithChunking(
       for (const chunk of addChunks) {
         const values = chunk.map((rightId, index) => {
           const baseValue: Record<string, any> = { [junction.leftKey]: leftId, [junction.rightKey]: rightId }
-          if (metadata) { const metaIndex = metadataOffset + index; if (metadata[metaIndex]) Object.assign(baseValue, metadata[metaIndex]) }
+          const meta = metadata?.[metadataOffset + index]
+          if (meta) Object.assign(baseValue, meta)
           return baseValue
         })
         const insertResult = tx.insert(junctionTable).values(values).run()
@@ -284,7 +284,8 @@ export async function executeBatchM2MWithChunking(
       for (const chunk of addChunks) {
         const values = chunk.map((rightId, index) => {
           const baseValue: Record<string, any> = { [junction.leftKey]: leftId, [junction.rightKey]: rightId }
-          if (metadata) { const metaIndex = metadataOffset + index; if (metadata[metaIndex]) Object.assign(baseValue, metadata[metaIndex]) }
+          const meta = metadata?.[metadataOffset + index]
+          if (meta) Object.assign(baseValue, meta)
           return baseValue
         })
         const insertResult = await tx.insert(junctionTable).values(values).run()

@@ -1,7 +1,5 @@
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { sql } from 'drizzle-orm'
 
 /**
  * Create in-memory SQLite database for testing
@@ -19,7 +17,7 @@ export async function setupTestDatabase(schema: any) {
 /**
  * Create tables from schema (since we don't have migrations in tests)
  */
-async function createTablesFromSchema(db: any, sqlite: any, schema: any) {
+async function createTablesFromSchema(_db: any, sqlite: any, _schema: any) {
   // Create users table
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (

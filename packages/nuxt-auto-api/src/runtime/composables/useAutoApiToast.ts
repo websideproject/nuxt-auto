@@ -2,7 +2,7 @@ import { inject } from 'vue'
 import type { ToastProvider } from '../types/toast'
 
 export function useAutoApiToast() {
-  const toastProvider = inject<ToastProvider>('autoApiToastProvider', null)
+  const toastProvider = inject<ToastProvider | null>('autoApiToastProvider', null)
 
   const errorMessages: Record<number, { title: string, description: string }> = {
     400: {
@@ -45,7 +45,7 @@ export function useAutoApiToast() {
     if (!toastProvider) return
 
     const statusCode = error?.statusCode || error?.response?.status || 500
-    const errorMessage = errorMessages[statusCode] || errorMessages[500]
+    const errorMessage = (errorMessages[statusCode] ?? errorMessages[500])!
 
     // Use custom message if provided, otherwise use status-based message
     const title = customMessage || errorMessage.title

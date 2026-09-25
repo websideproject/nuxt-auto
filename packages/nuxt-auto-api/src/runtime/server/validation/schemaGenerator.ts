@@ -1,101 +1,107 @@
 import { z } from 'zod'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import { createInsertSchema } from 'drizzle-zod'
+import type { HandlerContext, ResourceRegistration, ValidationSchema } from '../../types'
+import { protectedFieldsFor } from '../utils/protectedFields'
 
 function coerceDateField(type: z.ZodTypeAny): z.ZodTypeAny {
   if (type instanceof z.ZodDate) return z.coerce.date()
-  if (type instanceof z.ZodOptional) {
-    const coerced = coerceDateField((type as z.ZodOptional<z.ZodTypeAny>).unwrap())
-    return z.optional(coerced)
-  }
-  if (type instanceof z.ZodNullable) {
-    const coerced = coerceDateField((type as z.ZodNullable<z.ZodTypeAny>).unwrap())
-    return z.nullable(coerced)
-  }
+  if (type instanceof z.ZodOptional) return z.optional(coerceDateField((type as z.ZodOptional<z.ZodTypeAny>).unwrap()))
+  if (type instanceof z.ZodNullable) return z.nullable(coerceDateField((type as z.ZodNullable<z.ZodTypeAny>).unwrap()))
   return type
 }
 
-function coerceDates(schema: z.ZodObject<any>): z.ZodObject<any> {
-  const shape: Record<string, z.ZodTypeAny> = {}
-  for (const [key, type] of Object.entries(schema.shape as Record<string, z.ZodTypeAny>)) {
-    shape[key] = coerceDateField(type)
-  }
-  return z.object(shape)
-}
-
 /**
- * Generate Zod schemas from Drizzle table using drizzle-zod
+ * Generate create/update schemas for a Drizzle table with drizzle-zod.
+ *
+ * Dates accept ISO strings. Columns in `omit` (server-owned: primary key on update, tenant, soft-delete,
+ * audit stamps) are left out, so they are never *required* and never *accepted* — an object schema drops
+ * unknown keys.
  */
-export function generateSchemas(table: any, options?: {
+export function generateSchemas(table: any, options: {
   createSchema?: z.ZodType<any>
   updateSchema?: z.ZodType<any>
-}) {
-  try {
-    // Use drizzle-zod to generate schemas from table
-    const rawInsertSchema = createInsertSchema(table, {})
-    const insertSchema = coerceDates(rawInsertSchema)
-    const selectSchema = createSelectSchema(table, {})
+  omitOnCreate?: Iterable<string>
+  omitOnUpdate?: Iterable<string>
+} = {}) {
+  const insert = createInsertSchema(table, {}) as z.ZodObject<any>
+  const shape: Record<string, z.ZodTypeAny> = {}
+  for (const [key, type] of Object.entries(insert.shape as Record<string, z.ZodTypeAny>)) shape[key] = coerceDateField(type)
 
-    // For create: use the insert schema (required fields)
-    const create = options?.createSchema || insertSchema
-
-    // For update: make all fields optional since it's a partial update
-    const update = options?.updateSchema || insertSchema.partial()
-
-    return { create, update }
+  const without = (omit: Iterable<string> | undefined) => {
+    const drop = new Set(omit ?? [])
+    return Object.fromEntries(Object.entries(shape).filter(([k]) => !drop.has(k)))
   }
-  catch (error) {
-    // Fallback if drizzle-zod fails (e.g., table doesn't have proper metadata)
-    console.warn('[nuxt-auto-api] Failed to generate schemas from table, using passthrough', error)
-    return {
-      create: z.object({}).passthrough(),
-      update: z.object({}).passthrough(),
-    }
+
+  return {
+    create: options.createSchema || z.object(without(options.omitOnCreate)),
+    update: options.updateSchema || z.object(without(options.omitOnUpdate)).partial(),
   }
 }
 
 /**
- * Generate query parameter schema
+ * Query-string schema. Known keys are typed; unknown keys pass through untouched (plugins such as search
+ * read their own parameters).
  */
 export function generateQuerySchema() {
+  const stringOrList = z.union([z.string(), z.array(z.string())]).optional()
   return z.object({
-    // Filter can be either an object (from JS) or string (from URL) - middleware handles parsing
     filter: z.any().optional(),
-    sort: z.union([z.string(), z.array(z.string())]).optional(),
-    fields: z.union([z.string(), z.array(z.string())]).optional(),
-    include: z.union([z.string(), z.array(z.string())]).optional(),
-    // Offset pagination
+    sort: stringOrList,
+    fields: stringOrList,
+    include: stringOrList,
     page: z.coerce.number().int().positive().optional(),
     limit: z.coerce.number().int().positive().optional(),
-    // Cursor pagination
     cursor: z.string().optional(),
-    cursorFields: z.union([z.string(), z.array(z.string())]).optional().transform((val) => {
-      if (typeof val === 'string') return val.split(',')
-      return val
-    }),
-  })
+    includeDeleted: z.union([z.boolean(), z.enum(['true', 'false', '1', '0'])]).optional(),
+    onlyDeleted: z.union([z.boolean(), z.enum(['true', 'false', '1', '0'])]).optional(),
+    aggregate: z.string().optional(),
+  }).passthrough()
+}
+
+const cache = new Map<string, { create: z.ZodType<any>, update: z.ZodType<any>, query: z.ZodType<any> }>()
+
+/**
+ * The validation schemas for one resource in this request. A registration's own `validation` wins;
+ * otherwise schemas are generated from the table (cached — generation walks every column).
+ */
+export function schemasFor(context: HandlerContext, resource: string, registration: ResourceRegistration): ValidationSchema {
+  const custom = registration.validation as ValidationSchema | undefined
+  const table = registration.schema
+  const omitOnCreate = [...protectedFieldsFor(context, resource, table, 'create')].sort()
+  const omitOnUpdate = [...protectedFieldsFor(context, resource, table, 'update')].sort()
+  const key = `${resource}|${omitOnCreate.join(',')}|${omitOnUpdate.join(',')}`
+
+  let generated = cache.get(key)
+  if (!generated) {
+    try {
+      generated = { ...generateSchemas(table, { omitOnCreate, omitOnUpdate }), query: generateQuerySchema() }
+    }
+    catch (error) {
+      console.warn(`[nuxt-auto-api] Could not generate validation schemas for "${resource}"; bodies are not validated`, error)
+      generated = { create: z.object({}).passthrough(), update: z.object({}).passthrough(), query: generateQuerySchema() }
+    }
+    cache.set(key, generated)
+  }
+
+  return {
+    create: custom?.create ?? generated.create,
+    update: custom?.update ?? generated.update,
+    query: custom?.query ?? generated.query,
+  }
 }
 
 /**
- * Create a custom validation schema for a resource
+ * Define a custom validation schema for a resource. Any part left out is generated from the table.
  */
 export function defineValidationSchema(schema: {
   create?: z.ZodType<any>
   update?: z.ZodType<any>
   query?: z.ZodType<any>
-}) {
-  return {
-    create: schema.create || z.object({}).passthrough() as z.ZodType<any>,
-    update: schema.update || z.object({}).passthrough() as z.ZodType<any>,
-    query: schema.query || generateQuerySchema() as z.ZodType<any>,
-  }
+}): ValidationSchema {
+  return { ...schema }
 }
 
-/**
- * Helper to refine generated schemas with custom validations
- */
-export function refineSchema<T extends z.ZodType<any>>(
-  baseSchema: T,
-  refinements: (schema: T) => T,
-): T {
+/** Refine a generated schema. */
+export function refineSchema<T extends z.ZodType<any>>(baseSchema: T, refinements: (schema: T) => T): T {
   return refinements(baseSchema)
 }

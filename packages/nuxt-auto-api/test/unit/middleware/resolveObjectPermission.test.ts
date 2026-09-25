@@ -1,19 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { hasPermission } from '../../../src/runtime/server/middleware/authz'
+import { evaluatePermission } from '../../../src/runtime/server/utils/permissions'
 import { resolveObjectPermission } from '../../../src/runtime/server/middleware/resolveObjectPermission'
 import { getPermissionEvaluators, registerPermissionEvaluator } from '../../../src/runtime/server/plugins/pluginRegistry'
 import { createMockContext, createMockUser } from '../../helpers/mocks'
+
+// `hasPermission(held, required, ctx)` was folded into `evaluatePermission(required, ctx)`; the caller's
+// permissions now come from the context.
+const hasPermission = (held: string[], required: any, ctx: any) => evaluatePermission(required, { ...ctx, permissions: held })
 
 // NEW behaviour (commits "Improve permissions" / "Improve authorization flexibility"): `hasPermission`
 // now also accepts an ASYNC function and a STRUCTURED OBJECT permission. Object permissions are routed
 // through the generic evaluator seam (`resolveObjectPermission` → registered evaluators), which is how
 // the access/entitlements modules plug domain logic in WITHOUT auto-api knowing the shape. The seam is
 // deny-closed: an unhandled object value must NOT grant access.
-describe('hasPermission — async function + structured object (NEW)', () => {
+describe('evaluatePermission — async function + structured object', () => {
   const ctx = createMockContext({ user: createMockUser('user'), permissions: ['read'] })
 
   // The evaluator registry is process-global — isolate each test.
-  beforeEach(() => { getPermissionEvaluators().splice(0) })
+  beforeEach(() => {
+    getPermissionEvaluators().splice(0)
+  })
 
   it('still resolves wildcard / string / array forms', async () => {
     expect(await hasPermission(['*'], 'anything', ctx)).toBe(true)
@@ -47,7 +53,9 @@ describe('hasPermission — async function + structured object (NEW)', () => {
 
 describe('resolveObjectPermission — evaluator chain', () => {
   const ctx = createMockContext({ user: createMockUser('user') })
-  beforeEach(() => { getPermissionEvaluators().splice(0) })
+  beforeEach(() => {
+    getPermissionEvaluators().splice(0)
+  })
 
   it('uses the FIRST evaluator that returns a boolean (undefined = pass to next)', async () => {
     const a = vi.fn(async () => undefined) // not mine

@@ -17,3 +17,24 @@ export { useM2MSync } from './composables/useM2MSync'
 export { useM2MBatchSync } from './composables/useM2MBatchSync'
 export { useAutoApiToast } from './composables/useAutoApiToast'
 export { useAutoApiEndpointMutation, useAutoApiEndpointQuery } from './composables/useAutoApiEndpoint'
+export { invalidateAutoApiResource } from './composables/useAutoApiMutation'
+export { useAutoApiPath } from './composables/autoApiPath'
+
+// Types the composables return — exported here so consumers (and their declaration emit) can name them.
+export type { ListQueryParams, ListResponse, GetResponse } from './composables/useAutoApiQuery'
+export type { AggregateOptions, AggregateResponse } from './composables/useAutoApiAggregate'
+export type { AutoApiMutationOptions } from './composables/mutationHandlers'
+export type {
+  PermissionCheckResult,
+  PermissionQueryResponse,
+  BulkOperationResponse,
+  M2MListQuery,
+  M2MListResponse,
+  M2MOperationResponse,
+  M2MAddRequest,
+  M2MRemoveRequest,
+  M2MSyncRequest,
+  M2MBatchSyncRequest,
+  M2MBatchSyncResponse,
+} from './types'
+export type { AutoApiToastOptions, ToastProvider } from './types/toast'

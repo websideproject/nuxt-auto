@@ -55,7 +55,9 @@ function wirePlugin(opts: any = {}) {
   }
   const plugin = createCachePlugin(opts)
   ;(plugin as any).runtimeSetup(ctx)
-  const callHook = async (name: string, ...args: any[]) => { for (const h of hooks) if (h[name]) await h[name](...args) }
+  const callHook = async (name: string, ...args: any[]) => {
+    for (const h of hooks) if (h[name]) await h[name](...args)
+  }
   return { plugin, middlewares, callHook }
 }
 

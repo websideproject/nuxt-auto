@@ -30,6 +30,7 @@ const mockAdapter = {
   getMutationCount: vi.fn(),
   supportsReturning: true,
   supportsNativeBatch: false,
+  supportsTransactions: true,
 }
 
 vi.mock('../../../src/runtime/server/database', () => ({
@@ -87,7 +88,9 @@ describe('helpers', () => {
 
     it('should run context extenders', async () => {
       const { getContextExtenders } = await import('../../../src/runtime/server/plugins/pluginRegistry')
-      const extender = vi.fn(async (ctx: any) => { ctx.customField = 'added' })
+      const extender = vi.fn(async (ctx: any) => {
+        ctx.customField = 'added'
+      })
       vi.mocked(getContextExtenders).mockReturnValueOnce([extender])
 
       const mockEvent = { context: {} } as any

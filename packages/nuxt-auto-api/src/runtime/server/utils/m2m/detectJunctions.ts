@@ -98,7 +98,7 @@ function analyzeTableAsJunction(
 
     // Check if table has a standalone 'id' column
     // Junction tables typically don't have their own ID
-    const hasStandaloneId = columnEntries.some(([name, col]: [string, any]) => {
+    const hasStandaloneId = columnEntries.some(([name]: [string, any]) => {
       return name === 'id' || name === 'ID'
     })
 
@@ -114,7 +114,7 @@ function analyzeTableAsJunction(
 
     if (fkColumnsFromReferences.length === 2) {
       // Extract resource names from Drizzle references
-      const [leftColEntry, rightColEntry] = fkColumnsFromReferences
+      const [leftColEntry, rightColEntry] = fkColumnsFromReferences as [[string, any], [string, any]]
       const [leftCol, leftColData] = leftColEntry
       const [rightCol, rightColData] = rightColEntry
 
@@ -149,8 +149,7 @@ function analyzeTableAsJunction(
       return null
     }
 
-    const [leftCol] = potentialFKColumns[0]
-    const [rightCol] = potentialFKColumns[1]
+    const [[leftCol], [rightCol]] = potentialFKColumns as [[string, unknown], [string, unknown]]
 
     // Extract resource names from foreign key columns
     const leftResourceBase = extractResourceFromColumn(leftCol)
@@ -188,7 +187,7 @@ function analyzeTableAsJunction(
       table,
     }
   }
-  catch (error) {
+  catch {
     // If analysis fails, it's not a valid junction table
     return null
   }
@@ -230,14 +229,14 @@ function extractTargetFromReference(
           return resourceName
         }
       }
-      catch (e) {
+      catch {
         // getTableName might fail on some table types
       }
     }
 
     return null
   }
-  catch (error) {
+  catch {
     return null
   }
 }
@@ -362,7 +361,7 @@ function generateResourceVariations(baseResource: string): string[] {
   if (baseResource.endsWith('y') && baseResource.length > 1) {
     const prevChar = baseResource[baseResource.length - 2]
     // Only if 'y' is preceded by a consonant
-    if (!'aeiou'.includes(prevChar.toLowerCase())) {
+    if (prevChar && !'aeiou'.includes(prevChar.toLowerCase())) {
       variations.push(baseResource.slice(0, -1) + 'ies')
     }
   }

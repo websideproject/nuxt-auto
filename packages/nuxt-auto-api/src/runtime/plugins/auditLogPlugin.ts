@@ -33,7 +33,7 @@ function stripFields(obj: any, fields: string[]): any {
   if (!obj || typeof obj !== 'object') return obj
   const result = { ...obj }
   for (const field of fields) {
-    delete result[field]
+    Reflect.deleteProperty(result, field)
   }
   return result
 }

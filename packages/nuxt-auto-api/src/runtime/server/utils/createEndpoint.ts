@@ -1,14 +1,14 @@
 import type { H3Event, EventHandler } from 'h3'
 import { defineEventHandler, readBody, getQuery, createError } from 'h3'
-import { useRuntimeConfig } from 'nitropack/runtime'
-import { createContextFromRegistry } from '../handlers/createContextFromRegistry'
+import { createCallerContext, createContextFromRegistry } from '../handlers/createContextFromRegistry'
 import { getDatabaseAdapter } from '../database'
-import { getContextExtenders, getMiddlewareForStage } from '../plugins/pluginRegistry'
+import { getMiddlewareForStage } from '../plugins/pluginRegistry'
 import { serializeResponse } from './serializeResponse'
 import type { EndpointOptions, EndpointContext } from '../../types/endpoint'
 import type { HandlerContext } from '../../types'
 import type { MiddlewareStage } from '../../types/plugin'
-import { hasPermission } from '../middleware/authz'
+import { permissionKeyFor } from '../middleware/authz'
+import { evaluatePermission } from './permissions'
 
 /**
  * Create a custom API endpoint with the full auto-api pipeline.
@@ -55,18 +55,17 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       await runMiddleware('pre-auth')
 
       if (!options.skipAuthorization) {
-        // When a named custom gate exists it fully replaces the base collection-level check.
-        // This lets individual endpoints open operations that are otherwise locked at the
-        // resource level (e.g. create: () => false on a resource that exposes a /checkout action).
+        // A named custom gate (`authorization.custom[endpointName]`) decides the operations it declares —
+        // which lets one endpoint open an operation the resource keeps closed (e.g. `create: false` on a
+        // resource that exposes a /checkout action). An operation the gate does NOT declare falls back to
+        // the resource's own gate, never to "allowed".
         const customGate = options.endpointName
           ? result.effectiveAuth?.custom?.[options.endpointName]?.permissions
           : undefined
+        const customPerm = (customGate as any)?.[permissionKeyFor(context.operation)]
 
-        if (customGate) {
-          const op = context.operation as string
-          const permKey = (op === 'list' || op === 'get' || op === 'read') ? 'read' : op
-          const customPerm = (customGate as any)[permKey]
-          if (customPerm !== undefined && !await hasPermission(context.permissions, customPerm, context)) {
+        if (customPerm !== undefined) {
+          if (!await evaluatePermission(customPerm, context)) {
             throw createError({
               statusCode: context.user ? 403 : 401,
               message: context.user ? 'Forbidden' : 'Authentication required',
@@ -74,7 +73,6 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
           }
         }
         else {
-          // No custom gate — run the base collection-level gate
           await result.authorize(context)
         }
       }
@@ -86,40 +84,10 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       }
     }
     else {
-      // Standalone endpoint: lightweight context
-      let adapter
-      let db
-      try {
-        adapter = getDatabaseAdapter()
-        db = adapter.db
-      }
-      catch {
-        db = (globalThis as any).__autoApiDb
-      }
-
-      const user = (event.context as any).user || null
-      const permissions = (event.context as any).permissions || user?.permissions || []
-
-      context = {
-        db,
-        adapter,
-        schema: {},
-        user,
-        permissions,
-        params: (event.context as any).params || {},
-        query: getQuery(event) as Record<string, any>,
-        validated: {},
-        event,
-        runtimeConfig: useRuntimeConfig(),
-        resource: '',
-        operation: options.operation || inferOperation(event),
-      }
-
-      // Run context extenders
-      const extenders = getContextExtenders()
-      for (const ext of extenders) {
-        await ext(context)
-      }
+      // Standalone endpoint (no `resource`): the caller is resolved (context extenders ran) but NOTHING is
+      // authorized for you — gate it with `authorize`, or inside the handler. `ctx.schema` holds every
+      // registered table.
+      context = await createCallerContext(event, options.operation || inferOperation(event))
 
       // Create runMiddleware for standalone
       runMiddleware = async (stage: MiddlewareStage) => {

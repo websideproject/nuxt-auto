@@ -1,5 +1,5 @@
 import { createError } from 'h3'
-import type { M2MValidationResult, M2MSyncRequest, M2MAddRequest, M2MRemoveRequest, DetectedJunction } from '../../../types'
+import type { M2MValidationResult, M2MSyncRequest, M2MRemoveRequest, DetectedJunction } from '../../../types'
 
 /**
  * Validate M2M sync request
@@ -125,7 +125,7 @@ export function validateMetadata(
 
   // Check each metadata object
   for (let i = 0; i < metadata.length; i++) {
-    const meta = metadata[i]
+    const meta = metadata[i] ?? {}
     const invalidColumns = Object.keys(meta).filter(
       key => !validColumns.includes(key),
     )

@@ -15,6 +15,7 @@ export function createMysqlAdapter(db: any): DatabaseAdapter {
       return result?.affectedRows ?? 0
     },
     supportsReturning: false,
+    supportsTransactions: true,
     supportsNativeBatch: false,
   }
 }

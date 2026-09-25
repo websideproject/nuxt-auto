@@ -109,7 +109,7 @@ export async function filterReadableFields<T = any>(data: T | T[], context: Hand
   const strip = (row: any) => {
     if (!row || typeof row !== 'object') return row
     const out: any = { ...row }
-    for (const f of denied) delete out[f]
+    for (const f of denied) Reflect.deleteProperty(out, f)
     return out
   }
   return Array.isArray(data) ? (data.map(strip) as T[]) : (strip(data) as T)

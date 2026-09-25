@@ -87,13 +87,10 @@ interface RateLimitEntry {
  * Replaces the previous inline `Map` with identical semantics, plus self-cleanup.
  */
 export class InMemoryRateLimitStore implements RateLimitStore {
+  // No periodic cleanup timer: Cloudflare Workers disallow setInterval/setTimeout in global scope, and this
+  // store can be constructed at plugin setup (isolate init). Entries reset lazily in increment(); stale keys
+  // are swept there opportunistically once the store grows large.
   private store = new Map<string, RateLimitEntry>()
-
-  constructor() {
-    // No periodic timer: Cloudflare Workers disallow setInterval/setTimeout in global scope, and
-    // this store can be constructed at plugin-setup (isolate init). Entries reset lazily in
-    // increment(); stale keys are swept there opportunistically once the store grows large.
-  }
 
   async increment(key: string, windowMs: number): Promise<{ count: number, resetAt: number }> {
     const now = Date.now()

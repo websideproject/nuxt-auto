@@ -118,9 +118,9 @@ describe('schema presets — liveUnique', () => {
       ...sd.columns,
     }, tbl => [sqlitePresets.liveUnique(tbl, tbl.slug, 'articles_slug_live')])
     const idx = getSqliteConfig(t).indexes[0]
-    expect(idx.config.name).toBe('articles_slug_live_uq')
-    expect(idx.config.unique).toBe(true)
-    expect(idx.config.where).toBeDefined() // partial — WHERE deleted_at IS NULL
+    expect(idx!.config.name).toBe('articles_slug_live_uq')
+    expect(idx!.config.unique).toBe(true)
+    expect(idx!.config.where).toBeDefined() // partial — WHERE deleted_at IS NULL
   })
 
   // OUT-7. This took a single column and forwarded it straight to `.on()`, so an ARRAY (the obvious way
@@ -136,9 +136,9 @@ describe('schema presets — liveUnique', () => {
       ...sd.columns,
     }, tbl => [sqlitePresets.liveUnique(tbl, [tbl.orgId, tbl.slug], 'posts_org_slug_live')])
     const idx = getSqliteConfig(t).indexes[0]
-    expect(idx.config.name).toBe('posts_org_slug_live_uq')
-    expect(idx.config.columns.map((c: any) => c.name)).toEqual(['org_id', 'slug'])
-    expect(idx.config.where).toBeDefined()
+    expect(idx!.config.name).toBe('posts_org_slug_live_uq')
+    expect(idx!.config.columns.map((c: any) => c.name)).toEqual(['org_id', 'slug'])
+    expect(idx!.config.where).toBeDefined()
   })
 
   it('sqlite liveUnique throws on a missing column instead of emitting `ON table ()`', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createRequestMetadataPlugin } from '../../../src/runtime/plugins/requestMetadataPlugin'
 import type { HandlerContext } from '../../../src/runtime/types'
 import type { PluginRuntimeContext } from '../../../src/runtime/types/plugin'
@@ -54,7 +54,7 @@ describe('requestMetadataPlugin', () => {
       await plugin.runtimeSetup!(ctx)
 
       // Get the extender function
-      const extender = extendContextFn.mock.calls[0][0]
+      const extender = extendContextFn.mock.calls[0]![0]
 
       const mockContext = {
         event: createMockEvent({
@@ -89,7 +89,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const extender = extendContextFn.mock.calls[0][0]
+      const extender = extendContextFn.mock.calls[0]![0]
 
       const mockContext = {
         event: createMockEvent({
@@ -114,7 +114,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const extender = extendContextFn.mock.calls[0][0]
+      const extender = extendContextFn.mock.calls[0]![0]
       const mockContext = {
         event: createMockEvent(),
       } as unknown as HandlerContext
@@ -136,7 +136,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const extender = extendContextFn.mock.calls[0][0]
+      const extender = extendContextFn.mock.calls[0]![0]
       const mockContext = {
         event: createMockEvent(),
       } as unknown as HandlerContext
@@ -182,7 +182,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -211,7 +211,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -237,7 +237,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -261,7 +261,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -285,7 +285,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
 
       expect(hooks).toHaveProperty('beforeCreate')
       expect(hooks).toHaveProperty('beforeUpdate')
@@ -303,7 +303,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -334,7 +334,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -362,7 +362,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -389,7 +389,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -415,7 +415,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -445,7 +445,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -479,7 +479,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -507,7 +507,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeCreate = hooks.beforeCreate
 
       const mockContext = {
@@ -535,7 +535,7 @@ describe('requestMetadataPlugin', () => {
 
       await plugin.runtimeSetup!(ctx)
 
-      const hooks = addGlobalHookFn.mock.calls[0][0]
+      const hooks = addGlobalHookFn.mock.calls[0]![0]
       const beforeUpdate = hooks.beforeUpdate
 
       const mockContext = {

@@ -378,11 +378,9 @@ async function submitForm() {
       // Update existing post
       await updatePost({
         id: editingPost.value.id,
-        data: {
-          title: formData.title,
-          content: formData.content,
-          published: formData.published
-        }
+        title: formData.title,
+        content: formData.content,
+        published: formData.published
       })
     } else {
       // Create new post

@@ -1,6 +1,9 @@
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { defineEventHandler, getRouterParam, createError } from 'h3'
 import { getM2MRelationshipsForResource } from '../../utils/m2m/detectJunctions'
+import { createCallerContext } from '../createContextFromRegistry'
+import { getAuthConfig } from '../../utils/authConfig'
+import { assertPermission } from '../../utils/permissions'
 
 /**
  * Detect M2M relationships for a resource
@@ -20,15 +23,20 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get runtime config for M2M configuration
-  const config = useRuntimeConfig(event)
-  const m2mConfig = config.autoApi?.m2m
+  // Discovery reveals schema structure: only for callers who may read the resource.
+  const caller = await createCallerContext(event)
+  if (!caller.registry?.[resourceName]) throw createError({ statusCode: 404, message: `Resource "${resourceName}" not found` })
+  const target = { ...caller, resource: resourceName }
+  await assertPermission('read', getAuthConfig(target, resourceName), target, resourceName)
+
+  const m2mConfig = (useRuntimeConfig(event) as any).autoApi?.m2m
 
   // Get registry and schema
   const { registry } = await import('#nuxt-auto-api-registry') as any
 
   // Build schema from registry
   const schema: Record<string, any> = {}
-  for (const [name, config] of Object.entries(registry)) {
+  for (const [name, config] of Object.entries(registry as Record<string, any>)) {
     schema[name] = config.schema
   }
 
@@ -42,7 +50,7 @@ export default defineEventHandler(async (event) => {
   const relationships: any[] = []
 
   // Add explicitly configured relations
-  for (const [relationName, relationConfig] of Object.entries(resourceM2MConfig)) {
+  for (const [relationName, relationConfig] of Object.entries(resourceM2MConfig as Record<string, any>)) {
     relationships.push({
       relatedResource: relationName,
       junction: {

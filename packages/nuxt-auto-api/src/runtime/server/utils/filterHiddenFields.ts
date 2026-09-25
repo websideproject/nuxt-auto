@@ -8,7 +8,7 @@ import type { HandlerContext } from '../../types'
  */
 export function getHiddenFields(context: HandlerContext, includeAllResources = true): string[] {
   const hiddenFields = new Set<string>()
-  const runtimeConfig = useRuntimeConfig?.()
+  const runtimeConfig: any = context.runtimeConfig ?? useRuntimeConfig?.()
 
   // Global hidden fields (from config)
   const globalFields = runtimeConfig?.autoApi?.hiddenFields?.global

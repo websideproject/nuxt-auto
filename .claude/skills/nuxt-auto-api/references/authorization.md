@@ -11,6 +11,48 @@ Authorization is configured per-resource via the `authorization` field in `regis
 
 ---
 
+## Wiring the caller (better-auth)
+
+auto-api authenticates nobody: a context extender sets `ctx.user` / `ctx.permissions`. With better-auth:
+
+```ts
+// server/autoapi-plugins.ts   (nuxt.config: autoApi.plugins: '~/server/autoapi-plugins')
+import { createBetterAuthPlugin } from '@websideproject/nuxt-auto-api/plugins'
+export default [
+  createBetterAuthPlugin({
+    getSession: event => serverAuth().api.getSession({ headers: event.headers }),
+    // both receive (user, session) — the org plugin's activeOrganizationId is on the SESSION
+    mapUser: (u, s) => ({ id: u.id, email: u.email, roles: [u.role], orgRole: u.orgRole, organizationId: s?.activeOrganizationId ?? null }),
+    getPermissions: u => ROLE_PERMISSIONS[u.role] ?? [],   // permission STRINGS match ctx.permissions
+  }),
+]
+```
+
+Default (no mapUser): `{ id, email, roles, permissions, organizationId: session.activeOrganizationId }`. A custom
+`mapUser` MUST copy `organizationId` or every tenant-scoped request is 403. Member role (`owner/admin/member`) is on
+better-auth's `member` row: `auth.api.getActiveMember({ headers })` per request, or cache a `{orgId: role}` map on
+the user (`additionalFields`) and read it in `mapUser` (zero queries).
+
+## Declarative policies (permission objects)
+
+A permission may be a plain object; a registered evaluator decides it (return `undefined` = "not mine"; unclaimed =
+DENIED). Same object can drive server, `/api/permissions` and UI:
+
+```ts
+// server/plugins/policy.ts
+import { registerPermissionEvaluator } from '@websideproject/nuxt-auto-api/plugins'
+export default defineNitroPlugin(() => {
+  registerPermissionEvaluator((value, ctx) => isPolicy(value) ? evaluatePolicy(value, factsFrom(ctx)) : undefined)
+})
+// auth.ts:  create: { orgRoles: ['owner', 'admin'], feature: 'reports' }
+```
+
+Plan gating: load the subscription in a context extender into `ctx.requestMeta.billing` (features, limits); gate with
+`create: ctx => ctx.requestMeta?.billing?.features.includes('x')`; quotas in a `beforeCreate` hook that counts rows and
+throws `createError({ statusCode: 402, data: { reason: 'quota' } })` (a hook's status is kept).
+
+---
+
 ## `ResourceAuthConfig`
 
 ```ts
@@ -206,15 +248,15 @@ entitlement-gate objects work too). Optional typed `softDelete{}` block is the a
 export const articlesAuth: ResourceAuthConfig = {
   permissions: {
     update: 'editor',
-    restore: 'editor',       // POST /:id/restore (+ batch)   — falls back: restore → softDelete.restore → update → 'admin'
-    purge: 'admin',          // DELETE /:id?force=true (+ batch) — purge → softDelete.purge → delete → 'admin'
-    viewDeleted: 'editor',   // ?includeDeleted / ?onlyDeleted  — else global admin OR org admin/owner
+    restore: 'editor',       // POST /:id/restore (+ batch)   — falls back: restore → softDelete.restore → update
+    purge: 'admin',          // DELETE /:id?force=true (+ batch) — purge → softDelete.purge → delete
+    viewDeleted: 'editor',   // ?includeDeleted / ?onlyDeleted  — viewDeleted → softDelete.viewDeleted → restore
   },
   softDelete: { restore: 'editor', purge: 'admin', viewDeleted: 'editor', cascade: 'auto', retentionDays: 30 },
 }
 ```
 
-Defaults never fail-open (unconfigured restore/purge require `admin`). Registry-loaded `auth.ts` reads
+Nothing declared on the chain → **denied** (a `'*'` super-admin still passes); there is no hardcoded `admin` role. Registry-loaded `auth.ts` reads
 config from **`ctx.runtimeConfig`**, never a bare `useRuntimeConfig()` (see module-authoring).
 
 ### Object-level authorization (post-fetch)
@@ -322,16 +364,24 @@ Permission key is inferred from `operation` (`'get'`/`'list'` → `'read'`, othe
 
 ## M2M Permission Config
 
+Base rule (no config needed): list = `read` on both resources; sync/add/remove/batch = `update` on this resource +
+`read` on the related one, parent row visible, every linked id a visible related row (else 404). Tighten on the
+LEFT resource — keys are RELATION names (the `:relation` segment = the related resource's registered name):
+
 ```ts
 permissions: {
-  m2m?: {
-    read?: PermissionRule
-    sync?: PermissionRule    // POST /:id/relations/:rel
-    add?: PermissionRule     // POST /:id/relations/:rel/add
-    remove?: PermissionRule  // DELETE /:id/relations/:rel/remove
+  update: 'posts:write',
+  m2m: {
+    requireUpdateOnRelated?: string[]   // relations that need `update` (not read) on the related resource
+    requireUpdateToLink?: boolean       // …for every relation
+    relations?: {
+      [relation: string]: { check: (m2mCtx) => boolean | Promise<boolean> }  // m2mCtx: { left, right: { ids, records }, operation, user, junction }
+    }
   }
 }
 ```
+
+There are NO `m2m.read/sync/add/remove` keys — they never existed at runtime.
 
 ---
 

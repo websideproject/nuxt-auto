@@ -5,7 +5,6 @@ import {
   addImportsDir,
   addTemplate,
   addLayout,
-  addServerHandler,
 } from '@nuxt/kit'
 import type { ModuleOptions } from './runtime/types'
 import type { BuildTimeRegistry } from '@websideproject/nuxt-auto-api'
@@ -165,12 +164,9 @@ export default defineNuxtModule<ModuleOptions>({
       dirs.push(resolver.resolve('./runtime/middleware'))
     })
 
-    // Register server API routes
-    addServerHandler({
-      route: '/api/admin/m2m/sync',
-      handler: resolver.resolve('./runtime/server/api/admin/m2m/sync.post'),
-      method: 'post',
-    })
+    // (The deprecated POST /api/admin/m2m/sync route was removed: it wrote arbitrary junction rows into any
+    // registered table with no authentication. M2M writes go through nuxt-auto-api's authorized
+    // /api/{resource}/:id/relations/:relation routes.)
 
     console.log('[nuxt-auto-admin] ✓ Module setup complete')
   },

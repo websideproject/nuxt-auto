@@ -318,12 +318,10 @@ async function submitForm() {
       // Update existing article
       await updateArticle({
         id: editingArticle.value.id,
-        data: {
-          title: formData.title,
-          slug: formData.slug,
-          content: formData.content,
-          published: formData.published
-        }
+        title: formData.title,
+        slug: formData.slug,
+        content: formData.content,
+        published: formData.published
       })
     } else {
       // Create new article

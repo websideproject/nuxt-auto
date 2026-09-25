@@ -1,63 +1,25 @@
 import type { H3Event } from 'h3'
 import { getResourcePermissions } from '../utils/permissions'
-import { getContextExtenders } from '../plugins/pluginRegistry'
-import type { HandlerContext } from '../../types'
+import { getAuthConfig } from '../utils/authConfig'
+import { contextFor } from '../utils/rowAccess'
+import { createCallerContext } from './createContextFromRegistry'
 
 /**
- * Handler to get permission information for ALL resources
- * More efficient than querying each resource individually
+ * GET /api/permissions — what the caller may do on every resource, in one request.
  */
 export async function allPermissionsHandler(event: H3Event) {
-  const { getAllResources } = await import('#nuxt-auto-api-registry')
-  const resources = getAllResources()
+  const caller = await createCallerContext(event)
+  const permissions: Record<string, any> = {}
 
-  // Build a shared base context and run extendContext plugins once.
-  // This mirrors what createContextFromRegistry does for per-resource endpoints,
-  // ensuring requestMeta (orgRole, billing, etc.) is populated before any
-  // permission check runs.
-  const sharedContext: HandlerContext = {
-    user: (event.context as any).user || null,
-    permissions: (event.context as any).permissions || [],
-    resource: '',
-    operation: 'list' as const,
-    params: {},
-    query: {},
-    validated: {},
-    event,
-    db: null as any,
-    schema: null as any,
-  }
-
-  const extenders = getContextExtenders()
-  for (const extender of extenders) {
-    await extender(sharedContext)
-  }
-
-  const allPermissions: Record<string, any> = {}
-
-  for (const resource of resources) {
-    // Reuse the enriched shared context — swap only the resource name.
-    const context = { ...sharedContext, resource: resource.name }
-
+  for (const resource of Object.keys(caller.registry ?? {})) {
+    const context = contextFor({ ...caller, resource: '' }, resource)
     try {
-      const permissions = await getResourcePermissions(
-        resource.authorization,
-        context as any,
-      )
-      allPermissions[resource.name] = permissions
+      permissions[resource] = await getResourcePermissions(getAuthConfig(context, resource), context)
     }
-    catch {
-      allPermissions[resource.name] = {
-        canCreate: false,
-        canRead: false,
-        canUpdate: false,
-        canDelete: false,
-      }
+    catch (error) {
+      console.error(`[nuxt-auto-api] permission check failed for "${resource}":`, error)
+      permissions[resource] = { canCreate: false, canRead: false, canUpdate: false, canDelete: false, canRestore: false, canPurge: false, canViewDeleted: false }
     }
   }
-
-  return {
-    user: sharedContext.user || null,
-    permissions: allPermissions,
-  }
+  return { user: caller.user || null, permissions }
 }

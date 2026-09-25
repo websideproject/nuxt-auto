@@ -1,320 +1,133 @@
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { count, sum, avg, min, max, sql, and } from 'drizzle-orm'
-import type { AggregationQuery, AggregationFunction } from '../../types'
-import { buildWhereClause } from './buildWhereClause'
+import { createError } from 'h3'
+import type { AggregationQuery, AggregationFunction, HandlerContext } from '../../types'
+
+const FUNCTIONS: AggregationFunction[] = ['count', 'sum', 'avg', 'min', 'max']
+
+function bad(message: string): never {
+  throw createError({ statusCode: 400, message })
+}
 
 /**
- * Parse aggregation query parameter
- *
- * Syntax examples:
- * - aggregate=count
- * - aggregate=sum(amount)
- * - aggregate=avg(price),count
- * - aggregate=sum(amount),avg(amount),min(amount),max(amount)
+ * Parse `?aggregate=` — `count`, `sum(amount)`, `avg(price),count`, … Results are keyed `count` and
+ * `<fn>_<field>` (e.g. `sum_amount`). Anything else is a 400.
  */
 export function parseAggregateParam(aggregateParam: string): AggregationQuery['aggregates'] {
-  const parts = aggregateParam.split(',').map(p => p.trim())
   const aggregates: AggregationQuery['aggregates'] = []
-
-  for (const part of parts) {
-    // Match function(field) or just function
-    const match = part.match(/^(\w+)(?:\(([^)]+)\))?$/)
-
-    if (!match) {
-      console.warn(`[autoApi] Invalid aggregate syntax: ${part}`)
-      continue
-    }
-
-    const [, func, field] = match
-    const funcName = func.toLowerCase() as AggregationFunction
-
-    // Validate function name
-    if (!['count', 'sum', 'avg', 'min', 'max'].includes(funcName)) {
-      console.warn(`[autoApi] Unknown aggregation function: ${funcName}`)
-      continue
-    }
-
-    // Count doesn't require a field
-    if (funcName === 'count') {
-      aggregates.push({
-        function: 'count',
-        field: field || '*',
-        alias: 'count',
-      })
+  for (const part of aggregateParam.split(',').map(p => p.trim()).filter(Boolean)) {
+    const match = /^(\w+)(?:\(\s*([\w$]+|\*)\s*\))?$/.exec(part)
+    if (!match) bad(`Invalid aggregate '${part}'`)
+    const fn = match[1]!.toLowerCase() as AggregationFunction
+    const field = match[2]
+    if (!FUNCTIONS.includes(fn)) bad(`Unknown aggregate function '${match[1]}'`)
+    if (fn === 'count') {
+      aggregates.push({ function: 'count', field: field && field !== '*' ? field : '*', alias: field && field !== '*' ? `count_${field}` : 'count' })
     }
     else {
-      if (!field) {
-        console.warn(`[autoApi] Aggregation function ${funcName} requires a field`)
-        continue
-      }
-      aggregates.push({
-        function: funcName,
-        field,
-        alias: `${funcName}_${field}`,
-      })
+      if (!field || field === '*') bad(`Aggregate function '${fn}' needs a field`)
+      aggregates.push({ function: fn, field, alias: `${fn}_${field}` })
     }
   }
-
+  if (aggregates.length === 0) bad('At least one aggregate function is required')
   return aggregates
 }
 
-/**
- * Build Drizzle aggregation selection object
- */
-export function buildAggregateSelection(
-  aggregates: AggregationQuery['aggregates'],
-  table: any,
-): Record<string, any> {
+/** Drizzle selection for the aggregates (fields must already be validated as readable columns). */
+export function buildAggregateSelection(aggregates: AggregationQuery['aggregates'], table: any): Record<string, any> {
   const selection: Record<string, any> = {}
-
-  for (const agg of aggregates) {
-    const { function: func, field, alias } = agg
-
-    switch (func) {
+  for (const { function: fn, field, alias } of aggregates) {
+    const column = field && field !== '*' ? table[field] : undefined
+    if (field && field !== '*' && !column) bad(`Unknown field '${field}' in aggregate`)
+    const key = alias || fn
+    switch (fn) {
       case 'count':
-        selection[alias || 'count'] = count()
+        selection[key] = column ? count(column) : count()
         break
       case 'sum':
-        if (field && table[field]) {
-          selection[alias || `sum_${field}`] = sum(table[field])
-        }
+        selection[key] = sum(column)
         break
       case 'avg':
-        if (field && table[field]) {
-          selection[alias || `avg_${field}`] = avg(table[field])
-        }
+        selection[key] = avg(column)
         break
       case 'min':
-        if (field && table[field]) {
-          selection[alias || `min_${field}`] = min(table[field])
-        }
+        selection[key] = min(column)
         break
       case 'max':
-        if (field && table[field]) {
-          selection[alias || `max_${field}`] = max(table[field])
-        }
+        selection[key] = max(column)
         break
     }
   }
-
   return selection
 }
 
-/**
- * Build groupBy array from field names
- */
-export function buildGroupBy(
-  groupByFields: string | string[] | undefined,
-  table: any,
-): any[] | undefined {
-  if (!groupByFields) {
-    return undefined
-  }
-
-  const fields = Array.isArray(groupByFields)
-    ? groupByFields
-    : String(groupByFields).split(',').map(f => f.trim())
-
-  const groupBy: any[] = []
-
-  for (const field of fields) {
-    if (table[field]) {
-      groupBy.push(table[field])
-    }
-    else {
-      console.warn(`[autoApi] Unknown field in groupBy: ${field}`)
-    }
-  }
-
-  return groupBy.length > 0 ? groupBy : undefined
-}
+const HAVING_OPS: Record<string, string> = { $gt: '>', $gte: '>=', $lt: '<', $lte: '<=', $eq: '=', $ne: '<>' }
 
 /**
- * Build having clause for group filtering
- *
- * Example: having={count:{$gt:5}}
+ * `?having={"count":{"$gt":5}}` — conditions on the aggregate results (by alias).
  */
-export function buildHavingClause(
-  havingParam: Record<string, any> | undefined,
-  aggregateSelection: Record<string, any>,
-): any | undefined {
-  if (!havingParam) {
-    return undefined
-  }
-
-  // For now, build a simple SQL having clause
-  // This is simplified - in production you'd want more robust parsing
+export function buildHavingClause(having: Record<string, any> | undefined, selection: Record<string, any>): any | undefined {
+  if (!having) return undefined
+  if (typeof having !== 'object' || Array.isArray(having)) bad('having must be a JSON object')
   const conditions: any[] = []
-
-  for (const [field, condition] of Object.entries(havingParam)) {
-    const aggColumn = aggregateSelection[field]
-    if (!aggColumn) {
-      console.warn(`[autoApi] Unknown aggregate in having: ${field}`)
-      continue
-    }
-
-    // Handle operators: $gt, $gte, $lt, $lte, $eq, $ne
-    if (typeof condition === 'object') {
-      for (const [op, value] of Object.entries(condition)) {
-        switch (op) {
-          case '$gt':
-            conditions.push(sql`${aggColumn} > ${value}`)
-            break
-          case '$gte':
-            conditions.push(sql`${aggColumn} >= ${value}`)
-            break
-          case '$lt':
-            conditions.push(sql`${aggColumn} < ${value}`)
-            break
-          case '$lte':
-            conditions.push(sql`${aggColumn} <= ${value}`)
-            break
-          case '$eq':
-            conditions.push(sql`${aggColumn} = ${value}`)
-            break
-          case '$ne':
-            conditions.push(sql`${aggColumn} != ${value}`)
-            break
-        }
-      }
-    }
-    else {
-      // Direct equality
-      conditions.push(sql`${aggColumn} = ${condition}`)
+  for (const [alias, condition] of Object.entries(having)) {
+    const expr = selection[alias]
+    if (!expr) bad(`Unknown aggregate '${alias}' in having`)
+    const entries = condition !== null && typeof condition === 'object' ? Object.entries(condition) : [['$eq', condition]]
+    for (const [op, value] of entries) {
+      const symbol = HAVING_OPS[op as string]
+      if (!symbol) bad(`Unknown having operator '${op}'`)
+      if (typeof value !== 'number' && typeof value !== 'string') bad(`having '${alias}.${op}' needs a number or string`)
+      conditions.push(sql`${expr} ${sql.raw(symbol)} ${value}`)
     }
   }
+  return conditions.length === 0 ? undefined : conditions.length === 1 ? conditions[0] : and(...conditions)
+}
 
-  if (conditions.length === 0) {
-    return undefined
-  }
-
-  // Combine conditions with AND
-  return conditions.reduce((acc, curr) => {
-    return acc ? sql`${acc} AND ${curr}` : curr
-  })
+/** One-row aggregation over `where` (used by `GET /api/{resource}?aggregate=`). */
+export async function executeSimpleAggregation(db: any, table: any, aggregates: AggregationQuery['aggregates'], where?: any): Promise<Record<string, any>> {
+  let query = db.select(buildAggregateSelection(aggregates, table)).from(table)
+  if (where) query = query.where(where)
+  const [row] = await query
+  return row || {}
 }
 
 /**
- * Execute simple aggregation (without groupBy) on a list query
- * Returns aggregate results to be added to response metadata
- */
-export async function executeSimpleAggregation(
-  db: any,
-  table: any,
-  aggregates: AggregationQuery['aggregates'],
-  whereClause?: any,
-): Promise<Record<string, any>> {
-  const selection = buildAggregateSelection(aggregates, table)
-
-  let query = db.select(selection).from(table)
-
-  if (whereClause) {
-    query = query.where(whereClause)
-  }
-
-  const [result] = await query
-
-  return result || {}
-}
-
-/**
- * Execute complex aggregation with groupBy and having
- * Returns array of grouped results
+ * Grouped aggregation. Group columns are returned under their property names.
  */
 export async function executeComplexAggregation(
   db: any,
   table: any,
-  aggregationQuery: AggregationQuery,
-  extraWhere?: any,
+  q: Pick<AggregationQuery, 'aggregates' | 'groupBy' | 'having'>,
+  where?: any,
 ): Promise<any[]> {
-  const { aggregates, groupBy: groupByFields, having, filter } = aggregationQuery
+  const selection = buildAggregateSelection(q.aggregates, table)
+  const groupColumns = (q.groupBy ?? []).map((f) => {
+    if (!table[f]) bad(`Unknown field '${f}' in groupBy`)
+    if (f in selection) bad(`groupBy field '${f}' collides with an aggregate name`)
+    selection[f] = table[f]
+    return table[f]
+  })
 
-  // Build selection (aggregates + group by fields)
-  const selection = buildAggregateSelection(aggregates, table)
-
-  // Add group by fields to selection
-  const groupBy = buildGroupBy(groupByFields, table)
-  if (groupBy) {
-    for (const field of groupBy) {
-      // Get field name from the column object
-      const fieldName = field.name || field.columnName || 'field'
-      selection[fieldName] = field
-    }
-  }
-
-  // Build query
   let query = db.select(selection).from(table)
-
-  // Add where clause from filter, ANDed with any caller-supplied extra condition (e.g. soft-delete).
-  const filterWhere = filter ? buildWhereClause(filter, table) : undefined
-  const conditions = [filterWhere, extraWhere].filter(Boolean)
-  if (conditions.length === 1) query = query.where(conditions[0])
-  else if (conditions.length > 1) query = query.where(and(...conditions))
-
-  // Add group by
-  if (groupBy && groupBy.length > 0) {
-    query = query.groupBy(...groupBy)
-  }
-
-  // Add having clause
-  if (having) {
-    const havingClause = buildHavingClause(having, selection)
-    if (havingClause) {
-      query = query.having(havingClause)
-    }
-  }
-
+  if (where) query = query.where(where)
+  if (groupColumns.length) query = query.groupBy(...groupColumns)
+  const having = buildHavingClause(q.having, selection)
+  if (having) query = query.having(having)
   return await query
 }
 
-/**
- * Validate aggregation configuration
- */
+/** Config limits for aggregations (`autoApi.aggregations`). */
 export function validateAggregation(
   aggregates: AggregationQuery['aggregates'],
-  groupByFields?: string | string[],
+  groupBy?: string[],
+  context?: HandlerContext,
 ): { valid: boolean, error?: string } {
-  const runtimeConfig = useRuntimeConfig?.()
-  const config = runtimeConfig?.autoApi?.aggregations
-
-  // Check if aggregations are enabled
-  if (config?.enabled === false) {
-    return {
-      valid: false,
-      error: 'Aggregations are disabled',
-    }
-  }
-
-  // Check if groupBy is allowed
-  if (groupByFields && config?.allowGroupBy === false) {
-    return {
-      valid: false,
-      error: 'Group by is disabled',
-    }
-  }
-
-  // Check max groupBy fields
-  if (groupByFields) {
-    const fields = Array.isArray(groupByFields)
-      ? groupByFields
-      : String(groupByFields).split(',').map(f => f.trim())
-
-    const maxFields = config?.maxGroupByFields ?? 5
-    if (fields.length > maxFields) {
-      return {
-        valid: false,
-        error: `Group by limited to ${maxFields} fields`,
-      }
-    }
-  }
-
-  // Check if aggregates are provided
-  if (!aggregates || aggregates.length === 0) {
-    return {
-      valid: false,
-      error: 'At least one aggregate function is required',
-    }
-  }
-
+  const config = ((context?.runtimeConfig as any) ?? useRuntimeConfig?.())?.autoApi?.aggregations
+  if (config?.enabled === false) return { valid: false, error: 'Aggregations are disabled' }
+  if (groupBy?.length && config?.allowGroupBy === false) return { valid: false, error: 'Group by is disabled' }
+  const maxFields = config?.maxGroupByFields ?? 5
+  if ((groupBy?.length ?? 0) > maxFields) return { valid: false, error: `Group by is limited to ${maxFields} fields` }
+  if (!aggregates.length) return { valid: false, error: 'At least one aggregate function is required' }
   return { valid: true }
 }

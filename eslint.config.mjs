@@ -16,6 +16,10 @@ export default createConfigForNuxt({
     ],
   },
 })
-  .append(
-    // your custom flat config here...
-  )
+  .append({
+    rules: {
+      // Schema-driven: the runtime handles arbitrary user Drizzle tables, rows and hook payloads, so `any` is
+      // frequently the honest type at those boundaries. Public API types are written out explicitly instead.
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  })

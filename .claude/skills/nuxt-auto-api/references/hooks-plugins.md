@@ -2,7 +2,7 @@
 
 ## Resource Hooks
 
-Lifecycle hooks fire around every CRUD operation. Register via `autoApi.hooks` config or inside a plugin.
+Lifecycle hooks fire around every CRUD operation. Register them on the resource (`hooks: createModuleImport(...)`) or at runtime with `addResourceHook` / a plugin — never in nuxt.config.
 
 ```ts
 interface ResourceHooks {
@@ -100,28 +100,33 @@ export const postsHooks: ResourceHooks = {
 
 `after*` hooks default to `errorHandling: 'log'` — errors are **silently swallowed** and the original unmodified record is returned. If an `after*` hook appears to not run, it is likely throwing. Check server logs. Set `autoApi.hookConfig.errorHandling: 'throw'` during development to surface them.
 
-### Static hook registration (nuxt.config.ts)
+### Runtime hook registration (Nitro plugin)
+
+`autoApi.hooks` in nuxt.config was removed (functions never survive runtimeConfig serialization; setting it fails
+the build). Register on the resource (`hooks: createModuleImport(...)`) or at runtime:
 
 ```ts
-autoApi: {
-  hooks: {
-    posts: {
-      beforeCreate: async (data, ctx) => {
-        data.authorId = ctx.user!.id
-        data.slug = generateSlug(data.title)
-        return data
-      },
-      afterCreate: async (result, ctx) => {
-        await sendNotification(result.id)
-        return result
-      },
-      beforeDelete: async (id, ctx) => {
-        await cleanupPostAssets(id)
-      },
+// server/plugins/post-hooks.ts
+import { addResourceHook } from '@websideproject/nuxt-auto-api/plugins'
+
+export default defineNitroPlugin(() => {
+  addResourceHook('posts', {
+    beforeCreate: async (data, ctx) => {
+      data.slug = generateSlug(data.title)
+      return data
     },
-  },
-}
+    afterCreate: async (result) => {
+      await sendNotification(result.id)
+    },
+    beforeDelete: async (id) => {
+      await cleanupPostAssets(id)
+    },
+  })
+})
 ```
+
+Plugin hooks run before the resource's registered hooks. A hook that throws `createError({ statusCode: 409 })`
+answers 409.
 
 ### Via module registration
 

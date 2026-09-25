@@ -6,11 +6,29 @@
 // log "Duplicated imports …, one ignored" for each. Keeping the barrel a sibling file means the dir
 // scan sees only the leaf source files (no duplicates) while consumers still import from `…/utils`.
 
-/** @deprecated Use `createEndpoint()` instead */
-export { defineAutoApiHandler } from './utils/defineAutoApiHandler'
-export type { AutoApiHandlerOptions } from './utils/defineAutoApiHandler'
+// Permissions — one evaluator, deny by default (see utils/permissions.ts).
+export {
+  evaluatePermission,
+  resolvePermission,
+  checkPermission,
+  assertPermission,
+  checkFieldPermission,
+  getResourcePermissions,
+  assertResourcePermission,
+} from './utils/permissions'
+export type { PermissionOperation } from './utils/permissions'
+export { getAuthConfig, mergeAuthConfig } from './utils/authConfig'
 
-export { checkPermission, checkFieldPermission, getResourcePermissions, assertResourcePermission, evaluatePermission } from './utils/permissions'
+// Row visibility (tenant + listFilter + soft delete + objectLevel) — use these in custom endpoints that read
+// or write a resource's rows, so they apply the same rules as the generated routes.
+export { rowScope, findAuthorizedRow, findAuthorizedRows, passesObjectLevel, contextFor } from './utils/rowAccess'
+export { tenantCondition, resolveTenant, isTenantScoped, tenantWriteField } from './utils/tenant'
+export { readableColumns, hiddenFieldsOf } from './utils/queryFields'
+export { protectedFieldsFor, stripProtectedFields } from './utils/protectedFields'
+export { buildWhereClause, parseFilterParam } from './utils/buildWhereClause'
+export { parseSort, buildOrderBy } from './utils/buildOrderBy'
+export { insertReturning, updateReturning, supportsReturning } from './utils/returning'
+export { primaryKeyName, primaryKeyColumn } from './utils/table'
 
 // Field-level read/write enforcement. The CRUD handlers apply these already; they are exported so a custom
 // endpoint that writes or returns a resource's columns can honour the same `fields[x]` declarations

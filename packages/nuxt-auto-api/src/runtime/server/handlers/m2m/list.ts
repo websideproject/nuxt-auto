@@ -1,199 +1,79 @@
-import { eq } from 'drizzle-orm'
-import { createError } from 'h3'
+import { and, eq, inArray } from 'drizzle-orm'
 import type { HandlerContext, M2MListResponse, M2MListQuery } from '../../../types'
-import { useRuntimeConfig } from 'nitropack/runtime'
-import { detectJunction, validateJunctionConfig } from '../../utils/m2m/detectJunction'
-import { validateResourceExists } from '../../utils/m2m/validateM2M'
-import { buildM2MPermissionContext, checkM2MPermissions } from '../../utils/m2m/permissions'
-import { buildWhereClause } from '../../utils/buildWhereClause'
+import { buildWhereClause, parseFilterParam } from '../../utils/buildWhereClause'
 import { buildOrderBy } from '../../utils/buildOrderBy'
+import { filterFields } from '../../utils/filterFields'
+import { filterHiddenFields } from '../../utils/filterHiddenFields'
+import { filterReadableFields } from '../../utils/fieldPermissions'
+import { readableColumns } from '../../utils/queryFields'
+import { contextFor, passesObjectLevel, rowScope } from '../../utils/rowAccess'
 import { serializeResponse } from '../../utils/serializeResponse'
+import { primaryKeyColumn, primaryKeyName } from '../../utils/table'
+import { m2mPrelude } from './shared'
+
+const truthy = (v: unknown) => v === true || v === 'true' || v === '1'
 
 /**
- * List M2M relations handler
- * GET /api/{resource}/{id}/relations/{relation}
+ * GET /api/{resource}/:id/relations/:relation
+ *
+ * Linked ids (and with `?includeRecords=true` the related rows) — only rows of the related resource the
+ * caller may see. `filter` / `sort` / `fields` apply to the related rows and may only name its readable
+ * columns. `limit` defaults to and is capped by `pagination.maxLimit`.
  */
 export async function m2mListHandler(context: HandlerContext): Promise<M2MListResponse> {
-  const { db, schema, params, query, validated, resource } = context
+  const side = await m2mPrelude(context, 'list')
+  const q = (context.validated.query || context.query) as M2MListQuery & Record<string, any>
+  const { junction, relatedTable, relation } = side
+  const rel = contextFor(context, relation)
 
-  // Get parameters
-  const leftId = params.id
-  const relation = params.relation
+  const maxLimit = (context.runtimeConfig as any)?.autoApi?.pagination?.maxLimit ?? 100
+  const limit = Math.min(Math.max(Number(q.limit) || maxLimit, 1), maxLimit)
+  const offset = Math.max(Number(q.offset) || 0, 0)
 
-  if (!leftId) {
-    throw createError({
-      statusCode: 400,
-      message: 'Resource ID is required',
+  const readable = await readableColumns(context, relation, relatedTable)
+  const conditions: any[] = [
+    inArray(
+      primaryKeyColumn(relatedTable),
+      context.db.select({ id: junction.table[junction.rightKey] }).from(junction.table).where(eq(junction.table[junction.leftKey], side.leftId)),
+    ),
+  ]
+  const scope = rowScope(context, relation, relatedTable)
+  if (scope) conditions.push(scope)
+  const filterWhere = buildWhereClause(parseFilterParam(q.filter), relatedTable, readable)
+  if (filterWhere) conditions.push(filterWhere)
+
+  const orderBy = buildOrderBy(q.sort as any, relatedTable, readable)
+  let query = context.db.select().from(relatedTable).where(and(...conditions))
+  query = query.orderBy(...(orderBy.length ? orderBy : [primaryKeyColumn(relatedTable)]))
+  const fetched: any[] = await query.limit(limit + 1).offset(offset)
+
+  const hasMore = fetched.length > limit
+  const visible: any[] = []
+  for (const row of fetched.slice(0, limit)) {
+    if (await passesObjectLevel(context, relation, row)) visible.push(row)
+  }
+
+  const pk = primaryKeyName(relatedTable)
+  const ids = visible.map(r => r[pk])
+  const response: M2MListResponse = { ids, total: ids.length, meta: { limit, offset, hasMore } }
+
+  if (truthy(q.includeRecords)) {
+    let records: any = filterHiddenFields(visible, rel)
+    records = await filterReadableFields(records, rel)
+    if (q.fields) records = filterFields(records, q.fields as any)
+    response.records = serializeResponse(records)
+  }
+
+  if (truthy(q.includeMetadata) && junction.metadataColumns.length > 0 && ids.length > 0) {
+    const junctionRows: any[] = await context.db.select().from(junction.table).where(and(
+      eq(junction.table[junction.leftKey], side.leftId),
+      inArray(junction.table[junction.rightKey], ids),
+    ))
+    const byId = new Map(junctionRows.map(r => [String(r[junction.rightKey]), r]))
+    response.metadata = ids.map((id) => {
+      const row = byId.get(String(id)) ?? {}
+      return Object.fromEntries(junction.metadataColumns.filter(c => c in row).map(c => [c, row[c]]))
     })
   }
-
-  if (!relation) {
-    throw createError({
-      statusCode: 400,
-      message: 'Relation name is required',
-    })
-  }
-
-  // Validate relation resource exists
-  validateResourceExists(schema, relation)
-
-  // Use validated query if available
-  const effectiveQuery = (validated.query || query) as M2MListQuery
-
-  // Detect junction table (explicit config takes priority over heuristics)
-  const m2mRelConfig = (useRuntimeConfig(context.event as any).autoApi?.m2m?.relations as any)
-  const explicitConf = m2mRelConfig?.[resource]?.[relation]
-  const junction = detectJunction(schema, resource, relation, explicitConf?.junctionTable, explicitConf?.leftKey, explicitConf?.rightKey)
-  validateJunctionConfig(junction, schema)
-
-  // Verify left record exists
-  const leftTable = schema[resource]
-  const parsedLeftId = /^\d+$/.test(leftId) ? Number.parseInt(leftId, 10) : leftId
-  const [leftRecord] = await db
-    .select()
-    .from(leftTable)
-    .where(eq(leftTable.id, parsedLeftId))
-    .limit(1)
-
-  if (!leftRecord) {
-    throw createError({
-      statusCode: 404,
-      message: `${resource} with id ${leftId} not found`,
-    })
-  }
-
-  // Check M2M permissions
-  const permissionContext = buildM2MPermissionContext(context, {
-    relation,
-    relationResource: relation,
-    ids: [], // No specific IDs for list operation
-    junction: {
-      tableName: junction.tableName,
-      leftKey: junction.leftKey,
-      rightKey: junction.rightKey,
-    },
-    leftRecord,
-    operation: 'list',
-  })
-
-  await checkM2MPermissions(permissionContext)
-
-  // Get junction records
-  const junctionTable = junction.table
-  const includeRecords = effectiveQuery.includeRecords === true
-    || effectiveQuery.includeRecords === 'true'
-  const includeMetadata = effectiveQuery.includeMetadata === true
-    || effectiveQuery.includeMetadata === 'true'
-
-  // Query junction table
-  let junctionQuery = db
-    .select()
-    .from(junctionTable)
-    .where(eq(junctionTable[junction.leftKey], parsedLeftId))
-
-  // Apply limit/offset if provided
-  if (effectiveQuery.limit) {
-    junctionQuery = junctionQuery.limit(effectiveQuery.limit)
-  }
-  if (effectiveQuery.offset) {
-    junctionQuery = junctionQuery.offset(effectiveQuery.offset)
-  }
-
-  const junctionRecords = await junctionQuery
-
-  // Extract IDs
-  const ids = junctionRecords.map((r: any) => r[junction.rightKey])
-
-  // If no records needed, return just IDs
-  if (!includeRecords) {
-    return {
-      ids,
-      total: ids.length,
-      meta: {
-        limit: effectiveQuery.limit,
-        offset: effectiveQuery.offset,
-      },
-    }
-  }
-
-  // Fetch related records if requested
-  let records = []
-  if (ids.length > 0) {
-    const relatedTable = schema[relation]
-    let relatedQuery = db
-      .select()
-      .from(relatedTable)
-      .where(eq(relatedTable.id, ids.length === 1 ? ids[0] : undefined))
-
-    // Use inArray for multiple IDs
-    if (ids.length > 1) {
-      const { inArray } = await import('drizzle-orm')
-      relatedQuery = db
-        .select()
-        .from(relatedTable)
-        .where(inArray(relatedTable.id, ids))
-    }
-
-    // Apply filters if provided
-    if (effectiveQuery.filter) {
-      const whereClause = buildWhereClause(effectiveQuery.filter, relatedTable)
-      if (whereClause) {
-        relatedQuery = relatedQuery.where(whereClause)
-      }
-    }
-
-    // Apply sorting if provided
-    if (effectiveQuery.sort) {
-      const orderBy = buildOrderBy(effectiveQuery.sort, relatedTable)
-      if (orderBy.length > 0) {
-        relatedQuery = relatedQuery.orderBy(...orderBy)
-      }
-    }
-
-    records = await relatedQuery
-
-    // Filter fields if requested
-    if (effectiveQuery.fields) {
-      const fields = Array.isArray(effectiveQuery.fields)
-        ? effectiveQuery.fields
-        : String(effectiveQuery.fields).split(',').map(f => f.trim())
-
-      records = records.map((record: any) => {
-        const filtered: any = {}
-        for (const field of fields) {
-          if (field in record) {
-            filtered[field] = record[field]
-          }
-        }
-        return filtered
-      })
-    }
-  }
-
-  // Build response
-  const response: M2MListResponse = {
-    ids,
-    records: serializeResponse(records),
-    total: ids.length,
-    meta: {
-      limit: effectiveQuery.limit,
-      offset: effectiveQuery.offset,
-      hasMore: effectiveQuery.limit ? ids.length >= effectiveQuery.limit : false,
-    },
-  }
-
-  // Include metadata if requested
-  if (includeMetadata && junction.metadataColumns.length > 0) {
-    response.metadata = junctionRecords.map((r: any) => {
-      const meta: any = {}
-      for (const col of junction.metadataColumns) {
-        if (col in r) {
-          meta[col] = r[col]
-        }
-      }
-      return meta
-    })
-  }
-
   return response
 }

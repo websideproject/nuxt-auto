@@ -215,7 +215,7 @@ export const postsAuth: ResourceAuthConfig = {
   },
 
   // Soft-delete recovery/destructive gates (first-class; see references/authorization.md)
-  // restore/purge/viewDeleted resolve like the others, with safe 'admin' defaults.
+  // restore/purge/viewDeleted fall back to update/delete/restore; undeclared = denied.
   // permissions: { restore: 'editor', purge: 'admin', viewDeleted: 'editor' },
   // softDelete:   { cascade: 'auto', retentionDays: 30 },
 }

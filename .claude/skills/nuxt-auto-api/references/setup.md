@@ -8,11 +8,19 @@ export default defineNuxtConfig({
   modules: ['@websideproject/nuxt-auto-api'],
   autoApi: {
     prefix: '/api',            // default
-    database: {
-      client: 'd1',            // see Database Adapters below
-      url?: string,            // for non-serverless clients
-    },
   },
+})
+```
+
+```ts
+// server/plugins/database.ts — REQUIRED: hand auto-api the Drizzle instance and name the engine
+import { drizzle } from 'drizzle-orm/d1'
+import { initializeDatabase } from '@websideproject/nuxt-auto-api/database'
+import * as schema from '../database/schema'
+
+export default defineNitroPlugin(async () => {
+  const env = await (globalThis as any).__env__          // cloudflare_module preset bindings
+  initializeDatabase(drizzle(env.DB, { schema }), 'd1')  // the engine is set HERE, nowhere else
 })
 ```
 
@@ -23,29 +31,22 @@ export default defineNuxtConfig({
 ```ts
 interface AutoApiOptions {
   prefix?: string                      // URL prefix, default: '/api'
-
-  database: {
-    client: DatabaseEngine             // required
-    url?: string
-  }
+  debug?: boolean                      // build-time registration logs
 
   pagination?: {
-    default?: 'offset' | 'cursor'      // default: 'offset'
     defaultLimit?: number              // default: 20
-    maxLimit?: number                  // default: 100
+    maxLimit?: number                  // default: 100 — also caps include and M2M pages
   }
 
-  authorization?: Record<string, ResourceAuthConfig>   // per-resource auth
+  authorization?: Record<string, ResourceAuthConfig>   // app overrides (strings/arrays only — serialized)
 
-  multiTenancy?: MultiTenancyConfig
+  multiTenancy?: MultiTenancyConfig    // see references/advanced.md
 
-  plugins?: string | AutoApiPlugin[]   // plugin paths or instances
-
-  exclude?: string[]                   // resource names to skip
-  include?: string[]                   // whitelist (exclusive with exclude)
+  plugins?: string | AutoApiPlugin[]   // path to a server file exporting an array (recommended)
 
   relations?: {
     maxDepth?: number                  // default: 3
+    maxIncludes?: number               // default: 20 relations per request
     allowFieldSelection?: boolean      // default: true
     allowFiltering?: boolean           // default: true
     allowPagination?: boolean          // default: true
@@ -54,7 +55,7 @@ interface AutoApiOptions {
   bulk?: {
     enabled?: boolean                  // default: true
     maxBatchSize?: number              // default: 100
-    transactional?: boolean            // default: true
+    transactional?: boolean            // default: true (not atomic on D1 — it reports data.committed)
   }
 
   aggregations?: {
@@ -63,10 +64,8 @@ interface AutoApiOptions {
     maxGroupByFields?: number          // default: 5
   }
 
-  hooks?: Record<string, ResourceHooks>  // static hook registration
-
   hookConfig?: {
-    errorHandling?: 'throw' | 'log'    // default: 'log'
+    errorHandling?: 'throw' | 'log'    // default: 'log' for after-hooks
     timeout?: number                   // ms, default: 5000
     parallel?: boolean                 // default: false
   }
@@ -80,6 +79,9 @@ interface AutoApiOptions {
 }
 ```
 
+Removed (fail the build): `hooks`, `exclude`, `include`, `multiTenancy.getTenantId/allowCrossTenantAccess/requireTenant`.
+`database` is accepted but NOT read (deprecated) — the engine comes from `initializeDatabase`.
+
 ---
 
 ## Database Adapters
@@ -90,12 +92,11 @@ type DatabaseEngine = 'better-sqlite3' | 'postgres' | 'mysql' | 'd1' | 'turso' |
 
 | Engine | Notes |
 |--------|-------|
-| `d1` | Cloudflare D1 (serverless SQLite) — no `url` needed |
-| `better-sqlite3` | Local SQLite file — set `url` to file path |
-| `postgres` | PostgreSQL via pg — set `url` to connection string |
-| `mysql` | MySQL/MariaDB — set `url` to connection string |
-| `turso` | Turso (libSQL) — set `url` to Turso DB URL |
-| `planetscale` | PlanetScale serverless MySQL |
+| `d1` | Cloudflare D1 — **no transactions**: `atomic()` is not atomic (`supportsTransactions: false`) |
+| `better-sqlite3` | Local SQLite — `atomic()` uses `BEGIN IMMEDIATE` |
+| `postgres` | `db.transaction()` |
+| `mysql` / `planetscale` | `db.transaction()`; no RETURNING — rows are read back (`insertReturning`) |
+| `turso` | libSQL, `db.transaction()` |
 
 ---
 
@@ -118,7 +119,7 @@ export default defineNuxtModule({
           resolver.resolve('../../server/database/schema'),
           'posts'        // export name of the Drizzle table
         ),
-        // optional: per-resource authorization, validation, hooks
+        // authorization is effectively REQUIRED (deny by default); validation and hooks are optional
         authorization: createModuleImport(
           resolver.resolve('./authorization'),
           'postsAuth'
@@ -134,6 +135,7 @@ export default defineNuxtModule({
           resolver.resolve('../../server/database/schema'),
           'users'
         ),
+        // ⚠ no `authorization` → every request to /api/users is refused (deny by default; the build warns)
       })
     })
   },
@@ -149,17 +151,17 @@ The `registry.register(name, config)` call ties a resource name (used in API URL
 ```ts
 multiTenancy: {
   enabled: true,
-  tenantIdField?: 'organizationId',          // column name in tenant-scoped tables
-  getTenantId?: async (event) => {           // how to extract tenant ID from request
-    const user = await getUser(event)
-    return user?.organizationId ?? null
-  },
-  scopedResources?: ['posts', 'tasks'] | '*', // which resources are tenant-scoped
+  tenantIdField?: 'organizationId',           // column name in tenant-scoped tables
+  userTenantField?: 'organizationId',         // ctx.user property holding the active tenant (default: tenantIdField)
+  scopedResources?: ['posts', 'tasks'] | '*', // which resources are tenant-scoped (must also have the column)
   excludedResources?: ['users'],
-  allowCrossTenantAccess?: (user) => user.roles?.includes('superadmin'),
-  requireTenant?: true,                      // 403 if no tenant ID resolved
 }
 ```
+
+The tenant is resolved on the server only: `ctx.tenant` (context extender) → `event.context.tenantId` →
+`ctx.user[userTenantField]`. No tenant on a scoped resource → 403 (fails closed). `getTenantId`,
+`allowCrossTenantAccess`, `requireTenant` were removed (build error); cross-tenant staff get
+`ctx.tenant.canAccessAllTenants = true` from a context extender. Details: references/advanced.md.
 
 ---
 

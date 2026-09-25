@@ -123,5 +123,5 @@ export function liveUnique(t: any, col: any, name: string): any {
       + `A missing column here emits \`ON table ()\`, which only fails at migration time.`,
     )
   }
-  return uniqueIndex(`${name}_uq`).on(...cols).where(sql`${t.deletedAt} is null`)
+  return uniqueIndex(`${name}_uq`).on(...(cols as [any, ...any[]])).where(sql`${t.deletedAt} is null`)
 }

@@ -23,6 +23,10 @@ jobs:
         run: bun run dev:prepare
       - name: Build modules
         run: bun run build
+      # The e2e fixtures normally load src/; run them once against the BUILT module — what users install.
+      - name: E2E against the built API module
+        working-directory: packages/nuxt-auto-api
+        run: AUTO_API_DIST=1 bunx vitest run test/basic.test.ts test/security.test.ts
 
   lint:
     runs-on: ubuntu-latest
@@ -64,6 +68,31 @@ jobs:
       - name: Prepare
         run: bun run dev:prepare
       - name: Test
+        run: bun run test
+
+  # Nuxt 5 is not released yet: run the API suite (including the e2e builds in test/*.test.ts) against the
+  # nightly so breakage shows up early. Informational — it does not block the pipeline.
+  test-nuxt-5:
+    name: test (nuxt 5 nightly)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Use the Nuxt 5 nightly
+        working-directory: packages/nuxt-auto-api
+        run: bun add -d nuxt@npm:nuxt-nightly@5x @nuxt/kit@npm:@nuxt/kit-nightly@5x @nuxt/schema@npm:@nuxt/schema-nightly@5x
+      - name: Prepare
+        run: bun run dev:prepare
+      - name: Test
+        working-directory: packages/nuxt-auto-api
         run: bun run test
 
 #  publish:

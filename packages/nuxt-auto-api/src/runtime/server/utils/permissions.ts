@@ -1,63 +1,104 @@
 import { eq } from 'drizzle-orm'
 import { createError } from 'h3'
 import { resolveObjectPermission } from '../middleware/resolveObjectPermission'
+import { getAuthConfig } from './authConfig'
+import { coerceId, primaryKeyColumn } from './table'
 import type {
   ResourceAuthConfig,
   HandlerContext,
   PermissionCheckResult,
-  PermissionFunction,
-  PermissionObject,
+  PermissionValue,
 } from '../../types'
 
 /**
- * Check if a permission string/function/object evaluates to true.
- * Same logic the request gate uses (see `hasPermission`), so the `/api/permissions`
- * introspection endpoint reflects object (descriptor) gates identically.
+ * The permission keys auto-api evaluates. `restore`, `purge`, `viewDeleted` and `aggregate` fall back to a
+ * base operation when not declared (see `resolvePermission`).
  */
-export async function evaluatePermission(
-  permission: string | string[] | PermissionFunction | PermissionObject | undefined,
-  context: HandlerContext,
-): Promise<boolean> {
-  if (!permission) {
-    return true // No permission required = allowed
+export type PermissionOperation = 'read' | 'create' | 'update' | 'delete' | 'restore' | 'purge' | 'viewDeleted' | 'aggregate'
+
+/**
+ * The permission value that governs `operation` on a resource.
+ *
+ *  - `restore`     → `permissions.restore` → `softDelete.restore` → `update`
+ *  - `purge`       → `permissions.purge`   → `softDelete.purge`   → `delete`
+ *  - `viewDeleted` → `permissions.viewDeleted` → `softDelete.viewDeleted` → the restore permission
+ *  - `aggregate`   → `permissions.aggregate` → `read`
+ *
+ * `undefined` means nothing was declared — which is a denial.
+ */
+export function resolvePermission(auth: ResourceAuthConfig | undefined, operation: PermissionOperation): PermissionValue | undefined {
+  const p = auth?.permissions as Record<string, any> | undefined
+  const sd = auth?.softDelete as Record<string, any> | undefined
+  switch (operation) {
+    case 'restore': return p?.restore ?? sd?.restore ?? p?.update
+    case 'purge': return p?.purge ?? sd?.purge ?? p?.delete
+    case 'viewDeleted': return p?.viewDeleted ?? sd?.viewDeleted ?? resolvePermission(auth, 'restore')
+    case 'aggregate': return p?.aggregate ?? p?.read
+    default: return p?.[operation]
   }
-
-  // Function-based permission
-  if (typeof permission === 'function') {
-    return await permission(context)
-  }
-
-  // Structured (object) permission → registered evaluator chain (generic seam)
-  if (typeof permission === 'object' && !Array.isArray(permission)) {
-    return await resolveObjectPermission(permission as Record<string, any>, context)
-  }
-
-  // String or array of permission strings
-  const requiredPermissions = Array.isArray(permission) ? permission : [permission]
-  const userPermissions = context.permissions || []
-
-  // User must have at least one of the required permissions
-  return requiredPermissions.some(p => userPermissions.includes(p))
 }
 
 /**
- * Check if user has permission for a specific operation
+ * Evaluate one permission value. **Deny by default:** a value that was never declared is `false`.
+ *
+ *  - `true` / `false`  → allow / deny everyone (`false` is absolute — not even `*` passes it)
+ *  - `'perm'` / `[...]` → the caller holds that permission / any of them
+ *  - `(ctx) => boolean` → the function decides
+ *  - `{ ... }`          → a registered permission evaluator decides (fails closed when none does)
+ *
+ * A caller holding the `*` permission (a super-admin) passes every value except an explicit `false` —
+ * including operations a resource never declared. Field-level gates pass `{ wildcard: false }`: a field
+ * declared `read: () => false` is hidden from everyone.
  */
+export async function evaluatePermission(
+  permission: PermissionValue | undefined | null,
+  context: HandlerContext,
+  opts: { wildcard?: boolean } = {},
+): Promise<boolean> {
+  if (permission === false) return false
+  if (permission === true) return true
+
+  const held = context.permissions || []
+  if (opts.wildcard !== false && held.includes('*')) return true
+  if (permission === undefined || permission === null) return false
+
+  if (typeof permission === 'function') return !!(await permission(context))
+  if (typeof permission === 'string') return held.includes(permission)
+  if (Array.isArray(permission)) return permission.some(p => held.includes(p))
+  if (typeof permission === 'object') return await resolveObjectPermission(permission as Record<string, any>, context)
+  return false
+}
+
+/** Whether the caller may perform `operation` under `authConfig`. */
 export async function checkPermission(
-  operation: 'create' | 'read' | 'update' | 'delete',
+  operation: PermissionOperation,
   authConfig: ResourceAuthConfig | undefined,
   context: HandlerContext,
 ): Promise<boolean> {
-  if (!authConfig || !authConfig.permissions) {
-    return true // No auth config = allowed
-  }
-
-  const permission = authConfig.permissions[operation]
-  return await evaluatePermission(permission, context)
+  return evaluatePermission(resolvePermission(authConfig, operation), context)
 }
 
 /**
- * Check if user has permission for a specific field operation
+ * Throw 401 (anonymous) or 403 (signed in) unless the caller may perform `operation`.
+ */
+export async function assertPermission(
+  operation: PermissionOperation,
+  authConfig: ResourceAuthConfig | undefined,
+  context: HandlerContext,
+  label: string = context.resource,
+): Promise<void> {
+  if (await checkPermission(operation, authConfig, context)) return
+  throw createError({
+    statusCode: context.user ? 403 : 401,
+    message: context.user
+      ? `Forbidden: you don't have permission to ${operation === 'read' ? 'read' : operation} ${label}`
+      : 'Authentication required',
+  })
+}
+
+/**
+ * Field-level permission. A field with no rule for `operation` is unrestricted — the operation-level gate
+ * already decided whether the caller may touch the resource at all. Declared rules ignore the `*` wildcard.
  */
 export async function checkFieldPermission(
   field: string,
@@ -65,129 +106,70 @@ export async function checkFieldPermission(
   authConfig: ResourceAuthConfig | undefined,
   context: HandlerContext,
 ): Promise<boolean> {
-  if (!authConfig || !authConfig.fields || !authConfig.fields[field]) {
-    return true // No field-level auth = allowed
-  }
-
-  const fieldConfig = authConfig.fields[field]
-  const permission = fieldConfig[operation]
-
-  return await evaluatePermission(permission, context)
+  const rule = authConfig?.fields?.[field]?.[operation]
+  if (rule === undefined) return true
+  return evaluatePermission(rule, context, { wildcard: false })
 }
 
-/**
- * Get all permissions for a resource based on current user context
- */
+/** What the caller may do on a resource — the same evaluator the request pipeline enforces with. */
 export async function getResourcePermissions(
   authConfig: ResourceAuthConfig | undefined,
   context: HandlerContext,
 ): Promise<PermissionCheckResult> {
-  const canCreate = await checkPermission('create', authConfig, context)
-  const canRead = await checkPermission('read', authConfig, context)
-  const canUpdate = await checkPermission('update', authConfig, context)
-  const canDelete = await checkPermission('delete', authConfig, context)
-
   const result: PermissionCheckResult = {
-    canCreate,
-    canRead,
-    canUpdate,
-    canDelete,
+    canCreate: await checkPermission('create', authConfig, context),
+    canRead: await checkPermission('read', authConfig, context),
+    canUpdate: await checkPermission('update', authConfig, context),
+    canDelete: await checkPermission('delete', authConfig, context),
+    canRestore: await checkPermission('restore', authConfig, context),
+    canPurge: await checkPermission('purge', authConfig, context),
+    canViewDeleted: await checkPermission('viewDeleted', authConfig, context),
   }
 
-  // Check field-level permissions if configured
   if (authConfig?.fields) {
     result.fields = {}
-
-    for (const [fieldName, fieldConfig] of Object.entries(authConfig.fields)) {
-      const canReadField = await checkFieldPermission(fieldName, 'read', authConfig, context)
-      const canWriteField = await checkFieldPermission(fieldName, 'write', authConfig, context)
-
+    for (const fieldName of Object.keys(authConfig.fields)) {
       result.fields[fieldName] = {
-        canRead: canReadField,
-        canWrite: canWriteField,
+        canRead: await checkFieldPermission(fieldName, 'read', authConfig, context),
+        canWrite: await checkFieldPermission(fieldName, 'write', authConfig, context),
       }
     }
   }
-
   return result
 }
 
 /**
- * Assert that the current user has `operation` permission on `resource`, optionally
- * checking the object-level gate against `recordId`. Throws 401/403 on failure.
+ * Assert that the caller may perform `operation` on `resource` (any registered resource, not only the one
+ * the request is for), optionally also running that resource's `objectLevel` check against `recordId`.
  *
- * Used by custom endpoints (e.g. restore) that must authorize against a *different*
- * resource's permission than the one they are registered under.
- *
- * The operation map: 'restore' and 'purge' fall back to 'update' / 'delete'
- * unless the resource's auth config has a dedicated `softDelete.restore` / `softDelete.purge`.
+ * For custom endpoints that act on a resource outside the generated routes (e.g. restoring a revision).
  */
 export async function assertResourcePermission(
   resource: string,
-  operation: 'create' | 'read' | 'update' | 'delete' | 'restore' | 'purge',
+  operation: PermissionOperation,
   context: HandlerContext,
   opts: { recordId?: string | number } = {},
 ): Promise<void> {
-  // Look up the resource's auth config from the registry (virtual module, runtime-only).
-  // Resilient: if the registry can't be loaded (e.g. isolated unit tests), treat it as
-  // "no explicit config" and fall back to the safe defaults below — restore/purge must
-  // never fail *open* just because the registry wasn't reachable.
-  let authConfig: ResourceAuthConfig | undefined
-  try {
-    const { registry } = await (import('#nuxt-auto-api-registry' as string) as any)
-    authConfig = registry?.[resource]?.authorization
-  }
-  catch {
-    authConfig = undefined
+  if (!context.registry) {
+    try {
+      const { registry } = await (import('#nuxt-auto-api-registry' as string) as any)
+      context = { ...context, registry }
+    }
+    catch {
+      // No registry (isolated unit test): no declaration → denied below.
+    }
   }
 
-  // Resolve the effective permission for this operation.
-  //  • restore → permissions.restore ?? softDelete.restore ?? permissions.update ?? 'admin'
-  //  • purge   → permissions.purge   ?? softDelete.purge   ?? permissions.delete ?? 'admin'
-  //    (destructive/recovery ops; org admins/custom roles enabled via explicit config above.)
-  //  • create/read/update/delete: the configured permission, or undefined (= allowed; the
-  //    request pipeline already ran the base authorize for these).
-  let effectivePermission: string | string[] | PermissionFunction | PermissionObject | undefined
-  if (operation === 'restore' || operation === 'purge') {
-    const perms = authConfig?.permissions as any
-    const sd = authConfig?.softDelete as any
-    const firstClass = operation === 'restore' ? perms?.restore : perms?.purge
-    const override = operation === 'restore' ? sd?.restore : sd?.purge
-    const baseOp = operation === 'restore' ? 'update' : 'delete'
-    if (firstClass !== undefined) effectivePermission = firstClass
-    else if (override !== undefined) effectivePermission = override
-    else if (perms?.[baseOp] !== undefined) effectivePermission = perms[baseOp]
-    else effectivePermission = 'admin'
-  }
-  else {
-    effectivePermission = authConfig?.permissions?.[operation]
-  }
+  const authConfig = getAuthConfig(context, resource)
+  await assertPermission(operation, authConfig, context, resource)
 
-  // evaluatePermission(undefined) === true, so create/read/update/delete with no config are
-  // allowed; restore/purge always carry a concrete permission (override/base/default 'admin').
-  const allowed = await evaluatePermission(effectivePermission, context)
-
-  if (!allowed) {
-    throw createError({
-      statusCode: context.user ? 403 : 401,
-      message: context.user
-        ? `Forbidden: You don't have permission to ${operation} ${resource}`
-        : 'Authentication required',
-    })
-  }
-
-  // Object-level check when a recordId is supplied.
   if (opts.recordId !== undefined && authConfig?.objectLevel) {
-    const table = context.schema?.[resource]
-    if (table) {
-      const pid = /^\d+$/.test(String(opts.recordId)) ? Number(opts.recordId) : opts.recordId
-      const [record] = await context.db?.select().from(table).where(eq(table.id, pid)) ?? []
-      if (record) {
-        const allowed = await authConfig.objectLevel(record, context)
-        if (!allowed) {
-          throw createError({ statusCode: 403, message: 'Forbidden: insufficient object-level permission' })
-        }
-      }
+    const table = context.schema?.[resource] ?? context.registry?.[resource]?.schema
+    if (!table || !context.db) return
+    const pk = primaryKeyColumn(table)
+    const [record] = await context.db.select().from(table).where(eq(pk, coerceId(table, opts.recordId, resource))).limit(1)
+    if (record && !(await authConfig.objectLevel(record, { ...context, resource }))) {
+      throw createError({ statusCode: 403, message: 'Forbidden: insufficient object-level permission' })
     }
   }
 }

@@ -1,31 +1,12 @@
-import { defineEventHandler, createError } from 'h3'
-import { useRuntimeConfig } from '#imports'
+import { createError, defineEventHandler } from 'h3'
 import { aggregateHandler } from './aggregate'
-import { createContextFromRegistry } from './createContextFromRegistry'
+import { runResourcePipeline } from './pipeline'
+import { useRuntimeConfig } from 'nitropack/runtime'
 
-/**
- * Entry point for aggregate handler - GET /api/{resource}/aggregate
- * Handles complex aggregations with groupBy and having
- */
+/** GET /api/{resource}/aggregate — gated by `permissions.aggregate` → `read`. */
 export default defineEventHandler(async (event) => {
-  // Check if aggregations are enabled
-  const runtimeConfig = useRuntimeConfig?.()
-  const aggregationsEnabled = runtimeConfig?.autoApi?.aggregations?.enabled ?? true
-
-  if (!aggregationsEnabled) {
-    throw createError({
-      statusCode: 403,
-      message: 'Aggregations are disabled',
-    })
+  if ((useRuntimeConfig() as any).autoApi?.aggregations?.enabled === false) {
+    throw createError({ statusCode: 404, message: 'Aggregations are disabled' })
   }
-
-  const { context, authorize, runMiddleware } = await createContextFromRegistry(event, 'aggregate')
-
-  await runMiddleware('pre-auth')
-  await authorize(context)
-  await runMiddleware('post-auth')
-  await runMiddleware('pre-execute')
-  const result = await aggregateHandler(context)
-  await runMiddleware('post-execute')
-  return result
+  return runResourcePipeline(event, 'aggregate', aggregateHandler)
 })

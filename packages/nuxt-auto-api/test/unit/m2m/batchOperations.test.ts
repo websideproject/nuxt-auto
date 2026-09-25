@@ -176,8 +176,8 @@ describe('chunkArray', () => {
     const result = chunkArray(array, chunkSize)
 
     expect(result.length).toBe(10)
-    expect(result[0].length).toBe(100)
-    expect(result[9].length).toBe(100)
+    expect(result[0]!.length).toBe(100)
+    expect(result[9]!.length).toBe(100)
   })
 
   it('should preserve order', () => {
@@ -254,9 +254,9 @@ describe('Performance benchmarks', () => {
 
     // Should create 3 chunks for 1500 items
     expect(chunks.length).toBe(3)
-    expect(chunks[0].length).toBe(500)
-    expect(chunks[1].length).toBe(500)
-    expect(chunks[2].length).toBe(500)
+    expect(chunks[0]!.length).toBe(500)
+    expect(chunks[1]!.length).toBe(500)
+    expect(chunks[2]!.length).toBe(500)
 
     // Each chunk processes in 1 query, so 3 queries total for inserts
     // Plus 3 for deletes, plus 1 select = 7 queries total

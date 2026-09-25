@@ -1,49 +1,52 @@
-import type { HandlerContext, SingleResponse } from '../../types'
-import { eq, and, isNotNull } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { createError } from 'h3'
+import type { HandlerContext, SingleResponse } from '../../types'
 import { getSoftDeleteColumn, buildRestoreUpdates } from '../utils/softDelete'
-import { assertResourcePermission } from '../utils/permissions'
 import { restoreSoftDeletedBatch } from '../utils/softDeleteBatch'
 import { recordRevisionIfPresent } from '../utils/revisionRecord'
+import { findAuthorizedRow } from '../utils/rowAccess'
+import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { filterReadableFields } from '../utils/fieldPermissions'
+import { serializeResponse } from '../utils/serializeResponse'
+import { primaryKeyColumn, primaryKeyName } from '../utils/table'
+import { assertResourcePermission } from '../utils/permissions'
 
-// Re-export for backward compatibility (was previously defined here).
 export { recordRevisionIfPresent } from '../utils/revisionRecord'
 
 /**
  * Restore handler - POST /api/[resource]/[id]/restore
- * Restores a soft-deleted record (clears deletedAt + companion columns). When the row was trashed as
- * part of a cascade batch (has a deletionId), the whole batch is restored so children come back too.
- * Uses the configurable `restore` permission (permissions.restore ?? softDelete.restore ?? update ?? admin).
+ *
+ * The `restore` permission (→ `softDelete.restore` → `update`) is checked before anything is looked up. The row must be
+ * trashed and visible to the caller (tenant, listFilter, objectLevel). A row trashed as part of a cascade
+ * batch restores its whole batch — every row of which must pass the same checks.
  */
 export async function restoreHandler(context: HandlerContext): Promise<SingleResponse & { restored: boolean }> {
   const { db, schema, params, resource } = context
   const table = schema[resource]
-  const id = params.id
+  if (!table) throw createError({ statusCode: 404, message: `Resource "${resource}" not found` })
+  if (!params.id) throw createError({ statusCode: 400, message: 'ID parameter is required' })
 
-  if (!id) throw createError({ statusCode: 400, message: 'ID parameter is required' })
+  const softCol = getSoftDeleteColumn(table)
+  if (!softCol) throw createError({ statusCode: 400, message: 'This resource does not support soft deletes' })
 
-  const softDeleteCol = getSoftDeleteColumn(table)
-  if (!softDeleteCol) throw createError({ statusCode: 400, message: 'This resource does not support soft deletes' })
+  await assertResourcePermission(resource, 'restore', context)
 
-  const [existing] = await db.select().from(table)
-    .where(and(eq(table.id, id), isNotNull(table[softDeleteCol])))
+  const existing = await findAuthorizedRow(context, resource, params.id, { softDeleted: 'only' })
+  const id = existing[primaryKeyName(table)]
+  const pkWhere = eq(primaryKeyColumn(table), id)
 
-  if (!existing) throw createError({ statusCode: 404, message: 'Deleted record not found' })
-
-  // Configurable permission: restore → softDelete.restore → update → admin.
-  await assertResourcePermission(resource, 'restore', context, { recordId: id })
-
-  // If this row was trashed as part of a cascade batch, restore the whole batch (parent + children).
-  const deletionId = (existing as any).deletionId ?? (existing as any).deletion_id
+  const deletionId = existing.deletionId ?? existing.deletion_id
   if (deletionId) {
     await restoreSoftDeletedBatch(context, String(deletionId))
-    const [restored] = await db.select().from(table).where(eq(table.id, id))
-    return { data: restored, restored: true }
+  }
+  else {
+    await db.update(table).set(buildRestoreUpdates(table)).where(pkWhere)
   }
 
-  // Single-row restore.
-  const [restored] = await db.update(table).set(buildRestoreUpdates(table)).where(eq(table.id, id)).returning()
-  await recordRevisionIfPresent(context, resource, id, 'restore', restored)
+  const [restored] = await db.select().from(table).where(pkWhere).limit(1)
+  if (!deletionId) await recordRevisionIfPresent(context, resource, id, 'restore', restored)
 
-  return { data: restored, restored: true }
+  let out: any = filterHiddenFields(restored, context)
+  out = await filterReadableFields(out, context)
+  return { data: serializeResponse(out), restored: true }
 }

@@ -109,15 +109,15 @@ export function getContextExtenders(): ContextExtender[] {
 export function getPluginHooks(
   resource: string,
   hookName: keyof ResourceHooks,
-): Function[] {
+): Array<(...args: any[]) => any> {
   const registry = getRegistry()
-  const hooks: Function[] = []
+  const hooks: Array<(...args: any[]) => any> = []
 
   // Global hooks
   for (const globalHook of registry.globalHooks) {
     const fn = globalHook[hookName]
     if (fn && typeof fn === 'function') {
-      hooks.push(fn as Function)
+      hooks.push(fn as (...args: any[]) => any)
     }
   }
 
@@ -127,7 +127,7 @@ export function getPluginHooks(
     for (const resourceHook of resourceHooksList) {
       const fn = resourceHook[hookName]
       if (fn && typeof fn === 'function') {
-        hooks.push(fn as Function)
+        hooks.push(fn as (...args: any[]) => any)
       }
     }
   }

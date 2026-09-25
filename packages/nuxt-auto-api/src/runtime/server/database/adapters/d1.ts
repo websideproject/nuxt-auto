@@ -5,18 +5,19 @@ export function createD1Adapter(db: unknown): DatabaseAdapter {
     engine: 'd1',
     db,
     async atomic<T>(fn: (ctx: { tx: unknown }) => T | Promise<T>): Promise<T> {
-      // D1 supports db.batch() for atomic operations
-      // For complex logic that needs a tx reference, fall back to running against db directly
-      // since D1 doesn't have traditional transactions
+      // D1 has no interactive transactions (only db.batch() of prepared statements), so an arbitrary async
+      // function cannot be made atomic: it runs directly and earlier writes stay if it throws.
+      // `supportsTransactions: false` tells callers.
       return fn({ tx: db })
     },
-    getMutationCount(result: unknown): number {
+    getMutationCount(result: any): number {
       // D1 batch results are arrays of D1Result
       if (result?.meta?.changes !== undefined) return result.meta.changes
       if (Array.isArray(result)) return result.length
       return 0
     },
     supportsReturning: true,
+    supportsTransactions: false,
     supportsNativeBatch: true,
   }
 }

@@ -1,3 +1,7 @@
 @import "tailwindcss";
+/* `dark:` here must mean the consuming app's `.dark` CLASS, not the reader's OS preference. Each CSS
+   entry is compiled on its own, so without this line Tailwind falls back to
+   `@media (prefers-color-scheme: dark)` and this module's dark styles fire in LIGHT theme on a dark-OS
+   machine. 17 files under src/runtime use `dark:`. */
 @custom-variant dark (&:is(.dark *));
 @source "../../components";

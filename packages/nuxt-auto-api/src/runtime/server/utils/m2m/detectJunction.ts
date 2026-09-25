@@ -59,7 +59,6 @@ export function detectJunction(
     }
   }
 
-
   throw new Error(
     `Junction table not found for relation ${leftResource} <-> ${rightResource}. `
     + `Tried: ${uniquePatterns.slice(0, 10).join(', ')}${uniquePatterns.length > 10 ? '...' : ''}. `

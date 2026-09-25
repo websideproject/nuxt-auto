@@ -15,8 +15,8 @@ function getJsonFields(table: any): string[] {
     if (!col || typeof col !== 'object') continue
     const isJson
       = col.config?.mode === 'json'
-      || col.dataType === 'json'
-      || (typeof col.columnType === 'string' && col.columnType.toLowerCase().includes('json'))
+        || col.dataType === 'json'
+        || (typeof col.columnType === 'string' && col.columnType.toLowerCase().includes('json'))
     if (isJson) fields.push(key)
   }
   return fields
@@ -27,8 +27,12 @@ function parseRow(row: any, jsonFields: string[]): any {
   const result = Object.assign({}, row)
   for (const field of jsonFields) {
     if (field in result && typeof result[field] === 'string') {
-      try { result[field] = JSON.parse(result[field]) }
-      catch {}
+      try {
+        result[field] = JSON.parse(result[field])
+      }
+      catch {
+        // not JSON — leave the stored string as-is
+      }
     }
   }
   return result

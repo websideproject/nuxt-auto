@@ -1,5 +1,4 @@
-import { defineNitroPlugin } from 'nitropack/runtime'
-import { useRuntimeConfig } from '#imports'
+import { defineNitroPlugin, useRuntimeConfig } from 'nitropack/runtime'
 import {
   addMiddleware,
   addContextExtender,
@@ -14,7 +13,9 @@ import type { PluginRuntimeContext } from '../../types/plugin'
 // errors are logged — a build-only plugin (buildSetup, no runtimeSetup) being skipped at runtime
 // is normal, not a warning worth printing on every boot.
 const DEBUG = !!process.env.NUXT_AUTO_API_DEBUG
-const debug = (...args: any[]) => { if (DEBUG) console.log('[nuxt-auto-api:initPlugins]', ...args) }
+function debug(...args: any[]) {
+  if (DEBUG) console.log('[nuxt-auto-api:initPlugins]', ...args)
+}
 
 export default defineNitroPlugin(async () => {
   debug('Nitro plugin starting…')

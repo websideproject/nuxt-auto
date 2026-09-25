@@ -136,30 +136,43 @@ describe('Authorization Middleware', () => {
       expect(context.objectLevelCheck).toBeDefined()
     })
 
-    it('should allow all operations when no config', async () => {
+    it('denies every operation when the resource declares no authorization (deny by default)', async () => {
       const middleware = createAuthorizationMiddleware()
-      const context = createMockContext({
-        user: null,
-        permissions: [],
-        operation: 'create',
-      })
-
-      await expect(middleware(context as any)).resolves.not.toThrow()
+      await expect(middleware(createMockContext({ user: null, operation: 'create' }) as any)).rejects.toMatchObject({ statusCode: 401 })
+      await expect(middleware(createMockContext({ user: createMockUser('user'), operation: 'list' }) as any)).rejects.toMatchObject({ statusCode: 403 })
     })
 
-    it('should allow operation when no permission required', async () => {
-      const config = {
-        permissions: {},
+    it('denies an operation the config does not mention', async () => {
+      const middleware = createAuthorizationMiddleware({ permissions: { read: true } })
+      const context = createMockContext({ user: createMockUser('user'), permissions: ['read'], operation: 'create' })
+      await expect(middleware(context as any)).rejects.toMatchObject({ statusCode: 403 })
+    })
+
+    it('`true` opens an operation to everyone, including anonymous callers', async () => {
+      const middleware = createAuthorizationMiddleware({ permissions: { read: true } })
+      await expect(middleware(createMockContext({ user: null, operation: 'list' }) as any)).resolves.toBeUndefined()
+    })
+
+    it('`false` closes an operation even to the * wildcard', async () => {
+      const middleware = createAuthorizationMiddleware({ permissions: { delete: false } })
+      const context = createMockContext({ user: createMockUser('admin'), permissions: ['*'], operation: 'delete' })
+      await expect(middleware(context as any)).rejects.toMatchObject({ statusCode: 403 })
+    })
+
+    it('the * wildcard passes string, array and function permissions', async () => {
+      const middleware = createAuthorizationMiddleware({ permissions: { update: 'x', delete: () => false, create: ['a'] } })
+      for (const operation of ['update', 'delete', 'create'] as const) {
+        const context = createMockContext({ user: createMockUser('admin'), permissions: ['*'], operation })
+        await expect(middleware(context as any)).resolves.toBeUndefined()
       }
+    })
 
-      const middleware = createAuthorizationMiddleware(config)
-      const context = createMockContext({
-        user: createMockUser('user'),
-        permissions: ['read'],
-        operation: 'create',
-      })
-
-      await expect(middleware(context as any)).resolves.not.toThrow()
+    it('carries listFilter to every operation, not only list', async () => {
+      const listFilter = () => undefined
+      const middleware = createAuthorizationMiddleware({ permissions: { update: true }, listFilter })
+      const context = createMockContext({ user: createMockUser('user'), operation: 'update' }) as any
+      await middleware(context)
+      expect(context.listFilter).toBe(listFilter)
     })
 
     it('should support array of required permissions', async () => {

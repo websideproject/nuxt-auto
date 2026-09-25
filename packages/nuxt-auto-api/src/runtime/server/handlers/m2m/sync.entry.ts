@@ -1,17 +1,5 @@
-import { defineEventHandler } from 'h3'
 import { m2mSyncHandler } from './sync'
-import { createM2MContext } from './createM2MContext'
+import { defineResourceRoute } from '../pipeline'
 
-/**
- * Entry point for M2M sync handler
- * POST /api/{resource}/:id/relations/:relation
- */
-export default defineEventHandler(async (event) => {
-  const { context, runMiddleware } = await createM2MContext(event)
-  await runMiddleware('pre-auth')
-  await runMiddleware('post-auth')
-  await runMiddleware('pre-execute')
-  const result = await m2mSyncHandler(context)
-  await runMiddleware('post-execute')
-  return result
-})
+/** M2M route — permissions for both sides are checked by the handler (see ./shared.ts). */
+export default defineResourceRoute('m2m', m2mSyncHandler, { authorize: async () => {} })

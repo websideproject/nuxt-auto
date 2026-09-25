@@ -38,7 +38,7 @@ export interface RevisionPluginOptions {
 function strip(obj: any, fields: string[]): any {
   if (!obj || !fields.length) return obj
   const o = { ...obj }
-  for (const f of fields) delete o[f]
+  for (const f of fields) Reflect.deleteProperty(o, f)
   return o
 }
 

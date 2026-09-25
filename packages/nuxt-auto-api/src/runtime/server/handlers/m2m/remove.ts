@@ -1,125 +1,28 @@
-import { eq } from 'drizzle-orm'
 import { createError, readBody } from 'h3'
-import type { HandlerContext, M2MOperationResponse, M2MRemoveRequest } from '../../../types'
-import { useRuntimeConfig } from 'nitropack/runtime'
-import { detectJunction, validateJunctionConfig } from '../../utils/m2m/detectJunction'
-import { validateM2MRemoveRequest, validateResourceExists, validateIdsNotEmpty, validateBatchSize, sanitizeIds } from '../../utils/m2m/validateM2M'
-import { buildM2MPermissionContext, checkM2MPermissions } from '../../utils/m2m/permissions'
+import type { HandlerContext, M2MOperationResponse } from '../../../types'
+import { validateM2MRemoveRequest, validateIdsNotEmpty, validateBatchSize, sanitizeIds } from '../../utils/m2m/validateM2M'
 import { executeBatchM2MWithChunking } from '../../utils/m2m/batchOperations'
-import { executeBeforeHook, executeAfterHook } from '../../utils/executeHooks'
+import { executeHook } from '../../utils/executeHooks'
+import { m2mPrelude, runCustomM2MCheck } from './shared'
 
 /**
- * Remove M2M relations handler
- * DELETE /api/{resource}/{id}/relations/{relation}/remove
+ * DELETE /api/{resource}/:id/relations/:relation/remove  `{ ids }` — unlink `ids`. Unlinking only touches
+ * the parent's own junction rows, so the related rows do not have to be visible.
  */
 export async function m2mRemoveHandler(context: HandlerContext): Promise<M2MOperationResponse> {
-  const { db, schema, params, event, resource } = context
-
-  // Get parameters
-  const leftId = params.id
-  const relation = params.relation
-
-  if (!leftId) {
-    throw createError({
-      statusCode: 400,
-      message: 'Resource ID is required',
-    })
-  }
-
-  if (!relation) {
-    throw createError({
-      statusCode: 400,
-      message: 'Relation name is required',
-    })
-  }
-
-  // Parse and validate request body
-  const body = context.validated?.body || await readBody(event)
+  const side = await m2mPrelude(context, 'remove')
+  const body = context.validated?.body ?? await readBody(context.event)
   const validation = validateM2MRemoveRequest(body)
+  if (!validation.valid) throw createError({ statusCode: 400, message: validation.error })
+  validateIdsNotEmpty(validation.data!.ids)
+  validateBatchSize(validation.data!.ids)
+  const ids = sanitizeIds(validation.data!.ids)
+  await runCustomM2MCheck(context, side, 'remove', ids, [])
 
-  if (!validation.valid) {
-    throw createError({
-      statusCode: 400,
-      message: validation.error,
-    })
-  }
+  await executeHook('beforeM2MRemove', context, side.relation, ids, context)
+  const result = await executeBatchM2MWithChunking(context.db, side.junction, side.leftId, { toAdd: [], toRemove: ids })
 
-  const { ids } = validation.data!
-
-  // Validate resource exists
-  validateResourceExists(schema, relation)
-
-  // Validate IDs
-  validateIdsNotEmpty(ids)
-  validateBatchSize(ids)
-
-  // Detect junction table (explicit config takes priority over heuristics)
-  const m2mRelConfig = (useRuntimeConfig(context.event as any).autoApi?.m2m?.relations as any)
-  const explicitConf = m2mRelConfig?.[resource]?.[relation]
-  const junction = detectJunction(schema, resource, relation, explicitConf?.junctionTable, explicitConf?.leftKey, explicitConf?.rightKey)
-  validateJunctionConfig(junction, schema)
-
-  // Sanitize IDs (convert numeric strings to numbers)
-  const sanitizedIds = sanitizeIds(ids)
-  const parsedLeftId = /^\d+$/.test(leftId) ? Number.parseInt(leftId, 10) : leftId
-
-  // Verify left record exists
-  const leftTable = schema[resource]
-  const [leftRecord] = await db
-    .select()
-    .from(leftTable)
-    .where(eq(leftTable.id, parsedLeftId))
-    .limit(1)
-
-  if (!leftRecord) {
-    throw createError({
-      statusCode: 404,
-      message: `${resource} with id ${leftId} not found`,
-    })
-  }
-
-  // Note: We don't need to verify related records exist for removal
-  // (they might have been deleted already)
-
-  // Check M2M permissions
-  const permissionContext = buildM2MPermissionContext(context, {
-    relation,
-    relationResource: relation,
-    ids: sanitizedIds,
-    junction: {
-      tableName: junction.tableName,
-      leftKey: junction.leftKey,
-      rightKey: junction.rightKey,
-    },
-    leftRecord,
-    operation: 'remove',
-  })
-
-  await checkM2MPermissions(permissionContext)
-
-  // Execute beforeM2MRemove hook
-  await executeBeforeHook('m2mRemove', context, relation, sanitizedIds)
-
-  // Execute batch operation (only remove, no add)
-  const result = await executeBatchM2MWithChunking(
-    db,
-    junction,
-    parsedLeftId,
-    {
-      toAdd: [],
-      toRemove: sanitizedIds,
-    },
-  )
-
-  // Build response
-  const response: M2MOperationResponse = {
-    success: true,
-    removed: result.removed,
-    total: result.total,
-  }
-
-  // Execute afterM2MRemove hook
-  await executeAfterHook('m2mRemove', context, relation, response)
-
+  const response: M2MOperationResponse = { success: true, removed: result.removed, total: result.removed }
+  await executeHook('afterM2MRemove', context, side.relation, response, context)
   return response
 }

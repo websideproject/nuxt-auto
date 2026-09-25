@@ -36,8 +36,8 @@ export { createAuditStampPlugin } from './auditStampPlugin'
 export { defineAutoApiPlugin } from '../types/plugin'
 export type { AutoApiPlugin, PluginBuildContext, PluginRuntimeContext, AutoApiMiddleware, ContextExtender } from '../types/plugin'
 export type { PermissionEvaluator, PermissionObject, PermissionFunction, HandlerContext, ResourceAuthConfig } from '../types'
-// Register a structured-permission evaluator or a per-request context extender from anywhere
-// (e.g. a Nitro server plugin), not just the plugin runtime context. The registry is global, so
+// Register a structured-permission evaluator, a per-request context extender or lifecycle hooks from
+// anywhere (e.g. a Nitro server plugin), not just the plugin runtime context. The registry is global, so
 // these are callable at server startup. A context extender runs once per request before
 // authorization and can attach data/resolvers onto the handler context (auto-api never inspects it).
-export { registerPermissionEvaluator, getPermissionEvaluators, addContextExtender } from '../server/plugins/pluginRegistry'
+export { registerPermissionEvaluator, getPermissionEvaluators, addContextExtender, addResourceHook, addGlobalHook } from '../server/plugins/pluginRegistry'

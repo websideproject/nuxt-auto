@@ -42,7 +42,6 @@ async function ensureUnique(
   let counter = 1
 
   while (true) {
-    const conditions = [eq(table[targetColumn], slug)]
     const query = db.select({ id: table.id }).from(table).where(eq(table[targetColumn], slug))
     const existing = await query
 

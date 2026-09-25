@@ -42,6 +42,10 @@ vi.mock('../../../src/runtime/server/handlers/createContextFromRegistry', () => 
     validate: mockValidate,
     runMiddleware: mockRunMiddleware,
   }),
+  // Standalone endpoints (no `resource`) build a caller-only context.
+  createCallerContext: vi.fn(async (event: any, operation: any) => ({
+    ...mockContext, resource: '', operation, event, schema: {}, registry: {},
+  })),
 }))
 
 // Mock database
@@ -53,6 +57,7 @@ vi.mock('../../../src/runtime/server/database', () => ({
     getMutationCount: vi.fn(),
     supportsReturning: true,
     supportsNativeBatch: false,
+    supportsTransactions: true,
   })),
 }))
 
@@ -135,7 +140,7 @@ describe('createEndpoint', () => {
       await handler({ method: 'GET', path: '/api/custom', context: {} } as any)
 
       expect(handlerSpy).toHaveBeenCalled()
-      const ctx = handlerSpy.mock.calls[0][0]
+      const ctx = handlerSpy.mock.calls[0]![0]
       expect(ctx.resource).toBe('')
     })
   })
@@ -161,7 +166,7 @@ describe('createEndpoint', () => {
       await handler({ method: 'POST', path: '/api/custom', context: {} } as any)
 
       expect(mockSchema.safeParse).toHaveBeenCalledWith({ name: 'John' })
-      expect(handlerSpy.mock.calls[0][0].body).toEqual({ name: 'John' })
+      expect(handlerSpy.mock.calls[0]![0].body).toEqual({ name: 'John' })
     })
 
     it('should throw 400 on body validation failure', async () => {
@@ -206,7 +211,7 @@ describe('createEndpoint', () => {
 
       await handler({ method: 'GET', path: '/api/custom', context: {} } as any)
 
-      expect(handlerSpy.mock.calls[0][0].queryParams).toEqual({ page: 1 })
+      expect(handlerSpy.mock.calls[0]![0].queryParams).toEqual({ page: 1 })
     })
   })
 

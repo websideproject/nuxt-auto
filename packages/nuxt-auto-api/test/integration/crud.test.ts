@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setupTestDatabase, seedDatabase, cleanDatabase } from '../helpers/setup'
-import { UserFactory, PostFactory } from '../helpers/factories'
+import { PostFactory } from '../helpers/factories'
 import * as baseSchema from '../helpers/schema'
 import { listHandler } from '../../src/runtime/server/handlers/list'
 import { getHandler } from '../../src/runtime/server/handlers/get'

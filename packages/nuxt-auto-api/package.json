@@ -1,7 +1,7 @@
 {
   "name": "@websideproject/nuxt-auto-api",
   "version": "0.0.7",
-  "description": "Schema-driven API generation from Drizzle schema with auth and authz",
+  "description": "Secure REST APIs for Nuxt from your Drizzle schema: deny-by-default authorization, multi-tenancy, validation, soft delete, M2M and TanStack Query composables",
   "homepage": "https://github.com/websideproject/nuxt-auto",
   "repository": {
     "type": "git",
@@ -78,7 +78,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "nuxt-module-build build",
@@ -101,7 +103,7 @@
     "zod": "^4.3.6"
   },
   "peerDependencies": {
-    "h3": "^1.15.0"
+    "h3": "^1.15.0 || ^2.0.0-0"
   },
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",
@@ -109,7 +111,7 @@
     "@nuxt/schema": "^4.3.0",
     "@nuxt/test-utils": "^3.23.0",
     "@types/better-sqlite3": "^7.6.8",
-    "@types/node": "latest",
+    "@types/node": "^26.2.0",
     "better-sqlite3": "^11.0.0",
     "changelogen": "^0.6.2",
     "drizzle-kit": "^0.31.8",

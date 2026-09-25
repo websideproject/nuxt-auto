@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { eq } from 'drizzle-orm'
 import { setupTestDatabase, seedDatabase, cleanDatabase } from '../helpers/setup'
 import * as baseSchema from '../helpers/schema'
 import { bulkCreateHandler, bulkUpdateHandler, bulkDeleteHandler } from '../../src/runtime/server/handlers/bulk'
@@ -331,6 +332,27 @@ describe('Bulk Operations Integration', () => {
       const post = listResult.data.find((p: any) => p.id === posts[0].id)
       expect(post.title).not.toBe('Valid Update')
       expect(post.title).toBe(posts[0].title) // Original title
+    })
+
+    it('says which items stayed written on a database without transactions (D1)', async () => {
+      const posts = testData.posts
+      const { createD1Adapter } = await import('../../src/runtime/server/database/adapters/d1')
+      const context = createMockContext({
+        db,
+        adapter: createD1Adapter(db),
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'bulk',
+        query: {},
+        validated: { body: { items: [{ id: posts[0].id, data: { title: 'Written' } }, { id: 999999, data: { title: 'x' } }] } },
+      })
+
+      const error: any = await bulkUpdateHandler(context as any).catch(e => e)
+      expect(error.statusCode).toBe(400)
+      expect(error.message).not.toContain('rolled back')
+      expect(error.data).toMatchObject({ committed: 1, errors: [{ index: 1 }] })
+      const [row] = await db.select().from(baseSchema.posts).where(eq(baseSchema.posts.id, posts[0].id))
+      expect(row.title).toBe('Written')
     })
   })
 

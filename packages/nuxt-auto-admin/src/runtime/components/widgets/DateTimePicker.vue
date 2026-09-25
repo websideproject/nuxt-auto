@@ -74,7 +74,7 @@ const showTime = computed(() => props.options?.showTime ?? false)
 const calendarValue = computed(() => {
   if (!props.modelValue) return undefined
   const d = new Date(props.modelValue)
-  if (isNaN(d.getTime())) return undefined
+  if (Number.isNaN(d.getTime())) return undefined
   if (showTime.value) {
     return new CalendarDateTime(d.getFullYear(), d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes())
   }
@@ -84,20 +84,20 @@ const calendarValue = computed(() => {
 const calendarDateOnly = computed(() => {
   if (!props.modelValue) return undefined
   const d = new Date(props.modelValue)
-  if (isNaN(d.getTime())) return undefined
+  if (Number.isNaN(d.getTime())) return undefined
   return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
 })
 
 const currentHour = computed(() => {
   if (!props.modelValue) return 0
   const d = new Date(props.modelValue)
-  return isNaN(d.getTime()) ? 0 : d.getHours()
+  return Number.isNaN(d.getTime()) ? 0 : d.getHours()
 })
 
 const currentMinute = computed(() => {
   if (!props.modelValue) return 0
   const d = new Date(props.modelValue)
-  return isNaN(d.getTime()) ? 0 : d.getMinutes()
+  return Number.isNaN(d.getTime()) ? 0 : d.getMinutes()
 })
 
 function handleUpdate(value: CalendarDate | CalendarDateTime | null | undefined) {

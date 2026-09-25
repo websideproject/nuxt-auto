@@ -94,7 +94,7 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
       expect(result.data).toBeInstanceOf(Array)
       expect(result.meta).toHaveProperty('aggregates')
       expect(result.meta.aggregates).toHaveProperty('count')
-      expect(result.meta.aggregates.count).toBeGreaterThan(0)
+      expect(result.meta.aggregates!.count).toBeGreaterThan(0)
     })
 
     it('should combine aggregates with filters', async () => {
@@ -114,10 +114,10 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
       expect(result.meta.aggregates?.count).toBeDefined()
       // Count should only include published posts
       const publishedCount = result.data.filter((p: any) => p.published).length
-      expect(result.meta.aggregates.count).toBeLessThanOrEqual(publishedCount + result.data.length)
+      expect(result.meta.aggregates!.count).toBeLessThanOrEqual(publishedCount + result.data.length)
     })
 
-    it('should not aggregate when groupBy is present', async () => {
+    it('refuses ?aggregate with ?groupBy on the list route (grouped results belong to /aggregate)', async () => {
       const context = createMockContext({
         db,
         schema: baseSchema,
@@ -129,10 +129,8 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
         },
       })
 
-      const result = await listHandler(context as any)
-
-      // Simple aggregation should be skipped when groupBy is present
-      expect(result.meta.aggregates).toBeUndefined()
+      // Silently ignoring groupBy returned a total that looked grouped — a 400 says what to do instead.
+      await expect(listHandler(context as any)).rejects.toMatchObject({ statusCode: 400 })
     })
   })
 
@@ -176,13 +174,9 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
       const result = await aggregateHandler(context as any)
 
       expect(result.data).toBeInstanceOf(Array)
-      if (result.data.length > 0) {
-        // Log keys to debug test failure
-        console.log('Aggregation Group Keys:', Object.keys(result.data[0].group || {}))
-        expect(result.data[0].group).toHaveProperty('published')
-        // Drizzle/SQLite uses column name for grouping result keys
-        expect(result.data[0].group).toHaveProperty('user_id')
-      }
+      expect(result.data.length).toBeGreaterThan(0)
+      // Group keys are property names, like everywhere else in the API (not SQL column names).
+      expect(Object.keys(result.data[0]!.group!).sort()).toEqual(['published', 'userId'])
     })
 
     it('should apply filters before aggregation', async () => {
@@ -202,7 +196,7 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
 
       // Should only have one group (published: true)
       expect(result.data).toHaveLength(1)
-      expect(result.data[0].group?.published).toBe(true)
+      expect(result.data[0]!.group?.published).toBe(true)
     })
   })
 
@@ -269,7 +263,7 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
       const result = await updateHandler(context as any)
 
       expect(beforeUpdate).toHaveBeenCalled()
-      const [callId] = beforeUpdate.mock.calls[0]
+      const [callId] = beforeUpdate.mock.calls[0]!
       expect(String(callId)).toBe(String(post.id))
 
       expect(result.data.title).toBe('Updated: New Title')
@@ -296,7 +290,7 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
       await deleteHandler(context as any)
 
       expect(beforeDelete).toHaveBeenCalled()
-      const [callId] = beforeDelete.mock.calls[0]
+      const [callId] = beforeDelete.mock.calls[0]!
       expect(String(callId)).toBe(String(post.id))
     })
   })
@@ -326,7 +320,7 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
         },
       })
 
-      const result = await createHandler(context as any)
+      await createHandler(context as any)
 
       expect(afterCreate).toHaveBeenCalledWith(
         expect.objectContaining({

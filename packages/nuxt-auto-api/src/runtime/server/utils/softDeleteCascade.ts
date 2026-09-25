@@ -27,7 +27,7 @@ interface FkEdge {
 
 /** Cross-dialect FK read: try each dialect's getTableConfig; the matching one succeeds. */
 function tableForeignKeys(table: any): FkEdge[] {
-  for (const getCfg of [sqliteTableConfig, pgTableConfig, mysqlTableConfig]) {
+  for (const getCfg of [sqliteTableConfig, pgTableConfig, mysqlTableConfig] as Array<(t: any) => any>) {
     try {
       const cfg: any = getCfg(table as any)
       return (cfg.foreignKeys ?? []).map((fk: any) => {

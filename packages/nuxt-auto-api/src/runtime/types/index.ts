@@ -12,11 +12,12 @@ export interface AutoApiOptions {
   prefix?: string
 
   /**
-   * Database configuration
+   * Not read by the module — the engine is the second argument of `initializeDatabase(db, engine)` in your
+   * server plugin. Kept so existing configs still type-check.
+   * @deprecated
    */
-  database: {
-    client: DatabaseEngine
-    url?: string
+  database?: {
+    client?: DatabaseEngine
   }
 
   /**
@@ -28,9 +29,10 @@ export interface AutoApiOptions {
    * Pagination configuration
    */
   pagination?: {
-    default: 'offset' | 'cursor'
-    defaultLimit: number
-    maxLimit: number
+    /** Page size when `?limit` is absent. @default 20 */
+    defaultLimit?: number
+    /** Largest accepted `?limit` (also caps relation and M2M pages). @default 100 */
+    maxLimit?: number
   }
 
   /**
@@ -57,20 +59,11 @@ export interface AutoApiOptions {
   plugins?: string | AutoApiPlugin[]
 
   /**
-   * Resources to exclude from auto-generation
-   */
-  exclude?: string[]
-
-  /**
-   * Resources to include in auto-generation (if not specified, all are included)
-   */
-  include?: string[]
-
-  /**
    * Nested relations configuration
    */
   relations?: {
     maxDepth?: number // default: 3
+    maxIncludes?: number // default: 20 — relations per request
     allowFieldSelection?: boolean // default: true
     allowFiltering?: boolean // default: true
     allowPagination?: boolean // default: true
@@ -95,11 +88,6 @@ export interface AutoApiOptions {
   }
 
   /**
-   * Hooks configuration (config-based hooks)
-   */
-  hooks?: Record<string, ResourceHooks>
-
-  /**
    * Hook execution configuration
    */
   hookConfig?: {
@@ -112,6 +100,11 @@ export interface AutoApiOptions {
    * Many-to-Many (M2M) relationships configuration
    */
   m2m?: M2MConfig
+
+  /**
+   * Log registration and plugin details at build time. @default false
+   */
+  debug?: boolean
 
   /**
    * Hidden fields configuration (global)
@@ -127,66 +120,70 @@ export interface AutoApiOptions {
 
 export interface MultiTenancyConfig {
   /**
-   * Enable multi-tenancy
+   * Enable multi-tenancy. Tenant-scoped resources then only ever expose rows of the caller's tenant, and a
+   * request without an active tenant is refused (fails closed).
    */
   enabled: boolean
 
   /**
-   * Field name for tenant ID in tables (default: 'organizationId')
+   * Column (property key) holding the tenant id on scoped tables.
+   * @default 'organizationId'
    */
   tenantIdField?: string
 
   /**
-   * Function to extract tenant ID from request
+   * Property of `ctx.user` that holds the caller's active tenant id.
+   * @default the value of `tenantIdField`
    */
-  getTenantId?: (event: H3Event) => string | number | null | Promise<string | number | null>
+  userTenantField?: string
 
   /**
-   * Resources to auto-scope (default: all with tenantIdField)
+   * Resources to scope. `'*'` scopes every resource whose table has the tenant column.
+   * @default '*'
    */
   scopedResources?: string[] | '*'
 
   /**
-   * Resources to exclude from scoping
+   * Resources never scoped (e.g. a global lookup table that happens to have the column).
    */
   excludedResources?: string[]
-
-  /**
-   * Allow cross-tenant access for specific users
-   */
-  allowCrossTenantAccess?: (user: AuthUser) => boolean
-
-  /**
-   * Require tenant for all requests
-   */
-  requireTenant?: boolean
 }
 
 export interface ResourceAuthConfig {
   /**
-   * Permissions required for operations
+   * Who may perform each operation. **Deny by default**: an operation with no entry is refused.
+   *
+   *  - `true` / `false` — everyone / no one (`false` beats even the `*` permission)
+   *  - `'perm'` / `['a', 'b']` — callers holding that permission / any of them
+   *  - `(ctx) => boolean` — a function decides
+   *  - `{ ... }` — a descriptor evaluated by a registered permission evaluator
    */
   permissions?: {
-    read?: string | string[] | PermissionFunction | PermissionObject
-    create?: string | string[] | PermissionFunction | PermissionObject
-    update?: string | string[] | PermissionFunction | PermissionObject
-    delete?: string | string[] | PermissionFunction | PermissionObject
+    read?: PermissionValue
+    create?: PermissionValue
+    update?: PermissionValue
+    delete?: PermissionValue
+
+    /**
+     * Run aggregations (`/aggregate`, `?aggregate=`). Falls back to `read` when unset.
+     */
+    aggregate?: PermissionValue
 
     /**
      * Restore a soft-deleted row (POST /:id/restore + batch restore).
-     * Falls back to `softDelete.restore` → `update` → `'admin'` when unset.
+     * Falls back to `softDelete.restore` → `update` when unset.
      */
-    restore?: string | string[] | PermissionFunction | PermissionObject
+    restore?: PermissionValue
     /**
      * Permanently purge a soft-deleted row (DELETE ?force=true + batch purge).
-     * Falls back to `softDelete.purge` → `delete` → `'admin'` when unset.
+     * Falls back to `softDelete.purge` → `delete` when unset.
      */
-    purge?: string | string[] | PermissionFunction | PermissionObject
+    purge?: PermissionValue
     /**
      * See soft-deleted rows in list/get/aggregate (`?includeDeleted` / `?onlyDeleted`).
-     * Falls back to global admin OR org admin/owner when unset.
+     * Falls back to `softDelete.viewDeleted` → the restore permission when unset.
      */
-    viewDeleted?: string | string[] | PermissionFunction | PermissionObject
+    viewDeleted?: PermissionValue
 
     /**
      * M2M relationship permissions
@@ -200,9 +197,9 @@ export interface ResourceAuthConfig {
    * etc. take precedence when both are set.
    */
   softDelete?: {
-    restore?: string | string[] | PermissionFunction | PermissionObject
-    purge?: string | string[] | PermissionFunction | PermissionObject
-    viewDeleted?: string | string[] | PermissionFunction | PermissionObject
+    restore?: PermissionValue
+    purge?: PermissionValue
+    viewDeleted?: PermissionValue
     /** Cascade soft-delete to FK children. `'auto'` (default) mirrors each FK's onDelete; `'off'` disables. */
     cascade?: 'auto' | 'off'
     /** Trash retention before the purge task hard-deletes (days; 0 = never). */
@@ -217,9 +214,10 @@ export interface ResourceAuthConfig {
   objectLevel?: ObjectLevelAuthFunction
 
   /**
-   * SQL-level filter applied to list queries (WHERE clause).
-   * More efficient than objectLevel for list — runs in the DB so pagination is correct.
-   * Receives the Drizzle table and handler context, returns a SQL condition or undefined.
+   * Row visibility as a SQL condition: which rows of this resource the caller may see. Despite the name it
+   * scopes EVERY access — list, get, update, delete, restore, bulk, aggregate, M2M and `?include=` — so a row
+   * a caller cannot list is also a row they cannot fetch, change or delete by id.
+   * Receives the Drizzle table and handler context, returns a SQL condition or undefined (no restriction).
    *
    * @example
    * ```ts
@@ -236,8 +234,8 @@ export interface ResourceAuthConfig {
    */
   fields?: {
     [fieldName: string]: {
-      read?: string | string[] | PermissionFunction | PermissionObject
-      write?: string | string[] | PermissionFunction | PermissionObject
+      read?: PermissionValue
+      write?: PermissionValue
     }
   }
 
@@ -263,15 +261,20 @@ export interface ResourceAuthConfig {
    */
   custom?: Record<string, {
     permissions?: {
-      read?: string | string[] | PermissionFunction | PermissionObject
-      create?: string | string[] | PermissionFunction | PermissionObject
-      update?: string | string[] | PermissionFunction | PermissionObject
-      delete?: string | string[] | PermissionFunction | PermissionObject
+      read?: PermissionValue
+      create?: PermissionValue
+      update?: PermissionValue
+      delete?: PermissionValue
     }
   }>
 }
 
 export type PermissionFunction = (context: HandlerContext) => boolean | Promise<boolean>
+
+/**
+ * A permission declaration: `true`/`false`, a permission string, any-of array, function, or descriptor object.
+ */
+export type PermissionValue = boolean | string | string[] | PermissionFunction | PermissionObject
 
 /**
  * Structured ("object") permission value — opaque to auto-api. Evaluated by externally
@@ -289,7 +292,7 @@ export type PermissionObject = Record<string, unknown>
 export type PermissionEvaluator = (
   value: PermissionObject,
   context: HandlerContext,
-) => boolean | Promise<boolean> | undefined
+) => boolean | undefined | Promise<boolean | undefined>
 
 export type ObjectLevelAuthFunction = (
   object: any,
@@ -383,7 +386,9 @@ export interface HandlerContext {
    */
   tenant?: {
     id: string | number
+    /** Column (property key) that holds the tenant id. */
     field: string
+    /** Set by a context extender for cross-tenant operators: tenant scoping is not applied. */
     canAccessAllTenants: boolean
   }
 
@@ -404,6 +409,11 @@ export interface HandlerContext {
    * Full resource registry (for accessing all resource configs)
    */
   registry?: Record<string, ResourceRegistration>
+
+  /**
+   * Set on `/bulk` routes: the body is `{ items }` / `{ ids }` and every item is validated on its own.
+   */
+  bulk?: boolean
 
   /**
    * Short-circuit the handler pipeline.
@@ -572,7 +582,8 @@ export interface ResourceHooks {
   beforeDelete?: (id: string | number, context: HandlerContext) => Promise<void> | void
   afterDelete?: (id: string | number, context: HandlerContext) => Promise<void> | void
   beforeList?: (context: HandlerContext) => Promise<void> | void
-  afterList?: (results: any[], context: HandlerContext) => Promise<any[] | void> | any[] | void
+  /** May return the (transformed) results; returning nothing keeps them. */
+  afterList?: (results: any[], context: HandlerContext) => unknown
   beforeGet?: (id: string | number, context: HandlerContext) => Promise<void> | void
   afterGet?: (result: any, context: HandlerContext) => Promise<any> | any
 
@@ -594,12 +605,16 @@ export interface ResourceHooks {
 export interface ResourceRegistration {
   name: string
   schema: any // Drizzle table or path info at build time
-  db?: any // Optional per-resource database instance
   authorization?: ResourceAuthConfig | any // Auth config or path info at build time
   validation?: ValidationSchema | any // Validation schema or path info at build time
   hooks?: ResourceHooks
   metadata?: Record<string, any>
   hiddenFields?: string[] // Fields to hide from API responses
+  /**
+   * Extra columns request bodies may never set (on top of the primary key, tenant, soft-delete and audit
+   * columns, which are always protected). Hooks can still write them.
+   */
+  protectedFields?: string[]
 }
 
 /**
@@ -647,6 +662,15 @@ export interface PermissionCheckResult {
    * Whether the user can delete resources
    */
   canDelete: boolean
+
+  /** Whether the user can restore soft-deleted rows */
+  canRestore?: boolean
+
+  /** Whether the user can permanently purge rows */
+  canPurge?: boolean
+
+  /** Whether the user can see soft-deleted rows (`?includeDeleted` / `?onlyDeleted`) */
+  canViewDeleted?: boolean
 
   /**
    * Field-level permissions (if configured)

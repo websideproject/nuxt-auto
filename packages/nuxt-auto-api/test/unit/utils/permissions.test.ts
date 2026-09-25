@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { checkPermission, checkFieldPermission, getResourcePermissions } from '../../../src/runtime/server/utils/permissions'
-import { hasPermission } from '../../../src/runtime/server/middleware/authz'
+import { createAuthorizationMiddleware } from '../../../src/runtime/server/middleware/authz'
 import { getPermissionEvaluators, registerPermissionEvaluator } from '../../../src/runtime/server/plugins/pluginRegistry'
 import { createMockContext, createMockUser } from '../../helpers/mocks'
 
@@ -10,12 +10,25 @@ import { createMockContext, createMockUser } from '../../helpers/mocks'
 // structured-object (descriptor) gates. Previously untested.
 describe('permissions introspection', () => {
   const ctx = createMockContext({ user: createMockUser('user'), permissions: ['read', 'user'] })
-  beforeEach(() => { getPermissionEvaluators().splice(0) })
+  beforeEach(() => {
+    getPermissionEvaluators().splice(0)
+  })
 
   describe('checkPermission', () => {
-    it('no auth config → allowed', async () => {
-      expect(await checkPermission('read', undefined, ctx)).toBe(true)
-      expect(await checkPermission('read', { permissions: {} } as any, ctx)).toBe(true) // op unset = allowed
+    it('deny by default: no auth config, or an operation it does not mention → denied', async () => {
+      expect(await checkPermission('read', undefined, ctx)).toBe(false)
+      expect(await checkPermission('read', { permissions: {} } as any, ctx)).toBe(false)
+      expect(await checkPermission('read', { permissions: { read: true } } as any, ctx)).toBe(true)
+      expect(await checkPermission('read', { permissions: { read: false } } as any, { ...ctx, permissions: ['*'] } as any)).toBe(false)
+    })
+
+    it('restore / purge / viewDeleted / aggregate fall back to their base operation', async () => {
+      const auth = { permissions: { read: true, update: 'user', delete: 'admin' } } as any
+      expect(await checkPermission('restore', auth, ctx)).toBe(true) // → update ('user')
+      expect(await checkPermission('purge', auth, ctx)).toBe(false) // → delete ('admin')
+      expect(await checkPermission('viewDeleted', auth, ctx)).toBe(true) // → restore → update
+      expect(await checkPermission('aggregate', auth, ctx)).toBe(true) // → read
+      expect(await checkPermission('restore', { ...auth, softDelete: { restore: false } }, ctx)).toBe(false)
     })
 
     it('string / array permission matches the user’s permissions', async () => {
@@ -54,7 +67,7 @@ describe('permissions introspection', () => {
       expect(res.fields!.secret).toEqual({ canRead: false, canWrite: true }) // write has no restriction
     })
 
-    it('reflects object (descriptor) gates IDENTICALLY to the request gate hasPermission', async () => {
+    it('reflects object (descriptor) gates IDENTICALLY to the request gate', async () => {
       registerPermissionEvaluator(async (v: any) => (v.gate === 'open' ? true : v.gate === 'shut' ? false : undefined))
       const open = { gate: 'open' }
       const shut = { gate: 'shut' }
@@ -63,8 +76,9 @@ describe('permissions introspection', () => {
       expect((await getResourcePermissions({ permissions: { create: open } } as any, ctx)).canCreate).toBe(true)
       expect((await getResourcePermissions({ permissions: { create: shut } } as any, ctx)).canCreate).toBe(false)
       // request gate — must agree
-      expect(await hasPermission(ctx.permissions, open as any, ctx)).toBe(true)
-      expect(await hasPermission(ctx.permissions, shut as any, ctx)).toBe(false)
+      const gate = (create: any) => createAuthorizationMiddleware({ permissions: { create } })({ ...ctx, operation: 'create' } as any)
+      await expect(gate(open)).resolves.toBeUndefined()
+      await expect(gate(shut)).rejects.toMatchObject({ statusCode: 403 })
     })
   })
 })

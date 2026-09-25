@@ -89,24 +89,15 @@ export function buildRestoreUpdates(table: any): Record<string, any> {
 }
 
 /**
- * Whether the current request may SEE soft-deleted rows. Async — `viewDeleted` config can be a
- * string / array / function / object (gate descriptor), evaluated through the shared permission
- * resolver (so plan/entitlement gates work). Falls back to global admin OR org admin/owner.
+ * Whether the caller may SEE soft-deleted rows of `resource` (default: the request's resource).
  *
- * `evaluatePermission` is imported lazily to avoid a require cycle (permissions.ts ↔ softDelete.ts).
+ * Governed by `permissions.viewDeleted` → `softDelete.viewDeleted` → the restore permission, through the
+ * shared evaluator (so descriptor objects and the `*` wildcard behave as everywhere else).
+ *
+ * `permissions.ts` is imported lazily to avoid a require cycle.
  */
-export async function canViewSoftDeleted(context: any): Promise<boolean> {
-  const perms: string[] = context.permissions ?? []
-  if (perms.includes('admin') || perms.includes('*')) return true
-
-  const authz = (context.resourceConfig as any)?.authorization
-  const viewDeleted = authz?.permissions?.viewDeleted ?? authz?.softDelete?.viewDeleted
-  if (viewDeleted !== undefined) {
-    const { evaluatePermission } = await import('./permissions')
-    if (await evaluatePermission(viewDeleted, context)) return true
-  }
-
-  // Org-role fallback (requestMeta stamped by the better-auth plugin).
-  const orgRoles: string[] = (context as any).requestMeta?.orgRoles ?? []
-  return orgRoles.some((r: string) => ['admin', 'owner'].includes(r))
+export async function canViewSoftDeleted(context: any, resource: string = context.resource): Promise<boolean> {
+  const { checkPermission } = await import('./permissions')
+  const { getAuthConfig } = await import('./authConfig')
+  return checkPermission('viewDeleted', getAuthConfig(context, resource), context)
 }

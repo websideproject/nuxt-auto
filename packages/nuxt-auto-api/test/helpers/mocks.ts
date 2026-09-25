@@ -29,7 +29,7 @@ export const createMockEvent = createMockH3Event
 /**
  * Create mock handler context
  */
-export function createMockContext(overrides: any = {}): Partial<HandlerContext> {
+export function createMockContext(overrides: any = {}): HandlerContext {
   const defaultEvent = createMockH3Event()
 
   const event = overrides.event
@@ -59,7 +59,7 @@ export function createMockContext(overrides: any = {}): Partial<HandlerContext> 
     operation: 'list',
     ...overrides,
     event, // Use the merged event
-  }
+  } as HandlerContext
 }
 
 /**

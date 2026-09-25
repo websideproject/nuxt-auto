@@ -1,4 +1,6 @@
-import { defineNuxtModule, createResolver, addServerHandler, addServerImportsDir, addServerImports, addTemplate, addPlugin, addImportsDir } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerHandler, addServerImportsDir, addServerImports, addTemplate, addTypeTemplate, addPlugin, addImportsDir, useLogger, resolvePath } from '@nuxt/kit'
+import { existsSync } from 'node:fs'
+import { PUBLIC_SERVER_UTILS } from './runtime/server/publicServerUtils'
 import type { AutoApiOptions, ResourceRegistration, AutoApiPlugin } from './runtime/types'
 import type { PluginBuildContext } from './runtime/types/plugin'
 
@@ -14,14 +16,11 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-auto-api',
     configKey: 'autoApi',
+    compatibility: { nuxt: '>=4.0.0' },
   },
   defaults: {
     prefix: '/api',
-    database: {
-      client: 'better-sqlite3',
-    },
     pagination: {
-      default: 'offset',
       defaultLimit: 20,
       maxLimit: 100,
     },
@@ -35,17 +34,12 @@ export default defineNuxtModule<ModuleOptions>({
     // Add composables for auto-import
     addImportsDir(resolver.resolve('./runtime/composables'))
 
-    // Add server utilities. The `./utils` dir holds only leaf source files (the public barrel lives
-    // at `./runtime/server/utils.public.ts`, outside the scan) so each symbol is registered once —
-    // no "Duplicated imports" warnings. The database adapter helpers live in `./database`, so
-    // register those few explicitly to keep them auto-imported server-side.
-    addServerImportsDir(resolver.resolve('./runtime/server/utils'))
-    addServerImports(
-      ['initializeDatabase', 'getDatabaseAdapter', 'createAdapter'].map(name => ({
-        name,
-        from: resolver.resolve('./runtime/server/database/index'),
-      })),
-    )
+    // Server auto-imports: exactly the public API (`@websideproject/nuxt-auto-api/utils`). Internal helpers
+    // are never auto-imported, so they cannot collide with the app's or another module's names.
+    // Resolve to the exact file: an extensionless `…/utils.public` gets its `.public` read as an extension by
+    // the server import pipeline and resolves to the `utils/` directory instead.
+    const publicUtilsFile = await resolvePath(resolver.resolve('./runtime/server/utils.public'))
+    addServerImports(PUBLIC_SERVER_UTILS.map(name => ({ name, from: publicUtilsFile })))
 
     // Alias sub-path exports so they always resolve to source — works in both stub and full-build modes
     nuxt.hook('nitro:config', (nitroConfig) => {
@@ -55,8 +49,30 @@ export default defineNuxtModule<ModuleOptions>({
       nitroConfig.alias['@websideproject/nuxt-auto-api/utils'] = resolver.resolve('./runtime/server/utils.public')
     })
 
-    // Add runtime config
-    nuxt.options.runtimeConfig.autoApi = options as unknown as typeof nuxt.options.runtimeConfig.autoApi
+    const logger = useLogger('nuxt-auto-api', { level: options.debug ? 4 : 3 })
+
+    // Options that took functions reached the server through runtimeConfig, which is serialized — the
+    // functions were silently dropped. They are removed; fail loudly instead of silently mis-scoping.
+    const mt = options.multiTenancy as Record<string, unknown> | undefined
+    for (const removed of ['getTenantId', 'allowCrossTenantAccess', 'requireTenant']) {
+      if (mt && removed in mt) {
+        throw new Error(`[nuxt-auto-api] autoApi.multiTenancy.${removed} was removed: resolve the tenant on the server (set event.context.tenantId, ctx.user.${String(mt.userTenantField || mt.tenantIdField || 'organizationId')}, or ctx.tenant from a context extender). See the multi-tenancy docs.`)
+      }
+    }
+    for (const removed of ['hooks', 'exclude', 'include']) {
+      if (removed in (options as Record<string, unknown>)) {
+        throw new Error(`[nuxt-auto-api] autoApi.${removed} was removed${removed === 'hooks' ? ': register hooks on the resource (createModuleImport) or through a plugin' : ''}.`)
+      }
+    }
+
+    // Runtime config: data only (inline plugin objects hold functions and are wired separately below).
+    const { plugins: _plugins, ...serializable } = options as Record<string, unknown>
+    nuxt.options.runtimeConfig.autoApi = serializable as unknown as typeof nuxt.options.runtimeConfig.autoApi
+    // The client composables need the prefix too.
+    nuxt.options.runtimeConfig.public.autoApi = {
+      ...(nuxt.options.runtimeConfig.public.autoApi as Record<string, unknown> | undefined),
+      prefix: options.prefix || '/api',
+    }
 
     // Create build-time registry
     const registry: BuildTimeRegistry = {
@@ -66,7 +82,7 @@ export default defineNuxtModule<ModuleOptions>({
           throw new Error(`[nuxt-auto-api] Resource "${name}" is already registered`)
         }
         this.resources.set(name, { name, ...config })
-        console.log(`[nuxt-auto-api] Registered resource: ${name}`)
+        logger.debug(`Registered resource: ${name}`)
       },
       getAll() {
         return Array.from(this.resources.values())
@@ -79,13 +95,6 @@ export default defineNuxtModule<ModuleOptions>({
     //   2. Inline array (legacy/simple): plugins: [simplePlugin]
     //   3. Community Nuxt modules:       hook 'autoApi:registerPlugins'
     // ──────────────────────────────────────────────────────────────────────
-
-    const logger = {
-      info: (...args: any[]) => console.log('[nuxt-auto-api]', ...args),
-      warn: (...args: any[]) => console.warn('[nuxt-auto-api]', ...args),
-      error: (...args: any[]) => console.error('[nuxt-auto-api]', ...args),
-      debug: (...args: any[]) => console.debug('[nuxt-auto-api]', ...args),
-    }
 
     // Collect plugin file paths from community modules via hook
     const pluginFilePaths: string[] = []
@@ -121,12 +130,12 @@ export default defineNuxtModule<ModuleOptions>({
         resolved = resolved.replace(/^~/, nuxt.options.rootDir)
       }
       userPluginFilePath = resolved
-      console.log(`[nuxt-auto-api] Plugin file: ${userPlugins} → ${userPluginFilePath}`)
+      logger.debug(`Plugin file: ${userPlugins} → ${userPluginFilePath}`)
     }
     else if (Array.isArray(userPlugins)) {
       // Inline array (legacy/simple plugins)
       inlinePlugins = userPlugins
-      console.warn('[nuxt-auto-api] Inline plugins in nuxt.config.ts have limited closure support. Consider using a file path instead: plugins: \'~/server/autoapi-plugins\'')
+      logger.warn('Inline plugins in nuxt.config.ts cannot capture variables (they are serialized). Prefer a file: plugins: \'~/server/autoapi-plugins\'')
     }
 
     // Run build-time setup for inline plugins
@@ -148,20 +157,20 @@ export default defineNuxtModule<ModuleOptions>({
         nuxt,
         resolver,
         logger: {
-          ...logger,
-          info: (...args: any[]) => console.log(`[nuxt-auto-api:plugin:${plugin.name}]`, ...args),
-          warn: (...args: any[]) => console.warn(`[nuxt-auto-api:plugin:${plugin.name}]`, ...args),
-          error: (...args: any[]) => console.error(`[nuxt-auto-api:plugin:${plugin.name}]`, ...args),
-          debug: (...args: any[]) => console.debug(`[nuxt-auto-api:plugin:${plugin.name}]`, ...args),
+          info: (...args: any[]) => logger.info(`[plugin:${plugin.name}]`, ...args),
+          warn: (...args: any[]) => logger.warn(`[plugin:${plugin.name}]`, ...args),
+          error: (...args: any[]) => logger.error(`[plugin:${plugin.name}]`, ...args),
+          debug: (...args: any[]) => logger.debug(`[plugin:${plugin.name}]`, ...args),
         },
       }
 
       try {
         await plugin.buildSetup(buildContext)
-        console.log(`[nuxt-auto-api] ✓ Plugin "${plugin.name}" build setup complete`)
+        logger.debug(`Plugin "${plugin.name}" build setup complete`)
       }
       catch (error) {
-        console.error(`[nuxt-auto-api] ✗ Plugin "${plugin.name}" build setup failed:`, error)
+        logger.error(`Plugin "${plugin.name}" build setup failed:`, error)
+        throw error
       }
     }
 
@@ -177,7 +186,7 @@ export default defineNuxtModule<ModuleOptions>({
           moduleFilePaths: pluginFilePaths,
           inlinePlugins: inlinePlugins.filter(p => p.runtimeSetup),
         })
-        console.log('[nuxt-auto-api] Generated plugin virtual module:\n' + content)
+        logger.debug('Generated plugin virtual module:\n' + content)
         return content
       },
       write: true,
@@ -211,9 +220,7 @@ export {
     nuxt.options.nitro.plugins = nuxt.options.nitro.plugins || []
     nuxt.options.nitro.plugins.push(resolver.resolve('./runtime/server/plugins/initPlugins'))
 
-    if (hasPlugins) {
-      console.log('[nuxt-auto-api] ✓ Plugin system initialized')
-    }
+    if (hasPlugins) logger.debug('Plugin system initialized')
 
     // After all modules loaded, call hook and generate virtual module
     nuxt.hook('modules:done', async () => {
@@ -222,7 +229,7 @@ export {
       await nuxt.callHook('autoApi:registerPlugins' as any, {
         addFile(filePath: string) {
           pluginFilePaths.push(filePath)
-          console.log(`[nuxt-auto-api] Plugin file registered via hook: ${filePath}`)
+          logger.debug(`Plugin file registered via hook: ${filePath}`)
         },
       })
 
@@ -231,11 +238,16 @@ export {
       const resources = registry.getAll()
 
       if (resources.length === 0) {
-        console.warn('[nuxt-auto-api] No resources registered')
+        logger.warn('No resources registered')
         return
       }
 
-      console.log(`[nuxt-auto-api] Registering ${resources.length} resources`)
+      // Deny by default: a resource without authorization refuses every operation. Say so at build time.
+      const unauthorized = resources.filter(r => !r.authorization).map(r => r.name)
+      if (unauthorized.length) {
+        logger.warn(`${unauthorized.length} resource(s) declare no authorization, so every request to them is refused: ${unauthorized.join(', ')}. Add \`authorization\` (use \`true\` for public operations).`)
+      }
+      logger.debug(`Registering ${resources.length} resources`)
 
       // Generate virtual module with all resource imports
       const virtualModuleContent = generateVirtualModule(resources)
@@ -247,12 +259,11 @@ export {
         write: true,
       })
 
-      // Add type declarations for the virtual module
-      addTemplate({
-        filename: 'nuxt-auto-api-registry.d.ts',
+      // Types for `#nuxt-auto-api-registry` in app and server code.
+      addTypeTemplate({
+        filename: 'types/nuxt-auto-api-registry.d.ts',
         getContents: () => generateVirtualModuleTypes(resources),
-        write: true,
-      })
+      }, { nitro: true, nuxt: true })
 
       // Register virtual import alias for Nitro
       nuxt.options.alias['#nuxt-auto-api-registry'] = resolver.resolve(nuxt.options.buildDir, 'nuxt-auto-api-registry.mjs')
@@ -299,8 +310,7 @@ export {
           handler: resolver.resolve('./runtime/server/handlers/delete.entry'),
         })
 
-        // Restore endpoint - POST /api/{resource}/:id/restore
-        // Only registered for resources with soft delete support
+        // Restore endpoint - POST /api/{resource}/:id/restore (400 for tables without soft delete)
         addServerHandler({
           route: `${prefix}/${resource.name}/:id/restore`,
           method: 'post',
@@ -362,8 +372,6 @@ export {
           method: 'post',
           handler: resolver.resolve('./runtime/server/handlers/m2m/batch.entry'),
         })
-
-        console.log(`[nuxt-auto-api] ✓ Registered routes for /${resource.name}`)
       }
 
       // Global permissions endpoint - GET /api/permissions
@@ -373,8 +381,6 @@ export {
         method: 'get',
         handler: resolver.resolve('./runtime/server/handlers/allPermissions.entry'),
       })
-
-      console.log('[nuxt-auto-api] ✓ Registered global permissions endpoint')
 
       // M2M Detection endpoints (for admin module auto-configuration)
       // Detect M2M relationships for a resource
@@ -398,34 +404,30 @@ export {
         handler: resolver.resolve('./runtime/server/handlers/m2m/list-junctions'),
       })
 
-      // Debug detection endpoint
-      addServerHandler({
-        route: `${prefix}/_m2m/debug-detection`,
-        method: 'get',
-        handler: resolver.resolve('./runtime/server/handlers/m2m/debug-detection'),
-      })
-
-      console.log('[nuxt-auto-api] ✓ Registered M2M detection endpoints')
-      console.log('[nuxt-auto-api] All routes registered successfully')
+      logger.debug('All routes registered')
     }) // end modules:done hook
   },
 })
 
 /**
- * Ensure module path has .ts or .js extension for ESM imports
+ * Resolve an extensionless module path to the file that exists (`.ts`, `.mts`, `.js`, `.mjs`, or an
+ * `index.*` inside a directory). The generated registry imports these paths directly, so they must be exact.
  */
 function ensureExtension(path: string): string {
-  if (path.endsWith('.ts') || path.endsWith('.js') || path.endsWith('.mjs')) {
-    return path
+  if (/\.[cm]?[jt]s$/.test(path)) return path
+  for (const ext of ['.ts', '.mts', '.js', '.mjs']) {
+    if (existsSync(path + ext)) return path + ext
   }
-  // Try .ts first (TypeScript source)
+  for (const ext of ['.ts', '.mts', '.js', '.mjs']) {
+    if (existsSync(`${path}/index${ext}`)) return `${path}/index${ext}`
+  }
   return `${path}.ts`
 }
 
 /**
- * Generate virtual module content that exports the resource registry
+ * Generate virtual module content that exports the resource registry. Exported for tests.
  */
-function generateVirtualModule(resources: ResourceRegistration[]): string {
+export function generateVirtualModule(resources: ResourceRegistration[]): string {
   const imports: string[] = []
   const registryEntries: string[] = []
 
@@ -453,6 +455,9 @@ function generateVirtualModule(resources: ResourceRegistration[]): string {
         const modulePath = ensureExtension(authImport.__modulePath)
         imports.push(`import { ${exportName} as ${authVar} } from '${modulePath}'`)
       }
+      else {
+        throw new Error(`[nuxt-auto-api] Resource "${resource.name}" authorization must use createModuleImport()`)
+      }
     }
 
     // Import validation if provided
@@ -464,6 +469,11 @@ function generateVirtualModule(resources: ResourceRegistration[]): string {
         validationVar = `${varName}Validation`
         const modulePath = ensureExtension(validationImport.__modulePath)
         imports.push(`import { ${exportName} as ${validationVar} } from '${modulePath}'`)
+      }
+      else {
+        // Zod schemas cannot be serialized into the generated module — an inline one used to be dropped
+        // silently, leaving the resource on its generated schemas.
+        throw new Error(`[nuxt-auto-api] Resource "${resource.name}" validation must use createModuleImport()`)
       }
     }
 
@@ -477,22 +487,23 @@ function generateVirtualModule(resources: ResourceRegistration[]): string {
         const modulePath = ensureExtension(hooksImport.__modulePath)
         imports.push(`import { ${exportName} as ${hooksVar} } from '${modulePath}'`)
       }
-      else if (typeof resource.hooks === 'object') {
-        // Inline hooks - serialize directly
-        hooksVar = JSON.stringify(resource.hooks)
+      else {
+        // Functions cannot be serialized into the generated module — they used to be dropped silently.
+        throw new Error(`[nuxt-auto-api] Resource "${resource.name}" hooks must use createModuleImport()`)
       }
     }
 
     // Build registry entry
     registryEntries.push(`
-  '${resource.name}': {
-    name: '${resource.name}',
+  ${JSON.stringify(resource.name)}: {
+    name: ${JSON.stringify(resource.name)},
     schema: ${varName}Schema,
     authorization: ${authVar},
     validation: ${validationVar},
     hooks: ${hooksVar},
     metadata: ${resource.metadata ? JSON.stringify(resource.metadata) : 'undefined'},
     hiddenFields: ${resource.hiddenFields ? JSON.stringify(resource.hiddenFields) : 'undefined'},
+    protectedFields: ${resource.protectedFields ? JSON.stringify(resource.protectedFields) : 'undefined'},
   }`)
   })
 
@@ -510,7 +521,7 @@ export function getAllResources() {
   return Object.values(registry)
 }
 
-export const resourceNames = [${resources.map(r => `'${r.name}'`).join(', ')}]
+export const resourceNames = ${JSON.stringify(resources.map(r => r.name))}
 `
 }
 
@@ -518,17 +529,16 @@ export const resourceNames = [${resources.map(r => `'${r.name}'`).join(', ')}]
  * Generate TypeScript type declarations for the virtual module
  */
 function generateVirtualModuleTypes(resources: ResourceRegistration[]): string {
-  const resourceTypes = resources.map(r => `'${r.name}'`).join(' | ')
-
-  return `import type { ResourceRegistration } from './runtime/types'
-
-export declare const registry: Record<${resourceTypes}, ResourceRegistration>
-
-export declare function getResource(name: ${resourceTypes}): ResourceRegistration | undefined
-
-export declare function getAllResources(): ResourceRegistration[]
-
-export declare const resourceNames: Array<${resourceTypes}>
+  const names = resources.map(r => JSON.stringify(r.name)).join(' | ') || 'string'
+  return `declare module '#nuxt-auto-api-registry' {
+  import type { ResourceRegistration } from '@websideproject/nuxt-auto-api'
+  export type ResourceName = ${names}
+  export const registry: Record<ResourceName, ResourceRegistration>
+  export function getResource(name: ResourceName): ResourceRegistration | undefined
+  export function getAllResources(): ResourceRegistration[]
+  export const resourceNames: ResourceName[]
+}
+export {}
 `
 }
 
@@ -564,7 +574,7 @@ function generatePluginsVirtualModule(opts: {
   })
 
   // 3. Inline plugins (legacy fallback — closure variables will NOT survive serialization)
-  opts.inlinePlugins.forEach((plugin, index) => {
+  opts.inlinePlugins.forEach((plugin) => {
     let runtimeSetupStr = plugin.runtimeSetup?.toString() || '() => {}'
 
     // Fix function serialization: "funcName(args) {}" → "function funcName(args) {}"
@@ -585,7 +595,19 @@ export const plugins = ${pluginsExpr}
 `
 }
 
-export type { AutoApiOptions, SchemaRegistryAPI, AutoApiPlugin } from './runtime/types'
+export type {
+  AutoApiOptions,
+  SchemaRegistryAPI,
+  AutoApiPlugin,
+  ResourceRegistration,
+  ResourceAuthConfig,
+  ResourceHooks,
+  HandlerContext,
+  PermissionValue,
+  PermissionFunction,
+  MultiTenancyConfig,
+  ValidationSchema,
+} from './runtime/types'
 export { defineAutoApiPlugin } from './runtime/types/plugin'
 export { createModuleImport } from './utils/moduleImport'
 

@@ -1,65 +1,20 @@
+import { createError, defineEventHandler, getMethod } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
-import { defineEventHandler, getMethod, createError } from 'h3'
 import { bulkCreateHandler, bulkUpdateHandler, bulkDeleteHandler } from './bulk'
-import { createContextFromRegistry } from './createContextFromRegistry'
+import { runResourcePipeline } from './pipeline'
 
 /**
- * Entry point for bulk operations - /api/{resource}/bulk
- * POST - bulk create
- * PATCH - bulk update
- * DELETE - bulk delete
+ * /api/{resource}/bulk — POST creates `{ items: [...] }`, PATCH updates `{ items: [{ id, data }] }`,
+ * DELETE removes `{ ids: [...] }`. Gated by the create / update / delete permission; every item is
+ * validated and authorized exactly like its single-record route.
  */
 export default defineEventHandler(async (event) => {
+  if ((useRuntimeConfig() as any).autoApi?.bulk?.enabled === false) {
+    throw createError({ statusCode: 404, message: 'Bulk operations are disabled' })
+  }
   const method = getMethod(event)
-
-  // Check if bulk operations are enabled
-  const runtimeConfig = useRuntimeConfig?.()
-  const bulkEnabled = runtimeConfig?.autoApi?.bulk?.enabled ?? true
-
-  if (!bulkEnabled) {
-    throw createError({
-      statusCode: 403,
-      message: 'Bulk operations are disabled',
-    })
-  }
-
-  if (method === 'POST') {
-    const { context, authorize, validate, runMiddleware } = await createContextFromRegistry(event, 'create')
-    await runMiddleware('pre-auth')
-    await authorize(context)
-    await runMiddleware('post-auth')
-    await validate(context)
-    await runMiddleware('pre-execute')
-    const result = await bulkCreateHandler(context)
-    await runMiddleware('post-execute')
-    return result
-  }
-  else if (method === 'PATCH') {
-    const { context, authorize, validate, runMiddleware } = await createContextFromRegistry(event, 'update')
-    await runMiddleware('pre-auth')
-    await authorize(context)
-    await runMiddleware('post-auth')
-    await validate(context)
-    await runMiddleware('pre-execute')
-    const result = await bulkUpdateHandler(context)
-    await runMiddleware('post-execute')
-    return result
-  }
-  else if (method === 'DELETE') {
-    const { context, authorize, validate, runMiddleware } = await createContextFromRegistry(event, 'delete')
-    await runMiddleware('pre-auth')
-    await authorize(context)
-    await runMiddleware('post-auth')
-    await validate(context)
-    await runMiddleware('pre-execute')
-    const result = await bulkDeleteHandler(context)
-    await runMiddleware('post-execute')
-    return result
-  }
-  else {
-    throw createError({
-      statusCode: 405,
-      message: `Method ${method} not allowed for bulk operations`,
-    })
-  }
+  if (method === 'POST') return runResourcePipeline(event, 'create', bulkCreateHandler, { bulk: true })
+  if (method === 'PATCH') return runResourcePipeline(event, 'update', bulkUpdateHandler, { bulk: true })
+  if (method === 'DELETE') return runResourcePipeline(event, 'delete', bulkDeleteHandler, { bulk: true })
+  throw createError({ statusCode: 405, message: `Method ${method} not allowed for bulk operations` })
 })

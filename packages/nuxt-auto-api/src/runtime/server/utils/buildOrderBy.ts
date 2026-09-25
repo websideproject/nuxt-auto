@@ -1,33 +1,40 @@
 import { asc, desc } from 'drizzle-orm'
+import { createError } from 'h3'
+import { getColumns } from './table'
+
+export interface SortSpec {
+  field: string
+  direction: 'asc' | 'desc'
+}
 
 /**
- * Build ORDER BY clause from sort parameter
- *
- * Supports:
- * - sort=field (ascending)
- * - sort=-field (descending)
- * - sort=field1,-field2 (multiple sorts)
+ * Parse `?sort=` — `field`, `-field` (descending), a comma list (`status,-createdAt`) or an array.
+ * A field outside `allowed` (unknown, hidden or unreadable) is a 400.
  */
-export function buildOrderBy(sort: string | string[] | undefined, table: any): any[] {
-  if (!sort) {
-    return []
-  }
+export function parseSort(sort: string | string[] | undefined, table: any, allowed?: Set<string>): SortSpec[] {
+  if (!sort) return []
+  const parts = (Array.isArray(sort) ? sort : [sort])
+    .flatMap(s => String(s).split(','))
+    .map(s => s.trim())
+    .filter(Boolean)
 
-  const sortArray = Array.isArray(sort) ? sort : [sort]
-  const orderBy: any[] = []
-
-  for (const sortField of sortArray) {
-    const isDescending = sortField.startsWith('-')
-    const field = isDescending ? sortField.slice(1) : sortField
-
-    // Skip if field doesn't exist in table
-    if (!(field in table)) {
-      continue
+  const columns = allowed ?? new Set(Object.keys(getColumns(table)))
+  const specs: SortSpec[] = []
+  for (const part of parts) {
+    const direction = part.startsWith('-') ? 'desc' : 'asc'
+    const field = part.replace(/^[-+]/, '')
+    if (!columns.has(field) || !table[field]) {
+      throw createError({ statusCode: 400, message: `Unknown field '${field}' in sort` })
     }
-
-    const column = table[field]
-    orderBy.push(isDescending ? desc(column) : asc(column))
+    if (!specs.some(s => s.field === field)) specs.push({ field, direction })
   }
+  return specs
+}
 
-  return orderBy
+export function toOrderBy(specs: SortSpec[], table: any): any[] {
+  return specs.map(s => (s.direction === 'desc' ? desc(table[s.field]) : asc(table[s.field])))
+}
+
+export function buildOrderBy(sort: string | string[] | undefined, table: any, allowed?: Set<string>): any[] {
+  return toOrderBy(parseSort(sort, table, allowed), table)
 }

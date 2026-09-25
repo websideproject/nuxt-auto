@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { createRevisionPlugin } from '../../../src/runtime/plugins/revisionPlugin'
 
 // Self-contained fixture: a tracked `articles` table + the `revisions` store.

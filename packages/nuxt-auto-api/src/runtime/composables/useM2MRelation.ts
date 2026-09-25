@@ -5,6 +5,8 @@ import type { MaybeRef } from 'vue'
 import type { M2MListResponse, M2MListQuery } from '../types'
 import { autoApiKeys } from './queryKeys'
 import { prerenderSafeEnabled } from './prerenderEnabled'
+import { useAutoApiPath } from './autoApiPath'
+import { useAutoApiFetch } from './autoApiFetch'
 
 /**
  * Query M2M relations with TanStack Query
@@ -29,6 +31,8 @@ export function useM2MRelation<T = any>(
   params?: MaybeRef<M2MListQuery>,
   options?: Omit<UseQueryOptions<M2MListResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
+  const path = useAutoApiPath()
+  const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
   const idRef = computed(() => unref(id))
   const relationRef = computed(() => unref(relation))
@@ -69,8 +73,8 @@ export function useM2MRelation<T = any>(
       autoApiKeys.m2mRelation(resourceRef.value, idRef.value, relationRef.value, paramsRef.value),
     ),
     queryFn: async () => {
-      const response = await $fetch<M2MListResponse<T>>(
-        `/api/${resourceRef.value}/${idRef.value}/relations/${relationRef.value}`,
+      const response = await fetcher<M2MListResponse<T>>(
+        path(resourceRef.value, idRef.value, 'relations', relationRef.value),
         { query: queryParams.value },
       )
       return response

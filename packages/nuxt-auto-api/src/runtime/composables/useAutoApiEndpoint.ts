@@ -1,10 +1,13 @@
 import { computed, unref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { UseMutationOptions, UseQueryOptions, QueryKey } from '@tanstack/vue-query'
+import type { UseQueryOptions, QueryKey } from '@tanstack/vue-query'
+import { withAutoApiHandlers } from './mutationHandlers'
+import type { AutoApiMutationOptions } from './mutationHandlers'
 import type { MaybeRef } from 'vue'
 import type { AutoApiToastOptions } from '../types/toast'
 import { useAutoApiToast } from './useAutoApiToast'
 import { prerenderSafeEnabled } from './prerenderEnabled'
+import { useAutoApiFetch } from './autoApiFetch'
 
 /**
  * TanStack mutation for a custom endpoint URL.
@@ -24,34 +27,26 @@ export function useAutoApiEndpointMutation<TData = any, TBody = Record<string, a
     /** Query keys to invalidate on success. Pass arrays of key arrays. */
     invalidates?: QueryKey[]
     toast?: AutoApiToastOptions
-  } & Omit<UseMutationOptions<TData, Error, TBody>, 'mutationFn'>,
+  } & AutoApiMutationOptions<TData, TBody>,
 ) {
   const queryClient = useQueryClient()
+  const fetcher = useAutoApiFetch()
   const urlRef = computed(() => unref(url))
   const { handleSuccess, handleError } = useAutoApiToast()
 
   const { method = 'POST', invalidates, toast: toastOptions, ...mutationOptions } = options ?? {}
 
   return useMutation<TData, Error, TBody>({
-    mutationFn: async (body: TBody) => {
-      return await $fetch<TData>(urlRef.value, { method, body: body as any })
-    },
-    onSuccess: (data, variables, context) => {
-      if (invalidates?.length) {
-        invalidates.forEach(key => queryClient.invalidateQueries({ queryKey: key }))
-      }
-      if (toastOptions?.enabled && toastOptions?.showSuccess) {
-        handleSuccess('Done', toastOptions.successMessage)
-      }
-      mutationOptions?.onSuccess?.(data, variables, context)
-    },
-    onError: (error, variables, context) => {
-      if (toastOptions?.enabled && toastOptions?.showErrors) {
-        handleError(error)
-      }
-      mutationOptions?.onError?.(error, variables, context)
-    },
-    ...mutationOptions,
+    ...withAutoApiHandlers(mutationOptions, {
+      onSuccess: async () => {
+        if (toastOptions?.enabled && toastOptions?.showSuccess) handleSuccess('Done', toastOptions.successMessage)
+        for (const key of invalidates ?? []) await queryClient.invalidateQueries({ queryKey: key })
+      },
+      onError: (error: Error) => {
+        if (toastOptions?.enabled && toastOptions?.showErrors) handleError(error)
+      },
+    }),
+    mutationFn: (body: TBody) => fetcher<TData>(urlRef.value, { method, body: body as any }) as Promise<TData>,
   })
 }
 
@@ -81,6 +76,7 @@ export function useAutoApiEndpointQuery<TData = any>(
     unwrap?: boolean
   } & Omit<UseQueryOptions<TData, Error>, 'queryKey' | 'queryFn'>,
 ) {
+  const fetcher = useAutoApiFetch()
   const urlRef = computed(() => unref(url))
   const paramsRef = computed(() => unref(params))
   const queryKeyRef = computed(() => unref(options?.queryKey ?? [urlRef.value, paramsRef.value]))
@@ -92,12 +88,12 @@ export function useAutoApiEndpointQuery<TData = any>(
     queryFn: async () => {
       const query = paramsRef.value
         ? '?' + new URLSearchParams(
-            Object.entries(paramsRef.value)
-              .filter(([, v]) => v != null)
-              .map(([k, v]) => [k, String(v)]),
-          ).toString()
+          Object.entries(paramsRef.value)
+            .filter(([, v]) => v != null)
+            .map(([k, v]) => [k, String(v)]),
+        ).toString()
         : ''
-      const res = await $fetch<any>(`${urlRef.value}${query}`)
+      const res = await fetcher<any>(`${urlRef.value}${query}`)
       // Unwrap auto-api's own `{ data }` envelope when asked (and only when present).
       if (unwrap && res && typeof res === 'object' && 'data' in res) return res.data as TData
       return res as TData

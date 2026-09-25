@@ -29,7 +29,7 @@ describe('pluginRegistry', () => {
 
       const result = getMiddlewareForStage('pre-auth')
       expect(result).toHaveLength(1)
-      expect(result[0].name).toBe('test-mw')
+      expect(result[0]!.name).toBe('test-mw')
     })
 
     it('should sort middleware by order', () => {
@@ -46,8 +46,8 @@ describe('pluginRegistry', () => {
       addMiddleware({ name: 'no-order', stage: 'pre-auth', handler: async () => {} })
 
       const result = getMiddlewareForStage('pre-auth')
-      expect(result[0].name).toBe('no-order')
-      expect(result[1].name).toBe('with-order')
+      expect(result[0]!.name).toBe('no-order')
+      expect(result[1]!.name).toBe('with-order')
     })
   })
 
