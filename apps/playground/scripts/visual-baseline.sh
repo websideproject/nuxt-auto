@@ -3,7 +3,7 @@
 #
 #   bun run visual:baseline                  # refresh every baseline
 #   bun run visual:baseline admin            # …only the tests whose title matches (-g): admin pages
-#   bun run visual:baseline -- -375          # …or one viewport (after `--`, a leading dash is not an option)
+#   bun run visual:baseline -- -1440         # …or one viewport (after `--`, a leading dash is not an option)
 #   bun run visual:baseline --check          # compare only, as CI does; nothing is written
 #
 # It rebuilds the visual database, builds and serves the playground on the host (:3100), and runs Playwright

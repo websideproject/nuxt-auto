@@ -363,6 +363,26 @@ for (const spec of ENGINES) {
       expect(res.records['999999']).toEqual({ canRead: false, canUpdate: false, canDelete: false })
     })
 
+    it('offset pages under objectLevel: no total, hasMore, and each row on exactly one page', async () => {
+      const names = Array.from({ length: 25 }, (_, i) => `t${String(i + 1).padStart(2, '0')}`)
+      await tagsNamed(...names)
+      // Every third row is dropped, so a SQL offset would count rows the caller never saw.
+      const auth = { tags: { permissions: { read: true }, objectLevel: (row: any) => Number(row.name.slice(1)) % 3 !== 0 } }
+      const visible = names.filter(n => Number(n.slice(1)) % 3 !== 0)
+
+      const seen: string[] = []
+      const more: boolean[] = []
+      for (let page = 1; page <= 5; page++) {
+        const res: any = await listHandler(ctx('tags', { auth, query: { sort: 'name', limit: 5, page } }))
+        expect(res.meta.total).toBeUndefined()
+        seen.push(...res.data.map((r: any) => r.name))
+        more.push(res.meta.hasMore)
+        if (!res.meta.hasMore) break
+      }
+      expect(seen).toEqual(visible)
+      expect(more).toEqual([true, true, true, false])
+    })
+
     it('reports the engine and whether atomic() is a transaction', () => {
       expect(adapter.engine).toBe(spec.engine)
       expect(adapter.supportsTransactions).toBe(spec.engine !== 'd1')

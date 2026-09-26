@@ -182,9 +182,12 @@
       class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800"
     >
       <div class="text-sm text-gray-600 dark:text-gray-400">
-        Showing <span class="font-medium text-gray-900 dark:text-white">{{ ((meta.page || 1) - 1) * (meta.limit || 20) + 1 }}</span> to
-        <span class="font-medium text-gray-900 dark:text-white">{{ Math.min((meta.page || 1) * (meta.limit || 20), meta.total || 0) }}</span> of
-        <span class="font-medium text-gray-900 dark:text-white">{{ meta.total || 0 }}</span> results
+        Showing <span class="font-medium text-gray-900 dark:text-white">{{ firstRow }}</span> to
+        <span class="font-medium text-gray-900 dark:text-white">{{ firstRow + data.length - 1 }}</span>
+        <template v-if="meta.total !== undefined">
+          of <span class="font-medium text-gray-900 dark:text-white">{{ meta.total }}</span>
+        </template>
+        results
       </div>
 
       <UPagination
@@ -194,6 +197,30 @@
         :items-per-page="meta.limit"
         @update:page="handlePageChange"
       />
+      <!-- No total (a resource with an objectLevel rule): step through the pages by `hasMore`. -->
+      <div
+        v-else-if="meta.total === undefined && ((meta.page || 1) > 1 || meta.hasMore)"
+        class="flex gap-2"
+      >
+        <UButton
+          icon="i-heroicons-chevron-left"
+          color="neutral"
+          variant="outline"
+          :disabled="(meta.page || 1) <= 1"
+          @click="handlePageChange((meta.page || 1) - 1)"
+        >
+          Previous
+        </UButton>
+        <UButton
+          trailing-icon="i-heroicons-chevron-right"
+          color="neutral"
+          variant="outline"
+          :disabled="!meta.hasMore"
+          @click="handlePageChange((meta.page || 1) + 1)"
+        >
+          Next
+        </UButton>
+      </div>
     </div>
 
     <!-- Delete confirmation modal -->
@@ -415,6 +442,7 @@ const data = computed(() => response.value?.data || [])
 // resource allows).
 const { canUpdateRow, canDeleteRow } = useAdminRecordPermissions(resourceNameValue.value, () => data.value.map(row => row[pk.value] as string | number))
 const meta = computed(() => response.value?.meta)
+const firstRow = computed(() => ((meta.value?.page || 1) - 1) * (meta.value?.limit || PAGE_SIZE) + 1)
 
 interface ApiError {
   statusCode?: number

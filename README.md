@@ -158,7 +158,7 @@ bun run test
 
 `apps/playground/test/visual.spec.ts` photographs the playground (the admin dashboard, a list, a record, an edit
 form with its many-to-many cards, the app pages built on the composables, and an object-level permission state)
-at 1440 and 375 px, and CI compares every page against the committed images. The images are the docs' own
+at 1440 px, and CI compares every page against the committed images. The images are the docs' own
 (`apps/docs/public/screenshots/`), so a page that changes fails CI until its pictures are refreshed.
 
 The pictures are taken in the Playwright Linux container CI uses (macOS renders fonts differently), so Docker must
