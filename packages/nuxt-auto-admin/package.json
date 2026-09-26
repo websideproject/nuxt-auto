@@ -84,10 +84,10 @@
     "@types/better-sqlite3": "^7.6.8",
     "@types/node": "latest",
     "@websideproject/nuxt-auto-api": "workspace:*",
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^12.8.0",
     "changelogen": "^0.6.2",
     "drizzle-orm": "^0.45.1",
-    "typescript": "^5.9.3",
-    "nuxt": "^4.3.0"
+    "nuxt": "^4.3.0",
+    "typescript": "^5.9.3"
   }
 }

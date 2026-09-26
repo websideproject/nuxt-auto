@@ -125,9 +125,7 @@ jobs:
         run: bun run dev:prepare
       - name: Test
         working-directory: packages/nuxt-auto-api
-        # The database drivers are Nuxt-independent and covered by the `test` job on all six engines (here, Node
-        # 24's worker teardown trips a native-driver assertion after every test has passed).
-        run: bunx vitest run --exclude 'test/engines/**'
+        run: bun run test
 
   # PR previews: every pull request publishes installable builds of both packages to pkg.pr.new and comments the
   # install commands on the PR. Requires the pkg.pr.new GitHub App on the repo: https://github.com/apps/pkg-pr-new
