@@ -1,82 +1,58 @@
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { createError } from 'h3'
 import type { HandlerContext } from '../../types'
-import { checkObjectLevelAuth } from '../middleware/authz'
-import { getSoftDeleteColumn } from '../utils/softDelete'
-import { buildTenantWhere } from '../utils/tenant'
+import { findAuthorizedRow } from '../utils/rowAccess'
+import { getSoftDeleteColumn, buildSoftDeleteUpdates } from '../utils/softDelete'
+import { cascadeSoftDelete } from '../utils/softDeleteCascade'
 import { executeBeforeHook, executeAfterHook } from '../utils/executeHooks'
+import { assertResourcePermission } from '../utils/permissions'
+import { getAuthConfig } from '../utils/authConfig'
+import { primaryKeyColumn, primaryKeyName } from '../utils/table'
+
+const truthy = (v: unknown) => v === true || v === 'true' || v === '1'
 
 /**
  * Delete handler - DELETE /api/[resource]/[id]
+ *
+ *  - soft-deletable table, no `?force=true` → soft delete: stamps the marker + `deletedBy` / `deletionId` /
+ *    `deletedReason` (`?reason=`), cascading to children under one server-generated `deletionId`
+ *  - otherwise → hard delete. `?force=true` on a soft-deletable table is a **purge** and needs the `purge`
+ *    permission (→ `softDelete.purge` → `delete`); it also reaches rows already in the trash.
  */
-export async function deleteHandler(context: HandlerContext): Promise<{ success: boolean }> {
-  const { db, schema, params, resource } = context
-
-  // Get the table from schema
+export async function deleteHandler(context: HandlerContext): Promise<{ success: boolean, softDeleted: boolean, deletionId?: string }> {
+  const { db, schema, params, resource, query } = context
   const table = schema[resource]
-  if (!table) {
-    throw new Error(`Table ${resource} not found in schema`)
-  }
+  if (!table) throw createError({ statusCode: 404, message: `Resource "${resource}" not found` })
+  if (!params.id) throw createError({ statusCode: 400, message: 'ID parameter is required' })
 
-  // Get the ID from params
-  const id = params.id
-  if (!id) {
-    throw createError({
-      statusCode: 400,
-      message: 'ID parameter is required',
-    })
-  }
+  const softCol = getSoftDeleteColumn(table)
+  const purge = !!softCol && truthy((query as any)?.force)
+  if (purge) await assertResourcePermission(resource, 'purge', context)
 
-  // Check if record exists (with tenant scoping)
-  let whereClause = eq(table.id, id)
-  if (context.tenant && !context.tenant.canAccessAllTenants) {
-    const tenantWhere = buildTenantWhere(table, context.tenant.id, context.tenant.field)
-    whereClause = and(whereClause, tenantWhere)
-  }
+  const existing = await findAuthorizedRow(context, resource, params.id, { softDeleted: purge ? 'include' : 'exclude' })
+  const id = existing[primaryKeyName(table)]
+  const pkWhere = eq(primaryKeyColumn(table), id)
 
-  const [existing] = await db.select().from(table).where(whereClause)
+  if (softCol && !purge) {
+    const deletionId = crypto.randomUUID()
+    const reason = (query as any)?.reason ? String((query as any).reason) : null
+    ;(context as any)._revOperation = 'soft-delete'
+    ;(context as any)._deletionId = deletionId
 
-  if (!existing) {
-    throw createError({
-      statusCode: 404,
-      message: `${resource} with id ${id} not found`,
-    })
-  }
-
-  // Check object-level authorization
-  await checkObjectLevelAuth(existing, context)
-
-  // Execute beforeDelete hook
-  await executeBeforeHook('delete', context, undefined, id)
-
-  // Check if soft delete is supported
-  const softDeleteCol = getSoftDeleteColumn(table)
-
-  if (softDeleteCol) {
-    // Soft delete: set deletedAt timestamp
+    await executeBeforeHook('delete', context, undefined, id)
+    // Cascade first, so a `restrict` child blocks before the parent is stamped.
+    const cascade = getAuthConfig(context, resource)?.softDelete?.cascade
+    if (cascade !== 'off') await cascadeSoftDelete(context, resource, id, deletionId, { reason })
     await db.update(table)
-      .set({ [softDeleteCol]: new Date() })
-      .where(eq(table.id, id))
-
-    // Execute afterDelete hook
+      .set(buildSoftDeleteUpdates(table, { deletionId, reason, userId: context.user?.id != null ? String(context.user.id) : null }))
+      .where(pkWhere)
     await executeAfterHook('delete', context, undefined, id)
-
-    return {
-      success: true,
-      softDeleted: true,
-      message: 'Record marked as deleted',
-    }
-  } else {
-    // Hard delete: actually remove the record
-    await db.delete(table).where(eq(table.id, id))
-
-    // Execute afterDelete hook
-    await executeAfterHook('delete', context, undefined, id)
-
-    return {
-      success: true,
-      softDeleted: false,
-      message: 'Record permanently deleted',
-    }
+    return { success: true, softDeleted: true, deletionId }
   }
+
+  ;(context as any)._revOperation = 'delete'
+  await executeBeforeHook('delete', context, undefined, id)
+  await db.delete(table).where(pkWhere)
+  await executeAfterHook('delete', context, undefined, id)
+  return { success: true, softDeleted: false }
 }

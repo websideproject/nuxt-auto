@@ -55,8 +55,8 @@ export const postTags = sqliteTable('post_tags', {
   tagId: integer('tag_id')
     .notNull()
     .references(() => tags.id, { onDelete: 'cascade' }),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.postId, t.tagId] })
+}, t => ({
+  pk: primaryKey({ columns: [t.postId, t.tagId] }),
 }))
 
 export const usersRelations = relations(users, ({ many }) => ({

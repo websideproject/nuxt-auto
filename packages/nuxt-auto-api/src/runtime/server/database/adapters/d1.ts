@@ -1,13 +1,13 @@
 import type { DatabaseAdapter } from '../../../types/database'
 
-export function createD1Adapter(db: any): DatabaseAdapter {
+export function createD1Adapter(db: unknown): DatabaseAdapter {
   return {
     engine: 'd1',
     db,
-    async atomic<T>(fn: (ctx: { tx: any }) => T | Promise<T>): Promise<T> {
-      // D1 supports db.batch() for atomic operations
-      // For complex logic that needs a tx reference, fall back to running against db directly
-      // since D1 doesn't have traditional transactions
+    async atomic<T>(fn: (ctx: { tx: unknown }) => T | Promise<T>): Promise<T> {
+      // D1 has no interactive transactions (only db.batch() of prepared statements), so an arbitrary async
+      // function cannot be made atomic: it runs directly and earlier writes stay if it throws.
+      // `supportsTransactions: false` tells callers.
       return fn({ tx: db })
     },
     getMutationCount(result: any): number {
@@ -17,6 +17,7 @@ export function createD1Adapter(db: any): DatabaseAdapter {
       return 0
     },
     supportsReturning: true,
+    supportsTransactions: false,
     supportsNativeBatch: true,
   }
 }

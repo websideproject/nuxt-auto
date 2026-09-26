@@ -1,14 +1,8 @@
-import { defineEventHandler } from 'h3'
 import { permissionsHandler } from './permissions'
-import { createContextFromRegistry } from './createContextFromRegistry'
+import { defineResourceRoute } from './pipeline'
 
 /**
- * Entry point for permissions handler - GET /api/{resource}/permissions
- * Returns permission information for the current user
+ * GET /api/{resource}/permissions — what the caller may do on this resource. Open to every caller (it
+ * answers "may I?", and the answer for an anonymous caller is usually "no").
  */
-export default defineEventHandler(async (event) => {
-  // Create context but don't require authorization since we're just checking permissions
-  const { context } = await createContextFromRegistry(event, 'get')
-
-  return await permissionsHandler(context)
-})
+export default defineResourceRoute('get', permissionsHandler, { validate: false, authorize: async () => {} })

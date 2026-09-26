@@ -21,7 +21,10 @@
       @update:model-value="confirmValue = $event"
     />
 
-    <p v-if="showConfirm && confirmValue && modelValue !== confirmValue" class="text-sm text-red-500">
+    <p
+      v-if="showConfirm && confirmValue && modelValue !== confirmValue"
+      class="text-sm text-red-500"
+    >
       Passwords do not match
     </p>
   </div>
@@ -38,7 +41,7 @@ const props = defineProps<{
   showConfirm?: boolean
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
@@ -49,6 +52,6 @@ watch(
   () => props.modelValue,
   () => {
     confirmValue.value = ''
-  }
+  },
 )
 </script>

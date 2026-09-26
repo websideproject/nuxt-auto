@@ -35,12 +35,10 @@ export function useAuth() {
     try {
       const response = await $fetch<SessionResponse>('/api/demo/session')
       user.value = response.user
-    }
-    catch (error) {
+    } catch (error) {
       console.error('[useAuth] Failed to fetch session:', error)
       user.value = null
-    }
-    finally {
+    } finally {
       isLoading.value = false
     }
   }
@@ -54,7 +52,7 @@ export function useAuth() {
     try {
       const response = await $fetch<SessionResponse>('/api/demo/session', {
         method: 'POST',
-        body: { role: newRole },
+        body: { role: newRole }
       })
 
       user.value = response.user
@@ -63,11 +61,9 @@ export function useAuth() {
       await queryClient.invalidateQueries()
 
       console.log('[useAuth] Switched to role:', newRole)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('[useAuth] Failed to switch role:', error)
-    }
-    finally {
+    } finally {
       isLoading.value = false
     }
   }
@@ -85,11 +81,9 @@ export function useAuth() {
       await queryClient.invalidateQueries()
 
       console.log('[useAuth] Logged out')
-    }
-    catch (error) {
+    } catch (error) {
       console.error('[useAuth] Failed to logout:', error)
-    }
-    finally {
+    } finally {
       isLoading.value = false
     }
   }
@@ -104,6 +98,6 @@ export function useAuth() {
     role,
     fetchSession,
     switchRole,
-    logout,
+    logout
   }
 }

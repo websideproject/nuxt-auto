@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import type { WidgetOptions } from '../../types'
 
-const props = defineProps<{
+defineProps<{
   modelValue?: number
   placeholder?: string
   readonly?: boolean

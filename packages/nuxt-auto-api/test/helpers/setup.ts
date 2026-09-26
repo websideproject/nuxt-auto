@@ -1,7 +1,5 @@
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { sql } from 'drizzle-orm'
 
 /**
  * Create in-memory SQLite database for testing
@@ -19,7 +17,7 @@ export async function setupTestDatabase(schema: any) {
 /**
  * Create tables from schema (since we don't have migrations in tests)
  */
-async function createTablesFromSchema(db: any, sqlite: any, schema: any) {
+async function createTablesFromSchema(_db: any, sqlite: any, _schema: any) {
   // Create users table
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -91,13 +89,13 @@ export async function seedDatabase(db: any, schema: any) {
   const users = await db.insert(schema.users).values([
     { email: 'admin@test.com', name: 'Admin', role: 'admin', password: 'hashed_password_123', apiKey: 'sk_live_admin123' },
     { email: 'user@test.com', name: 'User', role: 'user', password: 'hashed_password_456', apiKey: 'sk_live_user456' },
-    { email: 'editor@test.com', name: 'Editor', role: 'editor', password: 'hashed_password_789', apiKey: 'sk_live_editor789' }
+    { email: 'editor@test.com', name: 'Editor', role: 'editor', password: 'hashed_password_789', apiKey: 'sk_live_editor789' },
   ]).returning()
 
   // Insert test posts
   const posts = await db.insert(schema.posts).values([
     { title: 'Post 1', content: 'Content 1', userId: users[0].id, published: true },
-    { title: 'Post 2', content: 'Content 2', userId: users[1].id, published: false }
+    { title: 'Post 2', content: 'Content 2', userId: users[1].id, published: false },
   ]).returning()
 
   return { users, posts }

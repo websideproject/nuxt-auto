@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createAuthorizationMiddleware, checkObjectLevelAuth, filterFieldsByPermission } from '../../../src/runtime/server/middleware/authz'
+import { createAuthorizationMiddleware, checkObjectLevelAuth } from '../../../src/runtime/server/middleware/authz'
 import { createMockContext, createMockUser } from '../../helpers/mocks'
 
 describe('Authorization Middleware', () => {
@@ -7,15 +7,15 @@ describe('Authorization Middleware', () => {
     it('should allow request with valid permissions', async () => {
       const config = {
         permissions: {
-          read: ['user', 'admin']
-        }
+          read: ['user', 'admin'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
       const context = createMockContext({
         user: createMockUser('user'),
         permissions: ['user', 'read', 'create'],
-        operation: 'list'
+        operation: 'list',
       })
 
       await expect(middleware(context as any)).resolves.not.toThrow()
@@ -24,15 +24,15 @@ describe('Authorization Middleware', () => {
     it('should deny request without required permission', async () => {
       const config = {
         permissions: {
-          create: ['admin']
-        }
+          create: ['admin'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
       const context = createMockContext({
         user: createMockUser('user'),
         permissions: ['read'],
-        operation: 'create'
+        operation: 'create',
       })
 
       await expect(middleware(context as any)).rejects.toThrow('Forbidden')
@@ -41,15 +41,15 @@ describe('Authorization Middleware', () => {
     it('should require authentication when no user', async () => {
       const config = {
         permissions: {
-          read: ['user']
-        }
+          read: ['user'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
       const context = createMockContext({
         user: null,
         permissions: [],
-        operation: 'list'
+        operation: 'list',
       })
 
       await expect(middleware(context as any)).rejects.toThrow('Authentication required')
@@ -58,8 +58,8 @@ describe('Authorization Middleware', () => {
     it('should map list operation to read permission', async () => {
       const config = {
         permissions: {
-          read: ['user']
-        }
+          read: ['user'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -67,7 +67,7 @@ describe('Authorization Middleware', () => {
       const context = createMockContext({
         user: mockUser,
         permissions: mockUser.permissions, // Use permissions from mock user
-        operation: 'list'
+        operation: 'list',
       })
 
       await expect(middleware(context as any)).resolves.not.toThrow()
@@ -76,8 +76,8 @@ describe('Authorization Middleware', () => {
     it('should map get operation to read permission', async () => {
       const config = {
         permissions: {
-          read: ['user']
-        }
+          read: ['user'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -85,7 +85,7 @@ describe('Authorization Middleware', () => {
       const context = createMockContext({
         user: mockUser,
         permissions: mockUser.permissions, // Use permissions from mock user
-        operation: 'get'
+        operation: 'get',
       })
 
       await expect(middleware(context as any)).resolves.not.toThrow()
@@ -94,11 +94,11 @@ describe('Authorization Middleware', () => {
     it('should set objectLevelCheck flag for get operation', async () => {
       const config = {
         permissions: {
-          read: ['user']
+          read: ['user'],
         },
         objectLevel: (obj: any, ctx: any) => {
           return ctx.user.id === obj.userId
-        }
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -106,7 +106,7 @@ describe('Authorization Middleware', () => {
       const context = createMockContext({
         user: mockUser,
         permissions: mockUser.permissions, // Use permissions from mock user
-        operation: 'get'
+        operation: 'get',
       })
 
       await middleware(context as any)
@@ -117,18 +117,18 @@ describe('Authorization Middleware', () => {
     it('should set objectLevelCheck flag for update operation', async () => {
       const config = {
         permissions: {
-          update: ['admin', 'owner']
+          update: ['admin', 'owner'],
         },
         objectLevel: (obj: any, ctx: any) => {
           return ctx.user.id === obj.userId
-        }
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
       const context = createMockContext({
         user: createMockUser('user', { id: 2 }),
         permissions: ['update', 'owner'], // User needs 'owner' permission
-        operation: 'update'
+        operation: 'update',
       })
 
       await middleware(context as any)
@@ -136,37 +136,50 @@ describe('Authorization Middleware', () => {
       expect(context.objectLevelCheck).toBeDefined()
     })
 
-    it('should allow all operations when no config', async () => {
+    it('denies every operation when the resource declares no authorization (deny by default)', async () => {
       const middleware = createAuthorizationMiddleware()
-      const context = createMockContext({
-        user: null,
-        permissions: [],
-        operation: 'create'
-      })
-
-      await expect(middleware(context as any)).resolves.not.toThrow()
+      await expect(middleware(createMockContext({ user: null, operation: 'create' }) as any)).rejects.toMatchObject({ statusCode: 401 })
+      await expect(middleware(createMockContext({ user: createMockUser('user'), operation: 'list' }) as any)).rejects.toMatchObject({ statusCode: 403 })
     })
 
-    it('should allow operation when no permission required', async () => {
-      const config = {
-        permissions: {}
+    it('denies an operation the config does not mention', async () => {
+      const middleware = createAuthorizationMiddleware({ permissions: { read: true } })
+      const context = createMockContext({ user: createMockUser('user'), permissions: ['read'], operation: 'create' })
+      await expect(middleware(context as any)).rejects.toMatchObject({ statusCode: 403 })
+    })
+
+    it('`true` opens an operation to everyone, including anonymous callers', async () => {
+      const middleware = createAuthorizationMiddleware({ permissions: { read: true } })
+      await expect(middleware(createMockContext({ user: null, operation: 'list' }) as any)).resolves.toBeUndefined()
+    })
+
+    it('`false` closes an operation even to the * wildcard', async () => {
+      const middleware = createAuthorizationMiddleware({ permissions: { delete: false } })
+      const context = createMockContext({ user: createMockUser('admin'), permissions: ['*'], operation: 'delete' })
+      await expect(middleware(context as any)).rejects.toMatchObject({ statusCode: 403 })
+    })
+
+    it('the * wildcard passes string, array and function permissions', async () => {
+      const middleware = createAuthorizationMiddleware({ permissions: { update: 'x', delete: () => false, create: ['a'] } })
+      for (const operation of ['update', 'delete', 'create'] as const) {
+        const context = createMockContext({ user: createMockUser('admin'), permissions: ['*'], operation })
+        await expect(middleware(context as any)).resolves.toBeUndefined()
       }
+    })
 
-      const middleware = createAuthorizationMiddleware(config)
-      const context = createMockContext({
-        user: createMockUser('user'),
-        permissions: ['read'],
-        operation: 'create'
-      })
-
-      await expect(middleware(context as any)).resolves.not.toThrow()
+    it('carries listFilter to every operation, not only list', async () => {
+      const listFilter = () => undefined
+      const middleware = createAuthorizationMiddleware({ permissions: { update: true }, listFilter })
+      const context = createMockContext({ user: createMockUser('user'), operation: 'update' }) as any
+      await middleware(context)
+      expect(context.listFilter).toBe(listFilter)
     })
 
     it('should support array of required permissions', async () => {
       const config = {
         permissions: {
-          update: ['admin', 'editor']
-        }
+          update: ['admin', 'editor'],
+        },
       }
 
       const middleware = createAuthorizationMiddleware(config)
@@ -174,7 +187,7 @@ describe('Authorization Middleware', () => {
       const context = createMockContext({
         user: mockUser,
         permissions: mockUser.permissions, // Use permissions from mock user (includes 'editor')
-        operation: 'update'
+        operation: 'update',
       })
 
       await expect(middleware(context as any)).resolves.not.toThrow()
@@ -187,7 +200,7 @@ describe('Authorization Middleware', () => {
         user: createMockUser('user', { id: 1 }),
         objectLevelCheck: (obj: any, ctx: any) => {
           return ctx.user.id === obj.userId
-        }
+        },
       })
 
       const object = { userId: 1, title: 'Test' }
@@ -200,7 +213,7 @@ describe('Authorization Middleware', () => {
         user: createMockUser('user', { id: 2 }),
         objectLevelCheck: (obj: any, ctx: any) => {
           return ctx.user.id === obj.userId
-        }
+        },
       })
 
       const object = { userId: 1, title: 'Test' }
@@ -210,100 +223,12 @@ describe('Authorization Middleware', () => {
 
     it('should allow when no objectLevelCheck is set', async () => {
       const context = createMockContext({
-        user: createMockUser('user')
+        user: createMockUser('user'),
       })
 
       const object = { userId: 1, title: 'Test' }
 
       await expect(checkObjectLevelAuth(object, context as any)).resolves.not.toThrow()
-    })
-  })
-
-  describe('filterFieldsByPermission', () => {
-    it('should filter fields based on read permissions', () => {
-      const config = {
-        fields: {
-          email: {
-            read: ['admin']
-          },
-          password: {
-            read: ['admin']
-          }
-        }
-      }
-
-      const context = createMockContext({
-        user: createMockUser('user'),
-        permissions: ['read']
-      })
-
-      const data = {
-        id: 1,
-        name: 'John',
-        email: 'john@test.com',
-        password: 'secret'
-      }
-
-      const result = filterFieldsByPermission(data, config as any, context as any)
-
-      expect(result).toEqual({
-        id: 1,
-        name: 'John'
-      })
-    })
-
-    it('should include fields when user has required permission', () => {
-      const config = {
-        fields: {
-          email: {
-            read: ['admin', 'user']
-          }
-        }
-      }
-
-      const context = createMockContext({
-        user: createMockUser('user'),
-        permissions: ['read', 'user']
-      })
-
-      const data = {
-        id: 1,
-        email: 'john@test.com'
-      }
-
-      const result = filterFieldsByPermission(data, config as any, context as any)
-
-      expect(result).toEqual({
-        id: 1,
-        email: 'john@test.com'
-      })
-    })
-
-    it('should return all fields when no config', () => {
-      const context = createMockContext({
-        user: createMockUser('user')
-      })
-
-      const data = {
-        id: 1,
-        name: 'John',
-        email: 'john@test.com'
-      }
-
-      const result = filterFieldsByPermission(data, undefined, context as any)
-
-      expect(result).toEqual(data)
-    })
-
-    it('should return all fields when no context', () => {
-      const data = {
-        id: 1,
-        name: 'John'
-      }
-
-      const result = filterFieldsByPermission(data, {} as any, undefined)
-
-      expect(result).toEqual(data)
     })
   })
 })

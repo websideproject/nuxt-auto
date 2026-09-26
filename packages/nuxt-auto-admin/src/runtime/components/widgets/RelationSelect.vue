@@ -18,6 +18,7 @@
 import { computed, ref } from 'vue'
 import { refDebounced } from '@vueuse/core'
 import type { WidgetOptions } from '../../types'
+import { useAutoApiList, useAutoApiGet } from '@websideproject/nuxt-auto-api/composables'
 
 const props = defineProps<{
   modelValue?: string | number
@@ -49,9 +50,9 @@ const filterParams = computed(() => {
   return {
     filter: {
       [searchField.value]: {
-        $like: debouncedSearchTerm.value
-      }
-    }
+        $like: debouncedSearchTerm.value,
+      },
+    },
   }
 })
 
@@ -61,29 +62,29 @@ const { data: relationData, isLoading } = useAutoApiList(
   filterParams,
   {
     enabled: computed(() => !!relationResource.value),
-  }
+  },
 )
 
 // Fetch the currently selected item if not in the list
 // This ensures we can display the selected value even if it's not in search results
 const {
   data: selectedItemData,
-  isLoading: isLoadingSelected
+  isLoading: isLoadingSelected,
 } = useAutoApiGet(
   relationResource.value || '',
   computed(() => props.modelValue!),
   undefined,
   {
     enabled: computed(() => !!relationResource.value && !!props.modelValue),
-  }
+  },
 )
 
 // Transform search results into select options
 const searchOptions = computed(() => {
   if (!relationData.value?.data) return []
 
-  return relationData.value.data.map((item: any) => ({
-    label: item[displayField.value] || item.id || 'Unknown',
+  return relationData.value.data.map((item: Record<string, unknown>) => ({
+    label: (item[displayField.value] as string) || (item.id as string) || 'Unknown',
     value: item.id,
   }))
 })
@@ -104,8 +105,9 @@ const allOptions = computed(() => {
   const options = [...searchOptions.value]
 
   // Add selected option at the top if it exists and isn't already in the list
-  if (selectedOption.value && !options.some(opt => opt.value === selectedOption.value.value)) {
-    options.unshift(selectedOption.value)
+  const selected = selectedOption.value
+  if (selected && !options.some(opt => opt.value === selected.value)) {
+    options.unshift(selected)
   }
 
   return options

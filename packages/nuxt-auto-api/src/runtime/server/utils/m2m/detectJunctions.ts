@@ -90,7 +90,7 @@ function analyzeTableAsJunction(
   tableName: string,
   table: any,
   schema: Record<string, any>,
-  availableResources: string[]
+  availableResources: string[],
 ): JunctionTableInfo | null {
   try {
     const columns = getTableColumns(table)
@@ -98,7 +98,7 @@ function analyzeTableAsJunction(
 
     // Check if table has a standalone 'id' column
     // Junction tables typically don't have their own ID
-    const hasStandaloneId = columnEntries.some(([name, col]: [string, any]) => {
+    const hasStandaloneId = columnEntries.some(([name]: [string, any]) => {
       return name === 'id' || name === 'ID'
     })
 
@@ -114,7 +114,7 @@ function analyzeTableAsJunction(
 
     if (fkColumnsFromReferences.length === 2) {
       // Extract resource names from Drizzle references
-      const [leftColEntry, rightColEntry] = fkColumnsFromReferences
+      const [leftColEntry, rightColEntry] = fkColumnsFromReferences as [[string, any], [string, any]]
       const [leftCol, leftColData] = leftColEntry
       const [rightCol, rightColData] = rightColEntry
 
@@ -149,8 +149,7 @@ function analyzeTableAsJunction(
       return null
     }
 
-    const [leftCol] = potentialFKColumns[0]
-    const [rightCol] = potentialFKColumns[1]
+    const [[leftCol], [rightCol]] = potentialFKColumns as [[string, unknown], [string, unknown]]
 
     // Extract resource names from foreign key columns
     const leftResourceBase = extractResourceFromColumn(leftCol)
@@ -187,7 +186,8 @@ function analyzeTableAsJunction(
       metadataColumns,
       table,
     }
-  } catch (error) {
+  }
+  catch {
     // If analysis fails, it's not a valid junction table
     return null
   }
@@ -200,15 +200,19 @@ function analyzeTableAsJunction(
 function extractTargetFromReference(
   column: any,
   schema: Record<string, any>,
-  availableResources: string[]
+  availableResources: string[],
 ): string | null {
   try {
-    // Call the references function to get the target table
-    const referencedTable = column.references?.()
+    // col.references() returns the referenced COLUMN (e.g. sampleTasks.id)
+    // We need the TABLE — accessible via column.table
+    const referencedCol = column.references?.()
 
-    if (!referencedTable) {
+    if (!referencedCol) {
       return null
     }
+
+    // Get the parent table of the referenced column
+    const referencedTable = referencedCol?.table ?? referencedCol
 
     // Find which resource this table belongs to by comparing table objects
     for (const resourceName of availableResources) {
@@ -224,23 +228,15 @@ function extractTargetFromReference(
         if (refTableName === resTableName) {
           return resourceName
         }
-      } catch (e) {
+      }
+      catch {
         // getTableName might fail on some table types
       }
     }
 
-    // If no exact match, try to extract from table metadata
-    // Some Drizzle table objects have a [Symbol] property with the table name
-    const tableName = referencedTable?.[Symbol.for('drizzle:Name')]
-      || referencedTable?._.name
-      || referencedTable?.dbName
-
-    if (tableName && availableResources.includes(tableName)) {
-      return tableName
-    }
-
     return null
-  } catch (error) {
+  }
+  catch {
     return null
   }
 }
@@ -322,6 +318,21 @@ function findResourceName(baseResource: string, availableResources: string[]): s
     }
   }
 
+  // Suffix match (case-insensitive): handles prefixed resource names
+  // e.g., 'task' matches 'sampleTasks', 'label' matches 'sampleLabels'
+  const lowerBase = baseResource.toLowerCase()
+  for (const resource of availableResources) {
+    const lower = resource.toLowerCase()
+    if (
+      lower.endsWith(lowerBase)
+      || lower.endsWith(lowerBase + 's')
+      || lower.endsWith(lowerBase + 'es')
+      || (lowerBase.endsWith('y') && lower.endsWith(lowerBase.slice(0, -1) + 'ies'))
+    ) {
+      return resource
+    }
+  }
+
   return null
 }
 
@@ -340,9 +351,9 @@ function generateResourceVariations(baseResource: string): string[] {
   variations.push(baseResource + 's')
 
   // 2. Add 'es': class -> classes, box -> boxes
-  if (baseResource.endsWith('s') || baseResource.endsWith('x') ||
-      baseResource.endsWith('z') || baseResource.endsWith('ch') ||
-      baseResource.endsWith('sh')) {
+  if (baseResource.endsWith('s') || baseResource.endsWith('x')
+    || baseResource.endsWith('z') || baseResource.endsWith('ch')
+    || baseResource.endsWith('sh')) {
     variations.push(baseResource + 'es')
   }
 
@@ -350,21 +361,21 @@ function generateResourceVariations(baseResource: string): string[] {
   if (baseResource.endsWith('y') && baseResource.length > 1) {
     const prevChar = baseResource[baseResource.length - 2]
     // Only if 'y' is preceded by a consonant
-    if (!'aeiou'.includes(prevChar.toLowerCase())) {
+    if (prevChar && !'aeiou'.includes(prevChar.toLowerCase())) {
       variations.push(baseResource.slice(0, -1) + 'ies')
     }
   }
 
   // 4. Irregular plurals (can be extended)
   const irregularPlurals: Record<string, string> = {
-    'person': 'people',
-    'child': 'children',
-    'man': 'men',
-    'woman': 'women',
-    'tooth': 'teeth',
-    'foot': 'feet',
-    'mouse': 'mice',
-    'goose': 'geese',
+    person: 'people',
+    child: 'children',
+    man: 'men',
+    woman: 'women',
+    tooth: 'teeth',
+    foot: 'feet',
+    mouse: 'mice',
+    goose: 'geese',
   }
 
   if (irregularPlurals[baseResource]) {
@@ -391,7 +402,7 @@ function matchesJunctionPattern(
   leftResource: string,
   rightResource: string,
   leftBase: string,
-  rightBase: string
+  rightBase: string,
 ): boolean {
   const patterns: string[] = []
 
@@ -415,7 +426,18 @@ function matchesJunctionPattern(
     }
   }
 
-  return patterns.includes(tableName)
+  if (patterns.includes(tableName)) {
+    return true
+  }
+
+  // Substring match for prefixed resource names
+  // e.g., 'sampleTaskLabels' contains both 'task' and 'label'
+  const lowerTableName = tableName.toLowerCase()
+  if (lowerTableName.includes(leftBase.toLowerCase()) && lowerTableName.includes(rightBase.toLowerCase())) {
+    return true
+  }
+
+  return false
 }
 
 /**
@@ -432,7 +454,7 @@ function capitalize(str: string): string {
  */
 export function getM2MRelationshipsForResource(
   resourceName: string,
-  schema: Record<string, any>
+  schema: Record<string, any>,
 ): M2MRelationship[] {
   const junctionTables = detectAllJunctionTables(schema)
   const relationships: M2MRelationship[] = []
@@ -446,7 +468,8 @@ export function getM2MRelationshipsForResource(
         junction,
         direction: 'left',
       })
-    } else if (junction.rightResource === resourceName) {
+    }
+    else if (junction.rightResource === resourceName) {
       relationships.push({
         resource: resourceName,
         relatedResource: junction.leftResource,

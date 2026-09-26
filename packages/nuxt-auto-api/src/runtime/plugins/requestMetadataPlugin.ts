@@ -10,7 +10,7 @@ import { defineAutoApiPlugin } from '../types/plugin'
 export type MetadataMapper = (
   metadata: Record<string, any>,
   data: any,
-  context: HandlerContext
+  context: HandlerContext,
 ) => any | Promise<any>
 
 /**
@@ -90,10 +90,10 @@ export interface RequestMetadataPluginOptions {
    * Default: `false` (disabled - metadata only in context)
    */
   autoPopulate?:
-    | Record<string, string>  // Column mapping: { ip: 'signupIp', country: 'signupCountry' }
-    | JsonFieldConfig         // JSON field: { json: 'metadata', path: 'signup', merge: true }
-    | MetadataMapper          // Custom mapper: (metadata, data, ctx) => data
-    | false                   // Disabled: context-only, no DB storage
+    | Record<string, string> // Column mapping: { ip: 'signupIp', country: 'signupCountry' }
+    | JsonFieldConfig // JSON field: { json: 'metadata', path: 'signup', merge: true }
+    | MetadataMapper // Custom mapper: (metadata, data, ctx) => data
+    | false // Disabled: context-only, no DB storage
 
   /**
    * Which operations to auto-populate on.
@@ -126,10 +126,10 @@ function defaultExtract(event: H3Event): Record<string, any> {
   const headers = getRequestHeaders(event)
 
   // Try Cloudflare headers first
-  const ip = headers['cf-connecting-ip'] ||
-             headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-             headers['x-real-ip'] ||
-             getRequestIP(event)
+  const ip = headers['cf-connecting-ip']
+    || headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || headers['x-real-ip']
+    || getRequestIP(event)
 
   return {
     ip,
@@ -144,7 +144,7 @@ function defaultExtract(event: H3Event): Record<string, any> {
 }
 
 export function createRequestMetadataPlugin(
-  options: RequestMetadataPluginOptions = {}
+  options: RequestMetadataPluginOptions = {},
 ): AutoApiPlugin {
   const {
     extract = defaultExtract,
@@ -165,7 +165,8 @@ export function createRequestMetadataPlugin(
         try {
           const metadata = await extract(context.event)
           context.requestMeta = metadata
-        } catch (error) {
+        }
+        catch (error) {
           ctx.logger?.warn('Failed to extract request metadata:', error)
           context.requestMeta = {} // Set empty object to avoid undefined checks
         }
@@ -217,13 +218,14 @@ export function createRequestMetadataPlugin(
               // Nested: { metadata: { signup: { ip, country, ... } } }
               data[jsonColumn] = {
                 ...(merge ? existingData : {}),
-                [path]: context.requestMeta
+                [path]: context.requestMeta,
               }
-            } else {
+            }
+            else {
               // Top-level merge: { metadata: { ip, country, ... } }
               data[jsonColumn] = {
                 ...(merge ? existingData : {}),
-                ...context.requestMeta
+                ...context.requestMeta,
               }
             }
 
@@ -237,9 +239,9 @@ export function createRequestMetadataPlugin(
             // 2. Value exists in metadata
             // 3. User hasn't explicitly set the value
             if (
-              columns.includes(columnName) &&
-              context.requestMeta[metaKey] !== undefined &&
-              data[columnName] === undefined
+              columns.includes(columnName)
+              && context.requestMeta[metaKey] !== undefined
+              && data[columnName] === undefined
             ) {
               data[columnName] = context.requestMeta[metaKey]
             }

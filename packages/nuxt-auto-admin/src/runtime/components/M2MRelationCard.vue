@@ -7,35 +7,61 @@
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ relation.label || formatFieldLabel(relation.name) }}
           </h3>
-          <p v-if="relation.help" class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p
+            v-if="relation.help"
+            class="text-sm text-gray-500 dark:text-gray-400 mt-0.5"
+          >
             {{ relation.help }}
           </p>
         </div>
-        <UBadge v-if="hasChanges" color="primary" variant="soft">
+        <UBadge
+          v-if="hasChanges"
+          color="primary"
+          variant="soft"
+        >
           Unsaved changes
         </UBadge>
       </div>
     </template>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="flex items-center justify-center p-8">
-      <UIcon name="i-heroicons-arrow-path" class="animate-spin h-6 w-6" />
+    <div
+      v-if="isLoading"
+      class="flex items-center justify-center p-8"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="animate-spin h-6 w-6"
+      />
       <span class="ml-2">Loading relations...</span>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="p-4">
+    <div
+      v-else-if="error"
+      class="p-4"
+    >
       <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-        <UIcon name="i-heroicons-exclamation-circle" class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+        <UIcon
+          name="i-heroicons-exclamation-circle"
+          class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+        />
         <div>
-          <h3 class="font-semibold text-red-900 dark:text-red-200">Error Loading Relations</h3>
-          <p class="text-sm text-red-700 dark:text-red-300 mt-1">{{ error.message }}</p>
+          <h3 class="font-semibold text-red-900 dark:text-red-200">
+            Error Loading Relations
+          </h3>
+          <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+            {{ error.message }}
+          </p>
         </div>
       </div>
     </div>
 
     <!-- Multi Select -->
-    <div v-else class="space-y-5">
+    <div
+      v-else
+      class="space-y-5"
+    >
       <MultiRelationSelect
         v-model="selectedIds"
         :options="relation.options"
@@ -70,6 +96,9 @@ import { ref, computed, watch } from 'vue'
 import type { FieldConfig } from '../types'
 import { formatFieldLabel } from '../utils/fieldTypeMapping'
 import MultiRelationSelect from './widgets/MultiRelationSelect.vue'
+import { useM2MRelation, useM2MSync } from '@websideproject/nuxt-auto-api/composables'
+// Explicit: Nuxt does not auto-import into files inside node_modules, which is where this module runs from.
+import { useToast } from '#imports'
 // useM2MRelation and useM2MSync are auto-imported from nuxt-auto-api
 
 const props = defineProps<{
@@ -96,7 +125,7 @@ const { data: relations, isLoading, error } = useM2MRelation(
   undefined,
   {
     enabled: computed(() => !!props.resourceId),
-  }
+  },
 )
 
 // Local state for editing
@@ -127,7 +156,7 @@ const { mutate: syncRelations, isPending } = useM2MSync(
         title: 'Success',
         description: `${props.relation.label || props.relation.name} updated successfully`,
         icon: 'i-heroicons-check-circle',
-        color: 'success'
+        color: 'success',
       })
       emit('success')
     },
@@ -136,10 +165,10 @@ const { mutate: syncRelations, isPending } = useM2MSync(
         title: 'Error',
         description: error.message || `Failed to update ${props.relation.label || props.relation.name}`,
         icon: 'i-heroicons-exclamation-circle',
-        color: 'error'
+        color: 'error',
       })
-    }
-  }
+    },
+  },
 )
 
 // Save relations

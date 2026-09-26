@@ -1,17 +1,5 @@
-import { defineEventHandler } from 'h3'
 import { m2mRemoveHandler } from './remove'
-import { createM2MContext } from './createM2MContext'
+import { defineResourceRoute } from '../pipeline'
 
-/**
- * Entry point for M2M remove handler
- * DELETE /api/{resource}/:id/relations/:relation/remove
- */
-export default defineEventHandler(async (event) => {
-  const { context, runMiddleware } = await createM2MContext(event)
-  await runMiddleware('pre-auth')
-  await runMiddleware('post-auth')
-  await runMiddleware('pre-execute')
-  const result = await m2mRemoveHandler(context)
-  await runMiddleware('post-execute')
-  return result
-})
+/** M2M route — permissions for both sides are checked by the handler (see ./shared.ts). */
+export default defineResourceRoute('m2m', m2mRemoveHandler, { authorize: async () => {} })

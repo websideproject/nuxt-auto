@@ -1,7 +1,7 @@
 {
   "name": "@websideproject/nuxt-auto-api",
-  "version": "0.0.8",
-  "description": "Schema-driven API generation from Drizzle schema with auth and authz",
+  "version": "0.0.7",
+  "description": "Secure REST APIs for Nuxt from your Drizzle schema: deny-by-default authorization, multi-tenancy, validation, soft delete, M2M and TanStack Query composables",
   "homepage": "https://github.com/websideproject/nuxt-auto",
   "repository": {
     "type": "git",
@@ -38,8 +38,8 @@
       "import": "./dist/module.mjs"
     },
     "./utils": {
-      "types": "./dist/runtime/server/utils/index.d.ts",
-      "import": "./dist/runtime/server/utils/index.js"
+      "types": "./dist/runtime/server/utils.public.d.ts",
+      "import": "./dist/runtime/server/utils.public.js"
     },
     "./plugins": {
       "types": "./dist/runtime/plugins/index.d.ts",
@@ -48,6 +48,25 @@
     "./database": {
       "types": "./dist/runtime/server/database/index.d.ts",
       "import": "./dist/runtime/server/database/index.js"
+    },
+    "./composables": {
+      "types": "./dist/runtime/composables.public.d.ts",
+      "import": "./dist/runtime/composables.public.js"
+    },
+    "./schema/sqlite": {
+      "types": "./dist/runtime/schema/sqlite.d.ts",
+      "import": "./dist/runtime/schema/sqlite.js",
+      "default": "./dist/runtime/schema/sqlite.js"
+    },
+    "./schema/pg": {
+      "types": "./dist/runtime/schema/pg.d.ts",
+      "import": "./dist/runtime/schema/pg.js",
+      "default": "./dist/runtime/schema/pg.js"
+    },
+    "./schema/mysql": {
+      "types": "./dist/runtime/schema/mysql.d.ts",
+      "import": "./dist/runtime/schema/mysql.js",
+      "default": "./dist/runtime/schema/mysql.js"
     }
   },
   "main": "./dist/module.mjs",
@@ -59,7 +78,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "nuxt-module-build build",
@@ -81,17 +102,24 @@
     "drizzle-zod": "^0.8.3",
     "zod": "^4.3.6"
   },
+  "peerDependencies": {
+    "h3": "^1.15.0 || ^2.0.0-0"
+  },
+  "peerDependenciesMeta": {
+    "h3": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",
     "@nuxt/module-builder": "^1.0.2",
     "@nuxt/schema": "^4.3.0",
     "@nuxt/test-utils": "^3.23.0",
     "@types/better-sqlite3": "^7.6.8",
-    "@types/node": "latest",
+    "@types/node": "^26.2.0",
     "better-sqlite3": "^11.0.0",
     "changelogen": "^0.6.2",
     "drizzle-kit": "^0.31.8",
-    "h3": "^1.15.5",
     "typescript": "^5.9.3",
     "nuxt": "^4.3.0"
   }

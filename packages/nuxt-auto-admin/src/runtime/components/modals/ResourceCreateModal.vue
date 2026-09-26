@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { createReusableTemplate, useMediaQuery } from '@vueuse/core'
+import { useAdminResource } from '../../composables/useAdminResource'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 
@@ -48,14 +49,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  success: [data: any]
+  'success': [data: unknown]
 }>()
 
 const { resource } = useAdminResource(props.resourceName)
 
 const isOpen = computed({
   get: () => props.open ?? false,
-  set: (value) => emit('update:open', value),
+  set: value => emit('update:open', value),
 })
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -64,7 +65,7 @@ function close() {
   emit('update:open', false)
 }
 
-function handleSuccess(data: any) {
+function handleSuccess(data: unknown) {
   emit('success', data)
   close()
 }

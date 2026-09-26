@@ -20,7 +20,7 @@ export default createEndpoint({
     // Custom query logic - fetch user and stats in parallel
     const [user, postStats, commentStats] = await Promise.all([
       ctx.db.query.users.findFirst({
-        where: eq(users.id, userId),
+        where: eq(users.id, userId)
       }),
       ctx.db
         .select({ count: count() })
@@ -29,7 +29,7 @@ export default createEndpoint({
       ctx.db
         .select({ count: count() })
         .from(comments)
-        .where(eq(comments.userId, userId)),
+        .where(eq(comments.userId, userId))
     ])
 
     if (!user) {
@@ -40,8 +40,8 @@ export default createEndpoint({
       ...user,
       stats: {
         postCount: postStats[0].count,
-        commentCount: commentStats[0].count,
-      },
+        commentCount: commentStats[0].count
+      }
     }
-  },
+  }
 })

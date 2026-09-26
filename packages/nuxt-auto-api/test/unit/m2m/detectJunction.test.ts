@@ -23,24 +23,24 @@ const articleCategories = sqliteTable('articleCategories', {
   articleId: integer('articleId').notNull().references(() => articles.id),
   categoryId: integer('categoryId').notNull().references(() => categories.id),
   sortOrder: integer('sortOrder'), // metadata column
-}, (table) => ({
-  pk: primaryKey({ columns: [table.articleId, table.categoryId] })
+}, table => ({
+  pk: primaryKey({ columns: [table.articleId, table.categoryId] }),
 }))
 
 // Junction table: snake_case pattern
 const article_tags = sqliteTable('article_tags', {
   article_id: integer('article_id').notNull().references(() => articles.id),
   tag_id: integer('tag_id').notNull().references(() => tags.id),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.article_id, table.tag_id] })
+}, table => ({
+  pk: primaryKey({ columns: [table.article_id, table.tag_id] }),
 }))
 
 // Junction table: reversed naming (categoriesArticles)
 const categoriesArticles = sqliteTable('categoriesArticles', {
   categoryId: integer('categoryId').notNull().references(() => categories.id),
   articleId: integer('articleId').notNull().references(() => articles.id),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.categoryId, table.articleId] })
+}, table => ({
+  pk: primaryKey({ columns: [table.categoryId, table.articleId] }),
 }))
 
 const testSchema = {
@@ -119,9 +119,9 @@ describe('detectJunction', () => {
         badJunction: sqliteTable('badJunction', {
           wrongKey: integer('wrongKey').notNull(),
           categoryId: integer('categoryId').notNull(),
-        }, (table) => ({
-          pk: primaryKey({ columns: [table.wrongKey, table.categoryId] })
-        }))
+        }, table => ({
+          pk: primaryKey({ columns: [table.wrongKey, table.categoryId] }),
+        })),
       }
 
       expect(() => {
@@ -136,9 +136,9 @@ describe('detectJunction', () => {
         badJunction: sqliteTable('badJunction', {
           articleId: integer('articleId').notNull(),
           wrongKey: integer('wrongKey').notNull(),
-        }, (table) => ({
-          pk: primaryKey({ columns: [table.articleId, table.wrongKey] })
-        }))
+        }, table => ({
+          pk: primaryKey({ columns: [table.articleId, table.wrongKey] }),
+        })),
       }
 
       expect(() => {

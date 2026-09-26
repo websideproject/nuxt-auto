@@ -1,7 +1,9 @@
 <template>
   <USelectMenu
     :model-value="modelValue"
-    :options="selectOptions"
+    :items="selectOptions"
+    value-key="value"
+    label-key="label"
     :disabled="readonly"
     :required="required"
     :placeholder="placeholder || 'Select an option'"
@@ -34,7 +36,7 @@ const selectOptions = computed(() => {
 
   // If enum values are provided
   if (props.options?.enumValues) {
-    return props.options.enumValues.map((value) => ({
+    return props.options.enumValues.map(value => ({
       label: value,
       value: value,
     }))

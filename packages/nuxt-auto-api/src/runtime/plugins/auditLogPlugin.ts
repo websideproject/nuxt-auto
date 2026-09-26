@@ -8,8 +8,23 @@ export interface AuditLogPluginOptions {
   table?: string
   /** Resources to audit. @default '*' (all) */
   resources?: string[] | '*'
-  /** Fields to exclude from audit snapshots (e.g., ['password']) */
+  /**
+   * Fields excluded from every resource's before/after snapshots.
+   * Use this for fields that are sensitive across the board (e.g. 'password').
+   */
   excludeFields?: string[]
+  /**
+   * Per-resource field exclusions, merged on top of `excludeFields`.
+   * Use this when the same field name is sensitive in one resource but not another.
+   *
+   * @example
+   * excludeFieldsByResource: {
+   *   apiKeys:  ['key'],        // strip the hash — redundant with global but explicit
+   *   webhooks: ['secret'],     // strip encrypted secret
+   *   users:    ['internalNotes'],  // sensitive in users, fine in other resources
+   * }
+   */
+  excludeFieldsByResource?: Record<string, string[]>
   /** Fire-and-forget writes (don't await the insert). @default true */
   async?: boolean
 }
@@ -18,7 +33,7 @@ function stripFields(obj: any, fields: string[]): any {
   if (!obj || typeof obj !== 'object') return obj
   const result = { ...obj }
   for (const field of fields) {
-    delete result[field]
+    Reflect.deleteProperty(result, field)
   }
   return result
 }
@@ -41,12 +56,18 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
     table: auditTable = 'auditLogs',
     resources = '*',
     excludeFields = [],
+    excludeFieldsByResource = {},
     async: fireAndForget = true,
   } = options
 
   function shouldAudit(resource: string): boolean {
     if (resources === '*') return true
     return resources.includes(resource)
+  }
+
+  function fieldsFor(resource: string): string[] {
+    const extra = excludeFieldsByResource[resource]
+    return extra?.length ? [...excludeFields, ...extra] : excludeFields
   }
 
   async function writeAuditLog(
@@ -57,6 +78,7 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
       operation: string
       recordId: string | number
       userId?: string | number | null
+      authMethod?: string | null
       before?: any
       after?: any
       ip?: string
@@ -68,21 +90,30 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
       return
     }
 
-    const before = entry.before ? stripFields(entry.before, excludeFields) : null
-    const after = entry.after ? stripFields(entry.after, excludeFields) : null
+    const fields = fieldsFor(entry.resource)
+    const before = entry.before ? stripFields(entry.before, fields) : null
+    const after = entry.after ? stripFields(entry.after, fields) : null
+
+    const values: Record<string, any> = {
+      resource: entry.resource,
+      operation: entry.operation,
+      recordId: String(entry.recordId),
+      userId: entry.userId ? String(entry.userId) : null,
+      before: before ? JSON.stringify(before) : null,
+      after: after ? JSON.stringify(after) : null,
+      ip: entry.ip || null,
+      timestamp: new Date(),
+    }
+
+    // authMethod column is optional — only written if the table has the column
+    if ('authMethod' in table) {
+      values.authMethod = entry.authMethod ?? null
+    }
 
     try {
-      await db.insert(table).values({
-        resource: entry.resource,
-        operation: entry.operation,
-        recordId: String(entry.recordId),
-        userId: entry.userId ? String(entry.userId) : null,
-        before: before ? JSON.stringify(before) : null,
-        after: after ? JSON.stringify(after) : null,
-        ip: entry.ip || null,
-        timestamp: new Date(),
-      })
-    } catch (err) {
+      await db.insert(table).values(values)
+    }
+    catch (err) {
       console.error('[autoApi:audit] Failed to write audit log:', err)
     }
   }
@@ -143,7 +174,7 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
           // Snapshot current state for diff
           const table = context.schema[context.resource]
           if (table) {
-            const parsedId = /^\d+$/.test(String(id)) ? parseInt(String(id), 10) : id
+            const parsedId = /^\d+$/.test(String(id)) ? Number.parseInt(String(id), 10) : id
             const [current] = await context.db.select().from(table).where(eq(table.id, parsedId))
             ;(context as any)._auditBefore = current || null
           }
@@ -153,7 +184,7 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
           if (!shouldAudit(context.resource)) return
           const table = context.schema[context.resource]
           if (table) {
-            const parsedId = /^\d+$/.test(String(id)) ? parseInt(String(id), 10) : id
+            const parsedId = /^\d+$/.test(String(id)) ? Number.parseInt(String(id), 10) : id
             const [current] = await context.db.select().from(table).where(eq(table.id, parsedId))
             ;(context as any)._auditBefore = current || null
           }
@@ -166,6 +197,7 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
             operation: 'create',
             recordId: result?.id,
             userId: context.user?.id,
+            authMethod: (context as any).authMethod ?? null,
             after: result,
             ip: context.requestMeta?.ip,
           }
@@ -180,6 +212,7 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
             operation: 'update',
             recordId: result?.id,
             userId: context.user?.id,
+            authMethod: (context as any).authMethod ?? null,
             before: (context as any)._auditBefore,
             after: result,
             ip: context.requestMeta?.ip,
@@ -195,6 +228,7 @@ export function createAuditLogPlugin(options: AuditLogPluginOptions = {}): AutoA
             operation: 'delete',
             recordId: id!,
             userId: context.user?.id,
+            authMethod: (context as any).authMethod ?? null,
             before: (context as any)._auditBefore,
             ip: context.requestMeta?.ip,
           }

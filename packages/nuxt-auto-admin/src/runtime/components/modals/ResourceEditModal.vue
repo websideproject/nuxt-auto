@@ -1,8 +1,8 @@
 <template>
   <DefineTemplate>
     <ResourceForm
-      :resource-name="resourceName"
       :id="id"
+      :resource-name="resourceName"
       mode="edit"
       show-cancel
       @success="handleSuccess"
@@ -10,9 +10,14 @@
     />
 
     <!-- M2M Relations as additional sections if needed -->
-    <div v-if="m2mFields.length > 0" class="px-6 pb-6 space-y-4">
+    <div
+      v-if="m2mFields.length > 0"
+      class="px-6 pb-6 space-y-4"
+    >
       <div class="border-t border-gray-200 dark:border-gray-800 pt-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Relationships</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Relationships
+        </h3>
         <div class="space-y-4">
           <M2MRelationCard
             v-for="m2mField in m2mFields"
@@ -53,10 +58,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { createReusableTemplate, useMediaQuery } from '@vueuse/core'
 import M2MRelationCard from '../M2MRelationCard.vue'
 import { useM2MDetection } from '../../composables/useM2MDetection'
+import type { M2MFieldConfig } from '../../composables/useM2MDetection'
+import { useAdminResource } from '../../composables/useAdminResource'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 
@@ -68,21 +75,21 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  success: [data: any]
+  'success': [data: unknown]
 }>()
 
 const { resource } = useAdminResource(props.resourceName)
 
 const isOpen = computed({
   get: () => props.open ?? false,
-  set: (value) => emit('update:open', value),
+  set: value => emit('update:open', value),
 })
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 
 // Auto-detect M2M fields
 const { detectM2MFields, mergeM2MFields } = useM2MDetection()
-const autoM2MFields = ref<any[]>([])
+const autoM2MFields = ref<M2MFieldConfig[]>([])
 
 // Detect M2M fields when modal opens
 watch(() => props.open, async (isOpen) => {
@@ -96,7 +103,7 @@ const manualM2MFields = computed(() => {
   if (!resource.value?.formFields?.edit) return []
 
   return resource.value.formFields.edit.filter(
-    field => field.widget === 'MultiRelationSelect' && field.options?.junctionTable
+    field => field.widget === 'MultiRelationSelect' && field.options?.junctionTable,
   )
 })
 
@@ -109,7 +116,7 @@ function close() {
   emit('update:open', false)
 }
 
-function handleSuccess(data: any) {
+function handleSuccess(data: unknown) {
   emit('success', data)
   close()
 }

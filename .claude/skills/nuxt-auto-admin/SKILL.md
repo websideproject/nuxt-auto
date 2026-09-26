@@ -30,9 +30,6 @@ export default defineNuxtConfig({
     '@websideproject/nuxt-auto-api',
     '@websideproject/nuxt-auto-admin',
   ],
-  autoApi: {
-    database: { client: 'd1' },
-  },
   autoAdmin: {
     prefix: '/admin',
     access: (user) => user?.roles?.includes('admin'),

@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import {
+  getAutoApiContext,
+  validateBody,
+  validateQuery,
+  respondWith,
+  respondWithList,
+  respondWithError,
+  getDb,
+} from '../../../src/runtime/server/utils/helpers'
+
 // Mock h3
 vi.mock('h3', () => ({
   readBody: vi.fn(async () => ({})),
@@ -20,6 +30,7 @@ const mockAdapter = {
   getMutationCount: vi.fn(),
   supportsReturning: true,
   supportsNativeBatch: false,
+  supportsTransactions: true,
 }
 
 vi.mock('../../../src/runtime/server/database', () => ({
@@ -40,16 +51,6 @@ vi.mock('../../../src/runtime/server/utils/serializeResponse', () => ({
 vi.mock('../../../src/runtime/server/utils/filterHiddenFields', () => ({
   filterHiddenFields: vi.fn((data: any) => data),
 }))
-
-import {
-  getAutoApiContext,
-  validateBody,
-  validateQuery,
-  respondWith,
-  respondWithList,
-  respondWithError,
-  getDb,
-} from '../../../src/runtime/server/utils/helpers'
 
 describe('helpers', () => {
   beforeEach(() => {
@@ -87,7 +88,9 @@ describe('helpers', () => {
 
     it('should run context extenders', async () => {
       const { getContextExtenders } = await import('../../../src/runtime/server/plugins/pluginRegistry')
-      const extender = vi.fn(async (ctx: any) => { ctx.customField = 'added' })
+      const extender = vi.fn(async (ctx: any) => {
+        ctx.customField = 'added'
+      })
       vi.mocked(getContextExtenders).mockReturnValueOnce([extender])
 
       const mockEvent = { context: {} } as any
@@ -175,7 +178,7 @@ describe('helpers', () => {
     it('should wrap list data with meta', () => {
       const result = respondWithList(
         [{ id: 1 }, { id: 2 }],
-        { total: 50, page: 1 }
+        { total: 50, page: 1 },
       )
 
       expect(result).toEqual({
@@ -201,7 +204,8 @@ describe('helpers', () => {
     it('should include details when provided', () => {
       try {
         respondWithError(422, 'Validation error', { field: 'email' })
-      } catch (e: any) {
+      }
+      catch (e: any) {
         expect(e.statusCode).toBe(422)
         expect(e.data).toEqual({ details: { field: 'email' } })
       }

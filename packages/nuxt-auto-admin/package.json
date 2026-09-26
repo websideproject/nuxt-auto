@@ -1,6 +1,6 @@
 {
   "name": "@websideproject/nuxt-auto-admin",
-  "version": "0.0.8",
+  "version": "0.0.7",
   "description": "Auto-generated admin panel from Drizzle schema",
   "homepage": "https://github.com/websideproject/nuxt-auto",
   "repository": {
@@ -67,7 +67,13 @@
   },
   "peerDependencies": {
     "@nuxt/ui": "^4.0.0",
-    "@websideproject/nuxt-auto-api": "workspace:*"
+    "@websideproject/nuxt-auto-api": "workspace:*",
+    "h3": "^1.15.0 || ^2.0.0-0"
+  },
+  "peerDependenciesMeta": {
+    "h3": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",
@@ -80,7 +86,6 @@
     "better-sqlite3": "^11.0.0",
     "changelogen": "^0.6.2",
     "drizzle-orm": "^0.45.1",
-    "h3": "^1.15.5",
     "typescript": "^5.9.3",
     "nuxt": "^4.3.0"
   }

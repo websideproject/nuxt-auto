@@ -36,7 +36,7 @@ const { mutate: createPost, isPending: isCreating } = useAutoApiCreate('posts', 
   }
 })
 
-function handleCreate(data: any) {
+function handleCreate(data: Record<string, unknown>) {
   createPost(data)
 }
 

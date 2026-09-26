@@ -1,88 +1,87 @@
-import { defineNitroPlugin } from 'nitropack/runtime'
+import { defineNitroPlugin, useRuntimeConfig } from 'nitropack/runtime'
 import {
   addMiddleware,
   addContextExtender,
   addResourceHook,
   addGlobalHook,
+  registerPermissionEvaluator,
   markInitialized,
 } from './pluginRegistry'
 import type { PluginRuntimeContext } from '../../types/plugin'
 
+// Verbose startup tracing is opt-in (set NUXT_AUTO_API_DEBUG=1). By default only genuine
+// errors are logged — a build-only plugin (buildSetup, no runtimeSetup) being skipped at runtime
+// is normal, not a warning worth printing on every boot.
+const DEBUG = !!process.env.NUXT_AUTO_API_DEBUG
+function debug(...args: any[]) {
+  if (DEBUG) console.log('[nuxt-auto-api:initPlugins]', ...args)
+}
+
 export default defineNitroPlugin(async () => {
-  console.log('[nuxt-auto-api:initPlugins] Nitro plugin starting...')
+  debug('Nitro plugin starting…')
 
   // Import plugins from virtual module (generated at build time)
   let plugins: any[] = []
   try {
     const mod = await import('#nuxt-auto-api-plugins' as string)
-    console.log('[nuxt-auto-api:initPlugins] Virtual module imported, keys:', Object.keys(mod))
-    console.log('[nuxt-auto-api:initPlugins] mod.plugins type:', typeof mod.plugins, 'isArray:', Array.isArray(mod.plugins), 'length:', mod.plugins?.length)
+    debug('Virtual module imported, keys:', Object.keys(mod))
+    debug('mod.plugins isArray:', Array.isArray(mod.plugins), 'length:', mod.plugins?.length)
     plugins = mod.plugins || []
-  } catch (err) {
+  }
+  catch (err) {
     console.error('[nuxt-auto-api:initPlugins] Failed to import virtual module #nuxt-auto-api-plugins:', err)
     markInitialized()
     return
   }
 
   if (plugins.length === 0) {
-    console.log('[nuxt-auto-api:initPlugins] No plugins found, marking initialized')
+    debug('No plugins found, marking initialized')
     markInitialized()
     return
   }
 
-  console.log(`[nuxt-auto-api:initPlugins] Found ${plugins.length} plugin(s):`, plugins.map((p: any) => p?.name || '<unnamed>'))
+  debug(`Found ${plugins.length} plugin(s):`, plugins.map((p: any) => p?.name || '<unnamed>'))
 
-  const logger = {
-    info: (...args: any[]) => console.log('[nuxt-auto-api:plugin]', ...args),
-    warn: (...args: any[]) => console.warn('[nuxt-auto-api:plugin]', ...args),
-    error: (...args: any[]) => console.error('[nuxt-auto-api:plugin]', ...args),
-    debug: (...args: any[]) => console.debug('[nuxt-auto-api:plugin]', ...args),
-  }
-
-  // Get runtime config
-  let runtimeConfig: any = {}
-  try {
-    const { useRuntimeConfig } = await import('#imports')
-    runtimeConfig = useRuntimeConfig()
-  } catch {
-    // Runtime config might not be available
-  }
+  const runtimeConfig = useRuntimeConfig()
 
   for (const plugin of plugins) {
     if (!plugin) {
-      console.warn('[nuxt-auto-api:initPlugins] Skipping null/undefined plugin entry')
+      debug('Skipping null/undefined plugin entry')
       continue
     }
+    // Build-only plugins (buildSetup, no runtimeSetup — e.g. platform-export, which registers its
+    // endpoint at build time) have nothing to do at runtime. Skip quietly.
     if (!plugin.runtimeSetup) {
-      console.log(`[nuxt-auto-api:initPlugins] Plugin "${plugin.name}" has no runtimeSetup, skipping`)
+      debug(`Plugin "${plugin.name}" has no runtimeSetup, skipping`)
       continue
     }
 
-    console.log(`[nuxt-auto-api:initPlugins] Initializing plugin "${plugin.name}"...`)
+    debug(`Initializing plugin "${plugin.name}"…`)
 
     const runtimeContext: PluginRuntimeContext = {
       addMiddleware,
       addHook: addResourceHook,
       addGlobalHook,
       extendContext: addContextExtender,
+      registerPermissionEvaluator,
       runtimeConfig,
       logger: {
-        ...logger,
-        info: (...args: any[]) => console.log(`[nuxt-auto-api:plugin:${plugin.name}]`, ...args),
+        info: (...args: any[]) => debug(`[plugin:${plugin.name}]`, ...args),
         warn: (...args: any[]) => console.warn(`[nuxt-auto-api:plugin:${plugin.name}]`, ...args),
         error: (...args: any[]) => console.error(`[nuxt-auto-api:plugin:${plugin.name}]`, ...args),
-        debug: (...args: any[]) => console.debug(`[nuxt-auto-api:plugin:${plugin.name}]`, ...args),
+        debug: (...args: any[]) => debug(`[plugin:${plugin.name}]`, ...args),
       },
     }
 
     try {
       await plugin.runtimeSetup(runtimeContext)
-      logger.info(`Plugin "${plugin.name}" initialized successfully`)
-    } catch (error) {
-      logger.error(`Failed to initialize plugin "${plugin.name}":`, error)
+      debug(`Plugin "${plugin.name}" initialized successfully`)
+    }
+    catch (error) {
+      console.error(`[nuxt-auto-api:initPlugins] Failed to initialize plugin "${plugin.name}":`, error)
     }
   }
 
   markInitialized()
-  console.log('[nuxt-auto-api:initPlugins] All plugins processed, marked initialized')
+  debug('All plugins processed, marked initialized')
 })

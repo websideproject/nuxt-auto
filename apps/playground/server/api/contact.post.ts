@@ -8,7 +8,7 @@ export default createEndpoint({
   body: z.object({
     name: z.string().min(1, 'Name is required'),
     email: z.string().email('Invalid email'),
-    message: z.string().min(10, 'Message must be at least 10 characters'),
+    message: z.string().min(10, 'Message must be at least 10 characters')
   }),
 
   responseFormat: 'auto',
@@ -22,7 +22,7 @@ export default createEndpoint({
 
     return {
       sent: true,
-      message: `Thank you ${name}, we received your message.`,
+      message: `Thank you ${name}, we received your message.`
     }
-  },
+  }
 })

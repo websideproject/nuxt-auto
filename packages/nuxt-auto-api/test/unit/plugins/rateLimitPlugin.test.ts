@@ -15,7 +15,7 @@ describe('createRateLimitPlugin', () => {
   it('should create a plugin with correct name', () => {
     const plugin = createRateLimitPlugin()
     expect(plugin.name).toBe('rate-limit')
-    expect(plugin.version).toBe('1.0.0')
+    expect(plugin.version).toBe('1.1.0')
   })
 
   it('should have runtimeSetup function', () => {
@@ -99,7 +99,7 @@ describe('createRateLimitPlugin', () => {
 
       // Third request should throw 429
       await expect(registeredMiddleware.handler(context)).rejects.toThrow(
-        'Too many requests, please try again later'
+        'Too many requests, please try again later',
       )
     })
 

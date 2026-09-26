@@ -1,19 +1,8 @@
-import { defineEventHandler } from 'h3'
 import { restoreHandler } from './restore'
-import { createContextFromRegistry } from './createContextFromRegistry'
+import { defineResourceRoute } from './pipeline'
 
 /**
- * Entry point for restore handler - POST /api/{resource}/{id}/restore
- * Restores soft-deleted records
+ * POST /api/{resource}/:id/restore — gated by the `restore` permission
+ * (`permissions.restore` → `softDelete.restore` → `update`), which the handler checks before any lookup.
  */
-export default defineEventHandler(async (event) => {
-  const { context, authorize, runMiddleware } = await createContextFromRegistry(event, 'update')
-
-  await runMiddleware('pre-auth')
-  await authorize(context)
-  await runMiddleware('post-auth')
-  await runMiddleware('pre-execute')
-  const result = await restoreHandler(context)
-  await runMiddleware('post-execute')
-  return result
-})
+export default defineResourceRoute('update', restoreHandler, { validate: false, authorize: async () => {} })

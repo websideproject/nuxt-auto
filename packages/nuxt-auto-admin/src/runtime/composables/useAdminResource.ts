@@ -1,4 +1,5 @@
 import { computed } from 'vue'
+import { useAdminRegistry } from './useAdminRegistry'
 
 /**
  * Get resource configuration by name

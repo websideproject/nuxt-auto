@@ -44,7 +44,10 @@
     </div>
 
     <!-- Loading state -->
-    <div v-if="isLoading" class="space-y-4">
+    <div
+      v-if="isLoading"
+      class="space-y-4"
+    >
       <USkeleton class="h-32" />
       <USkeleton class="h-32" />
       <USkeleton class="h-32" />
@@ -61,7 +64,10 @@
     />
 
     <!-- Posts list -->
-    <div v-else-if="posts" class="space-y-4">
+    <div
+      v-else-if="posts"
+      class="space-y-4"
+    >
       <UCard
         v-for="post in posts.data"
         :key="post.id"
@@ -156,81 +162,93 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <UModal v-model="showFormModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold">
-            {{ editingPost ? 'Edit Post' : 'Create Post' }}
-          </h3>
-        </template>
+    <UModal
+      v-model:open="showFormModal"
+      :title="editingPost ? 'Edit Post' : 'Create Post'"
+    >
+      <template #body>
+        <form
+          id="post-form"
+          class="space-y-4 p-4"
+          @submit.prevent="submitForm"
+        >
+          <UFormField
+            label="Title"
+            required
+          >
+            <UInput
+              v-model="formData.title"
+              placeholder="Enter post title"
+            />
+          </UFormField>
 
-        <form @submit.prevent="submitForm" class="space-y-4">
-          <UFormGroup label="Title" required>
-            <UInput v-model="formData.title" placeholder="Enter post title" />
-          </UFormGroup>
+          <UFormField
+            label="Content"
+            required
+          >
+            <UTextarea
+              v-model="formData.content"
+              placeholder="Enter post content"
+              :rows="4"
+            />
+          </UFormField>
 
-          <UFormGroup label="Content" required>
-            <UTextarea v-model="formData.content" placeholder="Enter post content" rows="4" />
-          </UFormGroup>
-
-          <UFormGroup label="Published">
-            <UCheckbox v-model="formData.published" label="Publish this post" />
-          </UFormGroup>
-
-          <div class="flex justify-end gap-2">
-            <UButton
-              type="button"
-              variant="outline"
-              @click="closeFormModal"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              type="submit"
-              :loading="isSubmitting"
-              :disabled="!formData.title || !formData.content"
-            >
-              {{ editingPost ? 'Update' : 'Create' }}
-            </UButton>
-          </div>
+          <UFormField label="Published">
+            <UCheckbox
+              v-model="formData.published"
+              label="Publish this post"
+            />
+          </UFormField>
         </form>
-      </UCard>
+      </template>
+
+      <template #footer>
+        <UButton
+          variant="outline"
+          @click="closeFormModal"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          type="submit"
+          form="post-form"
+          :loading="isSubmitting"
+          :disabled="!formData.title || !formData.content"
+        >
+          {{ editingPost ? 'Update' : 'Create' }}
+        </UButton>
+      </template>
     </UModal>
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model="showDeleteModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold text-red-600">
-            Delete Post
-          </h3>
-        </template>
-
-        <div class="space-y-4">
-          <p>Are you sure you want to delete this post?</p>
-          <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded">
-            <p class="font-medium">{{ deletingPost?.title }}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ deletingPost?.content }}</p>
-          </div>
-          <p class="text-sm text-red-600">This action cannot be undone.</p>
-
-          <div class="flex justify-end gap-2">
-            <UButton
-              variant="outline"
-              @click="closeDeleteModal"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              color="error"
-              :loading="isDeleting"
-              @click="confirmDelete"
-            >
-              Delete
-            </UButton>
-          </div>
+    <UModal
+      v-model:open="showDeleteModal"
+      title="Delete Post"
+    >
+      <template #body>
+        <div class="space-y-4 p-4">
+          <p>Are you sure you want to delete <strong>{{ deletingPost?.title }}</strong>?</p>
+          <p class="text-sm text-red-600">
+            This action cannot be undone.
+          </p>
         </div>
-      </UCard>
+      </template>
+
+      <template #footer>
+        <UButton
+          variant="outline"
+          @click="closeDeleteModal"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          color="error"
+          :loading="isDeleting"
+          @click="confirmDelete"
+        >
+          Delete
+        </UButton>
+      </template>
     </UModal>
   </div>
 </template>
@@ -247,10 +265,10 @@ interface Post {
 const { user, isAdmin } = useAuth()
 
 const { data: posts, isLoading, error, refetch } = useAutoApiList<Post>('posts', {
-  sort: '-createdAt',
+  sort: '-createdAt'
 })
 
-const toast = useToast()
+const _toast = useToast()
 
 // Create/Edit modal state
 const showFormModal = ref(false)
@@ -259,7 +277,7 @@ const isSubmitting = ref(false)
 const formData = reactive({
   title: '',
   content: '',
-  published: false,
+  published: false
 })
 
 // Delete modal state
@@ -271,24 +289,24 @@ const isDeleting = ref(false)
 const { mutateAsync: createPost } = useAutoApiMutation('posts', 'create', {
   toast: {
     success: { title: 'Post created successfully!' },
-    error: { title: 'Failed to create post' },
-  },
+    error: { title: 'Failed to create post' }
+  }
 })
 
 // Update mutation
 const { mutateAsync: updatePost } = useAutoApiMutation('posts', 'update', {
   toast: {
     success: { title: 'Post updated successfully!' },
-    error: { title: 'Failed to update post' },
-  },
+    error: { title: 'Failed to update post' }
+  }
 })
 
 // Delete mutation
 const { mutateAsync: deletePost } = useAutoApiMutation('posts', 'delete', {
   toast: {
     success: { title: 'Post deleted successfully!' },
-    error: { title: 'Failed to delete post' },
-  },
+    error: { title: 'Failed to delete post' }
+  }
 })
 
 function isOwnPost(post: Post): boolean {
@@ -360,18 +378,16 @@ async function submitForm() {
       // Update existing post
       await updatePost({
         id: editingPost.value.id,
-        data: {
-          title: formData.title,
-          content: formData.content,
-          published: formData.published,
-        },
+        title: formData.title,
+        content: formData.content,
+        published: formData.published
       })
     } else {
       // Create new post
       await createPost({
         title: formData.title,
         content: formData.content,
-        published: formData.published,
+        published: formData.published
       })
     }
 

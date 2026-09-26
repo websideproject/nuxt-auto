@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core'
-import { buildWhereClause } from '../../../src/runtime/server/utils/buildWhereClause'
+import { sqliteTable, integer, text, SQLiteSyncDialect } from 'drizzle-orm/sqlite-core'
+import { buildWhereClause, parseFilterParam } from '../../../src/runtime/server/utils/buildWhereClause'
+
+const dialect = new SQLiteSyncDialect()
 
 const testTable = sqliteTable('test', {
   id: integer('id').primaryKey(),
   name: text('name'),
   age: integer('age'),
-  status: text('status')
+  status: text('status'),
 })
 
 describe('buildWhereClause', () => {
@@ -97,7 +99,7 @@ describe('buildWhereClause', () => {
   it('should handle multiple filters with AND', () => {
     const filter = {
       status: 'active',
-      age: { $gt: 18 }
+      age: { $gt: 18 },
     }
     const result = buildWhereClause(filter, testTable)
 
@@ -109,30 +111,50 @@ describe('buildWhereClause', () => {
     expect(result).toBeUndefined()
   })
 
-  it('should ignore invalid column names', () => {
-    const filter = { nonexistent: 'value' }
-    const result = buildWhereClause(filter, testTable)
-
-    expect(result).toBeUndefined()
+  it('rejects a field that is not a column (400) — a dropped condition would widen the result', () => {
+    expect(() => buildWhereClause({ nonexistent: 'value' }, testTable)).toThrow(/Unknown field 'nonexistent'/)
+    expect(() => buildWhereClause({ name: 'John', nonexistent: 'value' }, testTable)).toThrow(/Unknown field/)
   })
 
-  it('should handle mixed valid and invalid fields', () => {
-    const filter = {
-      name: 'John',
-      nonexistent: 'value'
-    }
-    const result = buildWhereClause(filter, testTable)
-
-    expect(result).toBeDefined()
+  it('rejects table internals that are not columns', () => {
+    expect(() => buildWhereClause({ _: 1 } as any, testTable)).toThrow(/Unknown field '_'/)
+    expect(() => buildWhereClause({ getSQL: 1 } as any, testTable)).toThrow(/Unknown field/)
   })
 
-  it('should return undefined for null filter', () => {
-    const result = buildWhereClause(null as any, testTable)
-    expect(result).toBeUndefined()
+  it('rejects a field outside the allowed set (hidden / unreadable) with the same message', () => {
+    expect(() => buildWhereClause({ age: 3 }, testTable, new Set(['name']))).toThrow(/Unknown field 'age'/)
   })
 
-  it('should return undefined for non-object filter', () => {
-    const result = buildWhereClause('invalid' as any, testTable)
-    expect(result).toBeUndefined()
+  it('rejects unknown operators', () => {
+    expect(() => buildWhereClause({ name: { $regex: 'x' } }, testTable)).toThrow(/Unknown filter operator '\$regex'/)
+    expect(() => buildWhereClause({ name: {} }, testTable)).toThrow(/no operator/)
+  })
+
+  it('bounds $in / $nin lists', () => {
+    expect(() => buildWhereClause({ id: { $in: [] } }, testTable)).toThrow(/at least one/)
+    expect(() => buildWhereClause({ id: { $in: Array.from({ length: 501 }, (_, i) => i) } }, testTable)).toThrow(/at most/)
+  })
+
+  it('renders the expected SQL', () => {
+    const r = (f: any) => dialect.sqlToQuery(buildWhereClause(f, testTable)!)
+    expect(r({ name: 'John' })).toMatchObject({ sql: '"test"."name" = ?', params: ['John'] })
+    expect(r({ name: null })).toMatchObject({ sql: '"test"."name" is null', params: [] })
+    expect(r({ status: ['a', 'b'] })).toMatchObject({ sql: '"test"."status" in (?, ?)', params: ['a', 'b'] })
+    expect(r({ age: { $gte: 18, $lt: 65 } })).toMatchObject({ sql: '("test"."age" >= ? and "test"."age" < ?)', params: [18, 65] })
+    expect(r({ status: { $nin: 'x,y' } })).toMatchObject({ sql: '"test"."status" not in (?, ?)', params: ['x', 'y'] })
+    expect(r({ name: { $like: 'oh' } })).toMatchObject({ sql: '"test"."name" like ?', params: ['%oh%'] })
+  })
+
+  it('returns undefined for an absent filter and rejects a non-object', () => {
+    expect(buildWhereClause(null as any, testTable)).toBeUndefined()
+    expect(buildWhereClause(undefined, testTable)).toBeUndefined()
+    expect(() => buildWhereClause('invalid' as any, testTable)).toThrow(/JSON object/)
+    expect(() => buildWhereClause([] as any, testTable)).toThrow(/JSON object/)
+  })
+
+  it('parseFilterParam parses URL JSON and rejects malformed JSON', () => {
+    expect(parseFilterParam('{"a":1}')).toEqual({ a: 1 })
+    expect(parseFilterParam(undefined)).toBeUndefined()
+    expect(() => parseFilterParam('{nope')).toThrow(/not valid JSON/)
   })
 })

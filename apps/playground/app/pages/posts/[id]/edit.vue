@@ -6,7 +6,10 @@
     />
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="space-y-4">
+    <div
+      v-if="isLoading"
+      class="space-y-4"
+    >
       <USkeleton class="h-12 w-full" />
       <USkeleton class="h-64 w-full" />
     </div>
@@ -21,7 +24,12 @@
       :description="error.message"
     >
       <template #actions>
-        <UButton to="/posts" size="xs" color="gray" variant="subtle">
+        <UButton
+          to="/posts"
+          size="xs"
+          color="gray"
+          variant="subtle"
+        >
           Back to Posts
         </UButton>
       </template>
@@ -78,7 +86,7 @@ const { mutate: updatePost, isPending: isUpdating } = useAutoApiUpdate('posts', 
   }
 })
 
-function handleUpdate(data: any) {
+function handleUpdate(data: Record<string, unknown>) {
   updatePost({
     id: postId.value,
     ...data

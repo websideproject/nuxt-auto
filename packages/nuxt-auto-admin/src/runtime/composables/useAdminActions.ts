@@ -1,7 +1,8 @@
 import { useRouter } from 'vue-router'
+import { useAutoApiDelete } from '@websideproject/nuxt-auto-api/composables'
+import { useRuntimeConfig } from '#app'
 
 // These composables are auto-imported from nuxt-auto-api when the module is used
-declare function useAutoApiDelete(resource: string): any
 
 /**
  * Common admin actions for resources
@@ -59,7 +60,7 @@ export function useAdminActions(resourceName: string) {
           }
           resolve()
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
           console.error('Failed to delete:', error)
           reject(error)
         },

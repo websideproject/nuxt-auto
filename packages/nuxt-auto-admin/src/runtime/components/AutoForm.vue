@@ -1,5 +1,8 @@
 <template>
-  <UForm :state="formData" @submit="handleSubmit">
+  <UForm
+    :state="formData"
+    @submit="handleSubmit"
+  >
     <div class="w-full p-6">
       <!-- Form Fields -->
       <div class="space-y-5 max-w-3xl">
@@ -52,7 +55,7 @@ import AutoField from './AutoField.vue'
 
 const props = defineProps<{
   fields: FieldConfig[]
-  initialData?: Record<string, any>
+  initialData?: Record<string, unknown>
   mode?: 'create' | 'edit' | 'view'
   showCancel?: boolean
   showReset?: boolean
@@ -61,11 +64,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [data: Record<string, any>]
+  submit: [data: Record<string, unknown>]
   cancel: []
 }>()
 
-const formData = ref<Record<string, any>>({})
+const formData = ref<Record<string, unknown>>({})
 const errors = ref<Record<string, string>>({})
 const isSubmitting = ref(false)
 
@@ -73,18 +76,24 @@ const isSubmitting = ref(false)
 watch(
   [() => props.fields, () => props.initialData],
   () => {
-    const data: Record<string, any> = {}
+    const data: Record<string, unknown> = {}
 
     props.fields.forEach((field) => {
       if (props.initialData && field.name in props.initialData) {
         data[field.name] = props.initialData[field.name]
-      } else {
+      }
+      else {
         // Set default values
         if (field.widget === 'CheckboxInput') {
           data[field.name] = false
-        } else if (field.widget === 'NumberInput') {
+        }
+        else if (field.widget === 'NumberInput') {
           data[field.name] = field.options?.min || 0
-        } else {
+        }
+        else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget ?? '')) {
+          data[field.name] = null
+        }
+        else {
           data[field.name] = ''
         }
       }
@@ -92,7 +101,7 @@ watch(
 
     formData.value = data
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // Filter fields based on conditions
@@ -112,11 +121,12 @@ const submitLabel = computed(() => {
   return 'Submit'
 })
 
-function updateField(name: string, value: any) {
+function updateField(name: string, value: unknown) {
   formData.value[name] = value
   // Clear error for this field
   if (errors.value[name]) {
-    delete errors.value[name]
+    const { [name]: _, ...rest } = errors.value
+    errors.value = rest
   }
 }
 
@@ -124,17 +134,23 @@ function resetForm() {
   watch(
     [() => props.fields, () => props.initialData],
     () => {
-      const data: Record<string, any> = {}
+      const data: Record<string, unknown> = {}
 
       props.fields.forEach((field) => {
         if (props.initialData && field.name in props.initialData) {
           data[field.name] = props.initialData[field.name]
-        } else {
+        }
+        else {
           if (field.widget === 'CheckboxInput') {
             data[field.name] = false
-          } else if (field.widget === 'NumberInput') {
+          }
+          else if (field.widget === 'NumberInput') {
             data[field.name] = field.options?.min || 0
-          } else {
+          }
+          else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget ?? '')) {
+            data[field.name] = null
+          }
+          else {
             data[field.name] = ''
           }
         }
@@ -142,7 +158,7 @@ function resetForm() {
 
       formData.value = data
     },
-    { immediate: true }
+    { immediate: true },
   )
 
   errors.value = {}
@@ -167,19 +183,37 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
-    // Filter out readonly fields for edit mode
-    const dataToSubmit = { ...formData.value }
+    // Filter out readonly fields — in BOTH modes.
+    //
+    // ⚠ It used to be edit-only. Since S29.4 `fields[x].write` is enforced by the API (a body containing
+    // a field the caller may not write is refused with 403 and nothing is applied), and `useResourceForm`
+    // marks such fields readonly. A create that still submitted them would fail on a field the user
+    // cannot change and did not touch — and a readonly input is one the server owns in either mode, so
+    // there was never a reason to send it.
+    let dataToSubmit = { ...formData.value }
 
-    if (props.mode === 'edit') {
-      visibleFields.value.forEach((field) => {
-        if (field.readonly) {
-          delete dataToSubmit[field.name]
-        }
-      })
-    }
+    visibleFields.value.forEach((field) => {
+      if (field.readonly) {
+        const { [field.name]: _, ...rest } = dataToSubmit
+        dataToSubmit = rest
+      }
+    })
+
+    // Strip null/empty values for non-required fields (let server apply column defaults)
+    // Also strip 0 for RelationSelect (not a valid FK)
+    visibleFields.value.forEach((field) => {
+      const val = dataToSubmit[field.name]
+      if (!field.required && (val === '' || val === null || val === undefined)) {
+        Reflect.deleteProperty(dataToSubmit, field.name)
+      }
+      if (field.widget === 'RelationSelect' && val === 0) {
+        Reflect.deleteProperty(dataToSubmit, field.name)
+      }
+    })
 
     emit('submit', dataToSubmit)
-  } finally {
+  }
+  finally {
     isSubmitting.value = false
   }
 }

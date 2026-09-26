@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm'
 // Stub useRuntimeConfig for tests
 vi.stubGlobal('useRuntimeConfig', () => ({
   public: {},
-  autoApi: {}
+  autoApi: {},
 }))
 
 describe('Soft Deletes Integration', () => {
@@ -42,6 +42,7 @@ describe('Soft Deletes Integration', () => {
         operation: 'delete',
         params: { id: postId.toString() },
         permissions: ['admin'],
+        resourceConfig: { authorization: { permissions: { read: true, viewDeleted: 'admin' } } },
       })
 
       const result = await deleteHandler(context as any)
@@ -115,6 +116,8 @@ describe('Soft Deletes Integration', () => {
         operation: 'list',
         query: { includeDeleted: true },
         permissions: ['admin'],
+        // Viewing trash is a declared permission (no built-in 'admin' role any more).
+        resourceConfig: { authorization: { permissions: { read: true, viewDeleted: 'admin' } } },
       })
 
       const result = await listHandler(context as any)
@@ -181,6 +184,7 @@ describe('Soft Deletes Integration', () => {
         operation: 'get',
         params: { id: postId.toString() },
         permissions: ['admin'],
+        resourceConfig: { authorization: { permissions: { read: true, viewDeleted: 'admin' } } },
       })
 
       const result = await getHandler(context as any)
@@ -206,6 +210,7 @@ describe('Soft Deletes Integration', () => {
         operation: 'update',
         params: { id: postId.toString() },
         permissions: ['admin'],
+        resourceConfig: { authorization: { permissions: { read: true, restore: 'admin' } } },
       })
 
       const result = await restoreHandler(context as any)

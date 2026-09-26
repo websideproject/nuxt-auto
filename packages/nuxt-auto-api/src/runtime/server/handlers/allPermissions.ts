@@ -1,53 +1,25 @@
 import type { H3Event } from 'h3'
 import { getResourcePermissions } from '../utils/permissions'
+import { getAuthConfig } from '../utils/authConfig'
+import { contextFor } from '../utils/rowAccess'
+import { createCallerContext } from './createContextFromRegistry'
 
 /**
- * Handler to get permission information for ALL resources
- * More efficient than querying each resource individually
+ * GET /api/permissions — what the caller may do on every resource, in one request.
  */
 export async function allPermissionsHandler(event: H3Event) {
-  const { getAllResources } = await import('#nuxt-auto-api-registry')
-  const resources = getAllResources()
+  const caller = await createCallerContext(event)
+  const permissions: Record<string, any> = {}
 
-  const allPermissions: Record<string, any> = {}
-
-  // Get permissions for each resource
-  for (const resource of resources) {
-    // Create a minimal context for permission checking
-    const context = {
-      user: event.context.user || null,
-      permissions: event.context.permissions || [],
-      resource: resource.name,
-      operation: 'list' as const,
-      params: {},
-      query: {},
-      validated: {},
-      event,
-      db: null, // Not needed for basic permission checks
-      schema: null, // Not needed for basic permission checks
-    }
-
+  for (const resource of Object.keys(caller.registry ?? {})) {
+    const context = contextFor({ ...caller, resource: '' }, resource)
     try {
-      const permissions = await getResourcePermissions(
-        resource.authorization,
-        context as any,
-      )
-
-      allPermissions[resource.name] = permissions
+      permissions[resource] = await getResourcePermissions(getAuthConfig(context, resource), context)
     }
     catch (error) {
-      // If permission check fails, default to no access
-      allPermissions[resource.name] = {
-        canCreate: false,
-        canRead: false,
-        canUpdate: false,
-        canDelete: false,
-      }
+      console.error(`[nuxt-auto-api] permission check failed for "${resource}":`, error)
+      permissions[resource] = { canCreate: false, canRead: false, canUpdate: false, canDelete: false, canRestore: false, canPurge: false, canViewDeleted: false }
     }
   }
-
-  return {
-    user: event.context.user || null,
-    permissions: allPermissions,
-  }
+  return { user: caller.user || null, permissions }
 }

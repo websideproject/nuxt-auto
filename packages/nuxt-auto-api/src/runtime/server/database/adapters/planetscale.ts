@@ -15,6 +15,7 @@ export function createPlanetscaleAdapter(db: any): DatabaseAdapter {
       return result?.rowsAffected ?? result?.affectedRows ?? 0
     },
     supportsReturning: false,
+    supportsTransactions: true,
     supportsNativeBatch: false,
   }
 }

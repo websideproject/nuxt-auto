@@ -114,7 +114,7 @@ mutate([
 const { mutate } = useAutoApiBulkDelete('posts', options?)
 
 mutate([1, 2, 3])
-// Response: { success: boolean, deleted: number }
+// Response: BulkOperationResponse (meta: total/successful/failed[/errors]; soft delete adds meta.deletionId)
 ```
 
 ---
@@ -122,20 +122,16 @@ mutate([1, 2, 3])
 ## Optimistic Updates
 
 ```ts
-import { useAutoApiOptimisticUpdate } from '@websideproject/nuxt-auto-api'
+// Auto-imported (also from '@websideproject/nuxt-auto-api/composables')
+const queryClient = useQueryClient()   // in setup — useQueryClient() does not work inside onMutate
 
-// Inside onMutate callback
-const { queryKey, previousData } = useAutoApiOptimisticUpdate<Post>(
-  'posts',
-  postId,
-  { title: 'Optimistically updated' }
-)
-
-// Rollback on error
-onError: () => {
-  queryClient.setQueryData(queryKey, previousData)
-}
+const { mutate } = useAutoApiUpdate<Post>('posts', {
+  onMutate: vars => useAutoApiOptimisticUpdate(queryClient, 'posts', vars.id, vars),
+  onError: (_e, _v, ctx: any) => ctx && queryClient.setQueryData(ctx.queryKey, ctx.previousData),
+})
 ```
+
+Your `onMutate` / `onSuccess` / `onError` run AFTER the built-in ones (cache invalidation is never replaced).
 
 ---
 

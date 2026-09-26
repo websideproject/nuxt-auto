@@ -9,7 +9,7 @@ export const usersAuth: ResourceAuthConfig = {
   permissions: {
     // Anyone can read users
     // read: () => true, // (context) => !!context.user,
-    read: (context) => !!context.user,
+    read: context => !!context.user,
     // Only admins can create users
     create: 'admin',
     // Users can update themselves, admins can update anyone
@@ -19,7 +19,7 @@ export const usersAuth: ResourceAuthConfig = {
       return false
     },
     // Only admins can delete users
-    delete: 'admin',
+    delete: 'admin'
   },
   // Object-level check: users can only see/edit themselves unless they're admin
   objectLevel: async (object, context) => {
@@ -36,13 +36,13 @@ export const usersAuth: ResourceAuthConfig = {
         if (context.permissions.includes('admin')) return true
         if (context.user && context.params.id === String(context.user.id)) return true
         return false
-      },
+      }
     },
     // Only admins can change role
     role: {
-      write: 'admin',
-    },
-  },
+      write: 'admin'
+    }
+  }
 }
 
 // Posts resource - object-level authorization demo
@@ -51,11 +51,11 @@ export const postsAuth: ResourceAuthConfig = {
     // Anyone can read posts
     read: () => true,
     // Authenticated users can create posts
-    create: (context) => !!context.user,
+    create: context => !!context.user,
     // Authenticated users can update (but object-level auth will restrict to own posts)
-    update: (context) => !!context.user,
+    update: context => !!context.user,
     // Authenticated users can delete (but object-level auth will restrict to own posts)
-    delete: (context) => !!context.user,
+    delete: context => !!context.user
   },
   // Object-level: users can only edit their own posts unless they're admin
   objectLevel: async (object, context) => {
@@ -71,15 +71,15 @@ export const postsAuth: ResourceAuthConfig = {
     }
 
     return false
-  },
+  }
 }
 
 // Comments resource
 export const commentsAuth: ResourceAuthConfig = {
   permissions: {
     read: () => true,
-    create: (context) => !!context.user,
-    update: (context) => !!context.user,
-    delete: ['admin', 'editor'],
-  },
+    create: context => !!context.user,
+    update: context => !!context.user,
+    delete: ['admin', 'editor']
+  }
 }

@@ -12,13 +12,13 @@ describe('filterFields', () => {
   it('should filter array of objects', () => {
     const data = [
       { id: 1, name: 'John', email: 'john@test.com' },
-      { id: 2, name: 'Jane', email: 'jane@test.com' }
+      { id: 2, name: 'Jane', email: 'jane@test.com' },
     ]
     const result = filterFields(data, ['id', 'name'])
 
     expect(result).toEqual([
       { id: 1, name: 'John' },
-      { id: 2, name: 'Jane' }
+      { id: 2, name: 'Jane' },
     ])
   })
 
@@ -83,13 +83,13 @@ describe('filterFields', () => {
     const data = {
       id: 1,
       name: 'John',
-      profile: { age: 30, city: 'NYC' }
+      profile: { age: 30, city: 'NYC' },
     }
     const result = filterFields(data, ['id', 'profile'])
 
     expect(result).toEqual({
       id: 1,
-      profile: { age: 30, city: 'NYC' }
+      profile: { age: 30, city: 'NYC' },
     })
   })
 })

@@ -1,5 +1,6 @@
 import { defineEventHandler, getRouterParam, createError } from 'h3'
 import { isJunctionTable } from '../../utils/m2m/detectJunctions'
+import { createCallerContext } from '../createContextFromRegistry'
 
 /**
  * Check if a table is a junction table
@@ -8,6 +9,10 @@ import { isJunctionTable } from '../../utils/m2m/detectJunctions'
  * Used by admin module to filter junction tables from sidebar
  */
 export default defineEventHandler(async (event) => {
+  // Discovery reveals schema structure: signed-in callers only.
+  const caller = await createCallerContext(event)
+  if (!caller.user) throw createError({ statusCode: 401, message: 'Authentication required' })
+
   const tableName = getRouterParam(event, 'table')
 
   if (!tableName) {
@@ -22,7 +27,7 @@ export default defineEventHandler(async (event) => {
 
   // Build schema from registry
   const schema: Record<string, any> = {}
-  for (const [name, config] of Object.entries(registry)) {
+  for (const [name, config] of Object.entries(registry as Record<string, any>)) {
     schema[name] = config.schema
   }
 

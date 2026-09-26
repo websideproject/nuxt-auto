@@ -9,4 +9,6 @@ export interface AutoApiToastOptions {
   enabled?: boolean
   showSuccess?: boolean
   showErrors?: boolean
+  /** Description shown with the success toast (endpoint mutations). */
+  successMessage?: string
 }

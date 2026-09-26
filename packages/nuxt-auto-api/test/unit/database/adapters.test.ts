@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core'
 import { createAdapter } from '../../../src/runtime/server/database/adapters/factory'
 import { createSqliteAdapter } from '../../../src/runtime/server/database/adapters/sqlite'
 import { createPostgresAdapter } from '../../../src/runtime/server/database/adapters/postgres'
@@ -57,19 +60,65 @@ describe('Database Adapters', () => {
       expect(adapter.supportsNativeBatch).toBe(false)
     })
 
-    it('should call db.transaction in atomic()', async () => {
-      const mockTx = { insert: vi.fn() }
-      const mockDb = {
-        transaction: vi.fn((fn: any) => fn(mockTx)),
+    describe('atomic() against a real better-sqlite3 database', () => {
+      // better-sqlite3's own transaction() rejects async functions ("Transaction function cannot return a
+      // promise"), which is every caller of atomic() — the adapter drives BEGIN/COMMIT itself.
+      function setup() {
+        const sqlite = new Database(':memory:')
+        sqlite.exec('CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT NOT NULL)')
+        const t = sqliteTable('t', { id: integer('id').primaryKey(), v: text('v').notNull() })
+        const db = drizzle(sqlite)
+        return { sqlite, db, t, adapter: createSqliteAdapter(db), rows: () => db.select().from(t).all().map((r: any) => r.v) }
       }
-      const adapter = createSqliteAdapter(mockDb)
 
-      const result = await adapter.atomic(async ({ tx }) => {
-        return 'done'
+      it('commits an async function\'s writes', async () => {
+        const { adapter, db, t, rows } = setup()
+        const result = await adapter.atomic(async ({ tx }) => {
+          await tx.insert(t).values({ id: 1, v: 'a' })
+          await Promise.resolve()
+          await tx.insert(t).values({ id: 2, v: 'b' })
+          return 'done'
+        })
+        expect(result).toBe('done')
+        expect(rows()).toEqual(['a', 'b'])
+        void db
       })
 
-      expect(mockDb.transaction).toHaveBeenCalled()
-      expect(result).toBe('done')
+      it('rolls back everything when the function throws', async () => {
+        const { adapter, t, rows } = setup()
+        await expect(adapter.atomic(async ({ tx }) => {
+          await tx.insert(t).values({ id: 1, v: 'a' })
+          throw new Error('boom')
+        })).rejects.toThrow('boom')
+        expect(rows()).toEqual([])
+      })
+
+      it('a nested atomic() joins the outer transaction (no deadlock, rolled back together)', async () => {
+        const { adapter, t, rows } = setup()
+        await expect(adapter.atomic(async ({ tx }) => {
+          await tx.insert(t).values({ id: 1, v: 'outer' })
+          await adapter.atomic(async ({ tx: inner }) => {
+            await inner.insert(t).values({ id: 2, v: 'inner' })
+          })
+          throw new Error('after inner')
+        })).rejects.toThrow('after inner')
+        expect(rows()).toEqual([])
+      })
+
+      it('serializes concurrent transactions instead of interleaving them', async () => {
+        const { adapter, t, rows } = setup()
+        const slow = adapter.atomic(async ({ tx }) => {
+          await tx.insert(t).values({ id: 1, v: 'slow' })
+          await new Promise(r => setTimeout(r, 20))
+          throw new Error('slow fails')
+        })
+        const fast = adapter.atomic(async ({ tx }) => {
+          await tx.insert(t).values({ id: 2, v: 'fast' })
+        })
+        await expect(slow).rejects.toThrow('slow fails')
+        await fast
+        expect(rows()).toEqual(['fast'])
+      })
     })
 
     it('should parse mutation count from changes', () => {
@@ -119,6 +168,7 @@ describe('Database Adapters', () => {
       expect(adapter.engine).toBe('d1')
       expect(adapter.supportsReturning).toBe(true)
       expect(adapter.supportsNativeBatch).toBe(true)
+      expect(adapter.supportsTransactions).toBe(false) // atomic() cannot roll back on D1
     })
 
     it('should pass db as tx in atomic()', async () => {

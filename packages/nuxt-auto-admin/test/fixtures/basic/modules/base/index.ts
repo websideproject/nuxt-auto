@@ -6,7 +6,7 @@ export default defineNuxtModule({
   setup(_options, nuxt) {
     const resolver = createResolver(import.meta.url)
 
-    nuxt.hook('autoApi:registerSchema', (registry: any) => {
+    nuxt.hook('autoApi:registerSchema' as unknown as 'close', (registry: { register: (name: string, config: unknown) => void }) => {
       registry.register('users', {
         schema: createModuleImport(resolver.resolve('../../server/database/schema'), 'users'),
         authorization: createModuleImport(resolver.resolve('./auth'), 'usersAuth'),

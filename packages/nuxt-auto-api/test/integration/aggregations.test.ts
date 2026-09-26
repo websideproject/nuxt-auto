@@ -1,378 +1,130 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { createMockEvent, createMockDb } from '../helpers/mocks'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
+import { eq } from 'drizzle-orm'
 import { aggregateHandler } from '../../src/runtime/server/handlers/aggregate'
-import type { HandlerContext } from '../../src/types'
+import { listHandler } from '../../src/runtime/server/handlers/list'
+import { createAuthorizationMiddleware } from '../../src/runtime/server/middleware/authz'
+import { makeContext } from '../helpers/context'
 
-vi.stubGlobal('useRuntimeConfig', () => ({
-  public: {},
-  autoApi: {}
-}))
+vi.stubGlobal('useRuntimeConfig', () => ({ public: {}, autoApi: {} }))
 
-describe('Aggregations', () => {
-  let mockDb: ReturnType<typeof createMockDb>
-  let mockTable: any
+const orders = sqliteTable('orders', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  status: text('status').notNull(),
+  total: integer('total').notNull(),
+  secret: text('secret'),
+  organizationId: text('organization_id'),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+})
+const schema = { orders }
+
+describe('Aggregations (real SQLite)', () => {
+  let sqlite: Database.Database
+  let db: any
 
   beforeEach(() => {
-    mockDb = createMockDb()
-    mockTable = {
-      id: { name: 'id' },
-      title: { name: 'title' },
-      userId: { name: 'userId' },
-      published: { name: 'published' },
-      views: { name: 'views' },
-    }
+    sqlite = new Database(':memory:')
+    sqlite.exec(`CREATE TABLE orders (id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, total INTEGER NOT NULL,
+      secret TEXT, organization_id TEXT, deleted_at INTEGER)`)
+    db = drizzle(sqlite, { schema })
+    db.insert(orders).values([
+      { status: 'paid', total: 100, secret: 'a', organizationId: 'o1' },
+      { status: 'paid', total: 300, secret: 'b', organizationId: 'o1' },
+      { status: 'open', total: 50, secret: 'c', organizationId: 'o1' },
+      { status: 'paid', total: 1000, secret: 'd', organizationId: 'o2' },
+      { status: 'paid', total: 7, secret: 'e', organizationId: 'o1', deletedAt: new Date() },
+    ]).run()
+  })
+  afterEach(() => sqlite.close())
+
+  const ctx = (query: Record<string, any>, over: Parameters<typeof makeContext>[0] extends infer T ? Partial<T> : never = {}) =>
+    makeContext({ db, schema, resource: 'orders', operation: 'aggregate', query, extra: { orders: { hiddenFields: ['secret'] } }, ...over })
+
+  it('counts live rows only (soft-deleted rows are excluded)', async () => {
+    const r = await aggregateHandler(ctx({ aggregate: 'count' }))
+    expect(r.data).toEqual([{ count: 4 }])
   })
 
-  describe('Simple Aggregations', () => {
-    it('should count all records', async () => {
-      mockDb.mockQueryResult([{ count: 10 }])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=count'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'count' },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(1)
-      expect(result.data[0]).toHaveProperty('count')
-    })
-
-    it('should sum numeric field', async () => {
-      mockDb.mockQueryResult([{ sum_views: 1500 }])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=sum(views)'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'sum(views)' },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(1)
-      expect(result.data[0]).toHaveProperty('sum_views', 1500)
-    })
-
-    it('should calculate average', async () => {
-      mockDb.mockQueryResult([{ avg_views: 150.5 }])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=avg(views)'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'avg(views)' },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(1)
-      expect(result.data[0]).toHaveProperty('avg_views', 150.5)
-    })
-
-    it('should find minimum value', async () => {
-      mockDb.mockQueryResult([{ min_views: 5 }])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=min(views)'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'min(views)' },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(1)
-      expect(result.data[0]).toHaveProperty('min_views', 5)
-    })
-
-    it('should find maximum value', async () => {
-      mockDb.mockQueryResult([{ max_views: 999 }])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=max(views)'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'max(views)' },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(1)
-      expect(result.data[0]).toHaveProperty('max_views', 999)
-    })
-
-    it('should handle multiple aggregations', async () => {
-      mockDb.mockQueryResult([{
-        count: 10,
-        sum_views: 1500,
-        avg_views: 150,
-        min_views: 5,
-        max_views: 999,
-      }])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=count,sum(views),avg(views),min(views),max(views)'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'count,sum(views),avg(views),min(views),max(views)' },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(1)
-      expect(result.data[0]).toMatchObject({
-        count: 10,
-        sum_views: 1500,
-        avg_views: 150,
-        min_views: 5,
-        max_views: 999,
-      })
-    })
+  it('computes sum / avg / min / max keyed <fn>_<field>', async () => {
+    const r = await aggregateHandler(ctx({ aggregate: 'sum(total),avg(total),min(total),max(total)' }))
+    expect(Number(r.data[0]!.sum_total)).toBe(1450)
+    expect(Number(r.data[0]!.avg_total)).toBe(362.5)
+    expect(r.data[0]!.min_total).toBe(50)
+    expect(r.data[0]!.max_total).toBe(1000)
   })
 
-  describe('GroupBy Aggregations', () => {
-    it('should group by single field', async () => {
-      mockDb.mockQueryResult([
-        { published: true, count: 5 },
-        { published: false, count: 3 },
-      ])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=count&groupBy=published'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: {
-          aggregate: 'count',
-          groupBy: 'published',
-        },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(2)
-      expect(result.meta.total).toBe(2)
-    })
-
-    it('should group by multiple fields', async () => {
-      mockDb.mockQueryResult([
-        { published: true, userId: 1, count: 3 },
-        { published: true, userId: 2, count: 2 },
-        { published: false, userId: 1, count: 1 },
-      ])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=count&groupBy=published,userId'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: {
-          aggregate: 'count',
-          groupBy: ['published', 'userId'],
-        },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(3)
-    })
-
-    it('should handle aggregations with groupBy', async () => {
-      mockDb.mockQueryResult([
-        { userId: 1, count: 5, sum_views: 750 },
-        { userId: 2, count: 3, sum_views: 450 },
-      ])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=count,sum(views)&groupBy=userId'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: {
-          aggregate: 'count,sum(views)',
-          groupBy: 'userId',
-        },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(2)
-      expect(result.data[0].group).toBeDefined()
-    })
+  it('groups by a column and returns the group under `group`', async () => {
+    const r = await aggregateHandler(ctx({ aggregate: 'count,sum(total)', groupBy: 'status' }))
+    const byStatus = Object.fromEntries(r.data.map((row: any) => [row.group.status, row]))
+    expect(byStatus.paid.count).toBe(3)
+    expect(Number(byStatus.open.sum_total)).toBe(50)
   })
 
-  describe('Filtered Aggregations', () => {
-    it('should apply filter to aggregation', async () => {
-      mockDb.mockQueryResult([{ count: 5 }])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=count&filter={"published":true}'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: {
-          aggregate: 'count',
-          filter: { published: true },
-        },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(1)
-      expect(mockDb.where).toHaveBeenCalled()
-    })
-
-    it('should apply filter with groupBy', async () => {
-      mockDb.mockQueryResult([
-        { userId: 1, count: 3 },
-        { userId: 2, count: 2 },
-      ])
-
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=count&groupBy=userId&filter={"published":true}'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: {
-          aggregate: 'count',
-          groupBy: 'userId',
-          filter: { published: true },
-        },
-      }
-
-      const result = await aggregateHandler(context)
-
-      expect(result.data).toHaveLength(2)
-      expect(mockDb.where).toHaveBeenCalled()
-    })
+  it('applies `having` on aggregate aliases', async () => {
+    const r = await aggregateHandler(ctx({ aggregate: 'count', groupBy: 'status', having: JSON.stringify({ count: { $gt: 1 } }) }))
+    expect(r.data.map((row: any) => row.group.status)).toEqual(['paid'])
   })
 
-  describe('Error Handling', () => {
-    it('should require aggregate parameter', async () => {
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: {},
-      }
-
-      await expect(aggregateHandler(context)).rejects.toThrow('aggregate parameter is required')
-    })
-
-    it('should reject invalid aggregate function', async () => {
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=invalid'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'invalid' },
-      }
-
-      await expect(aggregateHandler(context)).rejects.toThrow('At least one aggregate function is required')
-    })
-
-    it('should reject sum without field', async () => {
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=sum'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'sum' },
-      }
-
-      await expect(aggregateHandler(context)).rejects.toThrow('At least one aggregate function is required')
-    })
-
-    it('should reject avg without field', async () => {
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=avg'),
-        db: mockDb as any,
-        schema: { posts: mockTable },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'avg' },
-      }
-
-      await expect(aggregateHandler(context)).rejects.toThrow('At least one aggregate function is required')
-    })
-
-    it('should handle non-existent resource', async () => {
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/invalid/aggregate?aggregate=count'),
-        db: mockDb as any,
-        schema: {},
-        resource: 'invalid',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'count' },
-      }
-
-      await expect(aggregateHandler(context)).rejects.toThrow('Table invalid not found in schema')
-    })
+  it('applies a JSON `filter` from the URL', async () => {
+    const r = await aggregateHandler(ctx({ aggregate: 'sum(total)', filter: JSON.stringify({ status: 'paid' }) }))
+    expect(Number(r.data[0]!.sum_total)).toBe(1400)
   })
 
-  describe('Tenant Scoping', () => {
-    it('should apply tenant filter to aggregation', async () => {
-      mockDb.mockQueryResult([{ count: 3 }])
+  it('aggregates only the caller\'s tenant', async () => {
+    const r = await aggregateHandler(ctx({ aggregate: 'sum(total)' }, {
+      tenant: { id: 'o1', field: 'organizationId', canAccessAllTenants: false },
+    }))
+    expect(Number(r.data[0]!.sum_total)).toBe(450)
+  })
 
-      const context: HandlerContext = {
-        event: createMockEvent('GET', '/api/posts/aggregate?aggregate=count'),
-        db: mockDb as any,
-        schema: { posts: { ...mockTable, organizationId: { name: 'organizationId' } } },
-        resource: 'posts',
-        operation: 'aggregate',
-        permissions: [],
-        query: { aggregate: 'count' },
-        tenant: {
-          field: 'organizationId',
-          id: 'org-123',
-          canAccessAllTenants: false,
-        },
-      }
+  it('aggregates only rows the listFilter lets the caller see', async () => {
+    const r = await aggregateHandler(ctx({ aggregate: 'count' }, {
+      auth: { orders: { permissions: { read: true }, listFilter: t => eq(t.status, 'open') } },
+    }))
+    expect(r.data).toEqual([{ count: 1 }])
+  })
 
-      const result = await aggregateHandler(context)
+  it.each([
+    ['min(secret)', 'aggregate'],
+    ['count(secret)', 'aggregate'],
+  ])('refuses %s on a hidden field', async (aggregate) => {
+    await expect(aggregateHandler(ctx({ aggregate }))).rejects.toMatchObject({ statusCode: 400 })
+  })
 
-      expect(result.data).toHaveLength(1)
-      expect(result.data[0].count).toBe(3)
-    })
+  it('refuses groupBy on a hidden field', async () => {
+    await expect(aggregateHandler(ctx({ aggregate: 'count', groupBy: 'secret' }))).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('refuses unknown functions, unknown fields and a missing field', async () => {
+    await expect(aggregateHandler(ctx({ aggregate: 'median(total)' }))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(aggregateHandler(ctx({ aggregate: 'sum(nope)' }))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(aggregateHandler(ctx({ aggregate: 'sum' }))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(aggregateHandler(ctx({}))).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('refuses an unknown having alias or operator', async () => {
+    await expect(aggregateHandler(ctx({ aggregate: 'count', groupBy: 'status', having: JSON.stringify({ nope: 1 }) }))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(aggregateHandler(ctx({ aggregate: 'count', groupBy: 'status', having: JSON.stringify({ count: { $regex: 1 } }) }))).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('limits the number of groupBy fields (aggregations.maxGroupByFields)', async () => {
+    await expect(aggregateHandler(ctx({ aggregate: 'count', groupBy: 'status,total' }, { autoApi: { aggregations: { maxGroupByFields: 1 } } })))
+      .rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('is gated by `aggregate`, falling back to `read`', async () => {
+    const authorize = (auth: any, user: any = { id: 1 }) => createAuthorizationMiddleware(auth)(ctx({ aggregate: 'count' }, { auth: { orders: auth }, user }))
+    await expect(authorize({ permissions: { read: true } })).resolves.toBeUndefined()
+    await expect(authorize({ permissions: { read: true, aggregate: false } })).rejects.toMatchObject({ statusCode: 403 })
+    await expect(authorize({ permissions: { create: true } })).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('list `?aggregate=` uses the same rows and refuses hidden fields', async () => {
+    const list = await listHandler(makeContext({ db, schema, resource: 'orders', query: { aggregate: 'count,sum(total)' }, extra: { orders: { hiddenFields: ['secret'] } } }))
+    expect(list.meta.aggregates).toMatchObject({ count: 4 })
+    await expect(listHandler(makeContext({ db, schema, resource: 'orders', query: { aggregate: 'max(secret)' }, extra: { orders: { hiddenFields: ['secret'] } } })))
+      .rejects.toMatchObject({ statusCode: 400 })
   })
 })

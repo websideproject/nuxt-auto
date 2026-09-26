@@ -19,7 +19,7 @@ export function useResourceActions(resource: string) {
         create: canCreate.value,
         read: canRead.value,
         update: canUpdate.value,
-        delete: canDelete.value,
+        delete: canDelete.value
       }[action]
 
       return allowed ? 'solid' : 'soft'
@@ -35,7 +35,7 @@ export function useResourceActions(resource: string) {
         create: canCreate.value,
         read: canRead.value,
         update: canUpdate.value,
-        delete: canDelete.value,
+        delete: canDelete.value
       }[action]
 
       return !allowed
@@ -51,7 +51,7 @@ export function useResourceActions(resource: string) {
         create: canCreate.value,
         read: canRead.value,
         update: canUpdate.value,
-        delete: canDelete.value,
+        delete: canDelete.value
       }[action]
 
       if (allowed) {
@@ -62,7 +62,7 @@ export function useResourceActions(resource: string) {
         create: 'create',
         read: 'view',
         update: 'edit',
-        delete: 'delete',
+        delete: 'delete'
       }
 
       return `You don't have permission to ${actionLabels[action]} this resource`
@@ -77,6 +77,6 @@ export function useResourceActions(resource: string) {
     canDelete,
     getActionVariant,
     isActionDisabled,
-    getActionTooltip,
+    getActionTooltip
   }
 }

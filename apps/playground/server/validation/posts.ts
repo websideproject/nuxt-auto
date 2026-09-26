@@ -13,12 +13,12 @@ export const postsValidation = {
     title: z.string().min(3).max(200),
     content: z.string().min(10).optional(),
     published: z.boolean().default(false),
-    userId: z.number().int().positive(),
+    userId: z.number().int().positive()
   }),
   update: baseInsertSchema.partial().extend({
     title: z.string().min(3).max(200).optional(),
     content: z.string().min(10).optional(),
-    published: z.boolean().optional(),
+    published: z.boolean().optional()
   }),
   query: z.object({
     filter: z.record(z.string(), z.any()).optional(),
@@ -26,6 +26,6 @@ export const postsValidation = {
     fields: z.union([z.string(), z.array(z.string())]).optional(),
     include: z.union([z.string(), z.array(z.string())]).optional(),
     page: z.coerce.number().int().positive().optional(),
-    limit: z.coerce.number().int().positive().max(100).optional(),
-  }).optional(),
+    limit: z.coerce.number().int().positive().max(100).optional()
+  }).optional()
 }

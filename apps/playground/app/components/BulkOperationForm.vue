@@ -5,8 +5,14 @@
       :key="index"
       class="flex items-end gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
     >
-      <div class="flex-1 grid gap-3" :style="{ gridTemplateColumns: `repeat(${fields.length}, 1fr)` }">
-        <div v-for="field in fields" :key="field.name">
+      <div
+        class="flex-1 grid gap-3"
+        :style="{ gridTemplateColumns: `repeat(${fields.length}, 1fr)` }"
+      >
+        <div
+          v-for="field in fields"
+          :key="field.name"
+        >
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {{ field.label }}
           </label>
@@ -23,8 +29,8 @@
         color="error"
         variant="ghost"
         size="md"
-        @click="removeRow(index)"
         :disabled="rows.length === 1"
+        @click="removeRow(index)"
       />
     </div>
 
@@ -42,8 +48,8 @@
         color="green"
         size="sm"
         :loading="loading"
-        @click="handleSubmit"
         :disabled="!isValid"
+        @click="handleSubmit"
       />
     </div>
   </div>
@@ -73,15 +79,15 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  submit: [data: Record<string, any>[]]
+  submit: [data: Record<string, string>[]]
 }>()
 
-const rows = ref<Record<string, any>[]>([])
+const rows = ref<Record<string, string>[]>([])
 
 const initializeRows = () => {
   rows.value = Array.from({ length: props.initialRows }, () => {
-    const row: Record<string, any> = {}
-    props.fields.forEach(field => {
+    const row: Record<string, string> = {}
+    props.fields.forEach((field) => {
       row[field.name] = ''
     })
     return row
@@ -89,8 +95,8 @@ const initializeRows = () => {
 }
 
 const addRow = () => {
-  const newRow: Record<string, any> = {}
-  props.fields.forEach(field => {
+  const newRow: Record<string, string> = {}
+  props.fields.forEach((field) => {
     newRow[field.name] = ''
   })
   rows.value.push(newRow)
@@ -103,8 +109,8 @@ const removeRow = (index: number) => {
 }
 
 const isValid = computed(() => {
-  return rows.value.every(row => {
-    return props.fields.every(field => {
+  return rows.value.every((row) => {
+    return props.fields.every((field) => {
       if (field.required !== false) {
         return row[field.name] && row[field.name].toString().trim() !== ''
       }

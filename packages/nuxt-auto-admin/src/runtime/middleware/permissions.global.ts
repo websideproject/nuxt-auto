@@ -1,3 +1,7 @@
+import { defineNuxtRouteMiddleware, useRuntimeConfig, abortNavigation } from '#app'
+import { useAdminRegistry } from '../composables/useAdminRegistry'
+import { useAdminPermissions } from '../composables/useAdminPermissions'
+
 /**
  * Global middleware to check permissions for admin routes
  */
@@ -22,7 +26,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  const resourceOrPage = pathParts[0]
+  const resourceOrPage = pathParts[0]!
 
   // Check if this is a resource route
   const { getResource } = useAdminRegistry()
@@ -41,13 +45,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
       // No permission to access this resource
       return abortNavigation({
         statusCode: 403,
-        statusMessage: `You don't have permission to access ${resource.displayName || resourceOrPage}`
+        statusMessage: `You don't have permission to access ${resource.displayName || resourceOrPage}`,
       })
     }
-  } else {
+  }
+  else {
     // Check if it's a custom page
     const customPages = config.public.autoAdmin?.customPages || []
-    const customPage = customPages.find((p: any) => {
+    const customPage = customPages.find((p: { path: string, canAccess?: (user: unknown) => boolean | Promise<boolean>, label?: string, permissions?: string | string[] }) => {
       const pagePath = p.path.startsWith('/') ? p.path : `${adminPrefix}/${p.path}`
       return to.path === pagePath || to.path.startsWith(`${pagePath}/`)
     })
@@ -60,10 +65,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
         if (!hasAccess) {
           return abortNavigation({
             statusCode: 403,
-            statusMessage: `You don't have permission to access ${customPage.label}`
+            statusMessage: `You don't have permission to access ${customPage.label}`,
           })
         }
-      } else if (customPage.permissions) {
+      }
+      else if (customPage.permissions) {
         // TODO: Implement permission string/array checking
         // For now, allow access
       }

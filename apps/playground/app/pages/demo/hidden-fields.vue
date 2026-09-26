@@ -32,7 +32,9 @@
       <!-- User List Demo -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">User List</h2>
+          <h2 class="text-xl font-semibold">
+            User List
+          </h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/users</code>
           </p>
@@ -42,7 +44,10 @@
           <USkeleton class="h-48" />
         </div>
 
-        <div v-else-if="usersError" class="text-red-600">
+        <div
+          v-else-if="usersError"
+          class="text-red-600"
+        >
           Error: {{ usersError }}
         </div>
 
@@ -58,7 +63,9 @@
       <!-- Single User Demo -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Single User</h2>
+          <h2 class="text-xl font-semibold">
+            Single User
+          </h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/users/1</code>
           </p>
@@ -68,7 +75,10 @@
           <USkeleton class="h-48" />
         </div>
 
-        <div v-else-if="userError" class="text-red-600">
+        <div
+          v-else-if="userError"
+          class="text-red-600"
+        >
           Error: {{ userError }}
         </div>
 
@@ -83,7 +93,9 @@
       <!-- Nested Relations Demo -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Nested Relations</h2>
+          <h2 class="text-xl font-semibold">
+            Nested Relations
+          </h2>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts?include=author</code>
           </p>
@@ -93,7 +105,10 @@
           <USkeleton class="h-64" />
         </div>
 
-        <div v-else-if="postsError" class="text-red-600">
+        <div
+          v-else-if="postsError"
+          class="text-red-600"
+        >
           Error: {{ postsError }}
         </div>
 
@@ -108,13 +123,17 @@
       <!-- Configuration Example -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Configuration</h2>
+          <h2 class="text-xl font-semibold">
+            Configuration
+          </h2>
         </template>
 
         <div class="space-y-6">
           <!-- Method 1: Module Registration -->
           <div>
-            <h3 class="font-medium mb-2">Method 1: Module Registration (Recommended)</h3>
+            <h3 class="font-medium mb-2">
+              Method 1: Module Registration (Recommended)
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
               Configure hidden fields when registering resources in your module:
             </p>
@@ -127,7 +146,9 @@
 
           <!-- Method 2: Runtime Config -->
           <div>
-            <h3 class="font-medium mb-2">Method 2: Runtime Configuration</h3>
+            <h3 class="font-medium mb-2">
+              Method 2: Runtime Configuration
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
               Alternatively, configure in <code class="font-mono text-xs">nuxt.config.ts</code> for global or per-resource hidden fields:
             </p>

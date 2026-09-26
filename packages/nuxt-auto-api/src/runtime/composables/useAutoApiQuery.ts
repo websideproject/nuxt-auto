@@ -1,6 +1,10 @@
+import { computed, unref } from 'vue'
 import { useQuery, useInfiniteQuery } from '@tanstack/vue-query'
-import type { UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/vue-query'
+import type { InfiniteData, UseInfiniteQueryOptions, UseInfiniteQueryReturnType, UseQueryOptions, UseQueryReturnType } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
+import { prerenderSafeEnabled } from './prerenderEnabled'
+import { useAutoApiPath } from './autoApiPath'
+import { useAutoApiFetch } from './autoApiFetch'
 
 export interface ListQueryParams {
   filter?: Record<string, any>
@@ -10,16 +14,23 @@ export interface ListQueryParams {
   cursor?: string
   include?: string | string[]
   fields?: string | string[]
+  /** Simple aggregates over the same rows, returned in `meta.aggregates` (e.g. `'count,sum(total)'`). */
+  aggregate?: string
+  /** Include trashed rows (needs the `viewDeleted` permission). */
+  includeDeleted?: boolean
+  /** Only trashed rows (needs the `viewDeleted` permission). */
+  onlyDeleted?: boolean
 }
 
 export interface ListResponse<T> {
   data: T[]
-  meta?: {
+  meta: {
     page?: number
     limit?: number
     total?: number
     nextCursor?: string
     hasMore?: boolean
+    aggregates?: Record<string, any>
   }
 }
 
@@ -39,9 +50,11 @@ export interface GetResponse<T> {
  */
 export function useAutoApiList<T = any>(
   resource: MaybeRef<string>,
-  params?: MaybeRef<ListQueryParams>,
-  options?: Omit<UseQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn'>
+  params?: MaybeRef<ListQueryParams | undefined>,
+  options?: Omit<UseQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
+  const path = useAutoApiPath()
+  const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
   const paramsRef = computed(() => unref(params) || {})
 
@@ -63,13 +76,14 @@ export function useAutoApiList<T = any>(
   return useQuery({
     queryKey: computed(() => ['autoapi', resourceRef.value, 'list', paramsRef.value]),
     queryFn: async () => {
-      const response = await $fetch<ListResponse<T>>(`/api/${resourceRef.value}`, {
-        query: queryParams.value as any
+      const response = await fetcher<ListResponse<T>>(path(resourceRef.value), {
+        query: queryParams.value as any,
       })
       return response
     },
-    ...options
-  } as any)
+    ...options,
+    enabled: prerenderSafeEnabled((options as any)?.enabled),
+  } as any) as UseQueryReturnType<ListResponse<T>, Error>
 }
 
 /**
@@ -83,9 +97,11 @@ export function useAutoApiList<T = any>(
 export function useAutoApiGet<T = any>(
   resource: MaybeRef<string>,
   id: MaybeRef<string | number>,
-  params?: MaybeRef<Pick<ListQueryParams, 'include' | 'fields'>>,
-  options?: Omit<UseQueryOptions<GetResponse<T>>, 'queryKey' | 'queryFn'>
+  params?: MaybeRef<Pick<ListQueryParams, 'include' | 'fields'> | undefined>,
+  options?: Omit<UseQueryOptions<GetResponse<T>>, 'queryKey' | 'queryFn'>,
 ) {
+  const path = useAutoApiPath()
+  const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
   const idRef = computed(() => unref(id))
   const paramsRef = computed(() => unref(params) || {})
@@ -93,15 +109,15 @@ export function useAutoApiGet<T = any>(
   return useQuery({
     queryKey: computed(() => ['autoapi', resourceRef.value, 'get', idRef.value, paramsRef.value]),
     queryFn: async () => {
-      const response = await $fetch<GetResponse<T>>(
-        `/api/${resourceRef.value}/${idRef.value}`,
-        { query: paramsRef.value as any }
+      const response = await fetcher<GetResponse<T>>(
+        path(resourceRef.value, idRef.value),
+        { query: paramsRef.value as any },
       )
       return response
     },
-    enabled: computed(() => !!idRef.value),
-    ...options
-  } as any)
+    ...options,
+    enabled: prerenderSafeEnabled((options as any)?.enabled, () => !!idRef.value),
+  } as any) as UseQueryReturnType<GetResponse<T>, Error>
 }
 
 /**
@@ -115,15 +131,17 @@ export function useAutoApiGet<T = any>(
  */
 export function useAutoApiInfinite<T = any>(
   resource: MaybeRef<string>,
-  params?: MaybeRef<Omit<ListQueryParams, 'cursor'>>,
-  options?: Omit<UseInfiniteQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>
+  params?: MaybeRef<Omit<ListQueryParams, 'cursor'> | undefined>,
+  options?: Omit<UseInfiniteQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>,
 ) {
+  const path = useAutoApiPath()
+  const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
   const paramsRef = computed(() => unref(params) || {})
 
   return useInfiniteQuery({
     queryKey: computed(() => ['autoapi', resourceRef.value, 'infinite', paramsRef.value]),
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       const params = paramsRef.value
       const queryParams: Record<string, any> = { ...params }
 
@@ -132,20 +150,20 @@ export function useAutoApiInfinite<T = any>(
         queryParams.filter = JSON.stringify(params.filter)
       }
 
-      // Add cursor
-      if (pageParam) {
-        queryParams.cursor = pageParam
-      }
+      // Cursor mode: the FIRST page must send an empty cursor too — without it the server answers in offset
+      // mode, with no nextCursor, and there is never a second page.
+      queryParams.cursor = pageParam ?? ''
 
-      const response = await $fetch<ListResponse<T>>(`/api/${resourceRef.value}`, {
-        query: queryParams as any
+      const response = await fetcher<ListResponse<T>>(path(resourceRef.value), {
+        query: queryParams as any,
       })
       return response
     },
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage: ListResponse<T>) => {
       return lastPage.meta?.nextCursor
     },
     initialPageParam: undefined,
-    ...options
-  } as any)
+    ...options,
+    enabled: prerenderSafeEnabled((options as any)?.enabled),
+  } as any) as UseInfiniteQueryReturnType<InfiniteData<ListResponse<T>>, Error>
 }

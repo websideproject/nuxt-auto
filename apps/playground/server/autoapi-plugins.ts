@@ -36,7 +36,7 @@ const requestFingerprintPlugin = defineAutoApiPlugin({
     })
 
     ctx.logger.info('Request fingerprint plugin initialized (closure Map + node:crypto import working)')
-  },
+  }
 })
 
 export default [
@@ -46,7 +46,7 @@ export default [
     windowMs: 60000,
     max: 200,
     byIp: true,
-    skip: (ctx: any) => ctx.user?.role === 'admin',
+    skip: (ctx: { user?: { role?: string } }) => ctx.user?.role === 'admin'
   }),
 
   createRequestMetadataPlugin({
@@ -59,7 +59,7 @@ export default [
           country: metadata.country,
           city: metadata.city,
           userAgent: metadata.userAgent,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString()
         }
       }
 
@@ -71,7 +71,7 @@ export default [
       return data
     },
     autoPopulateOn: ['create', 'update'],
-    resources: ['users'],
+    resources: ['users']
   }),
 
   // API Token plugin — Bearer authentication + scope enforcement
@@ -83,19 +83,19 @@ export default [
         userRelation: { field: 'userId', resource: 'users' },
         scopeField: 'scopes',
         expiresField: 'expiresAt',
-        lastUsedField: 'lastUsedAt',
-      },
+        lastUsedField: 'lastUsedAt'
+      }
     },
     auth: { tokenPrefix: 'sk_' },
-    mapUser: (row: any) => ({
+    mapUser: (row: { id: number, email: string, name: string, role: string }) => ({
       id: row.id,
       email: row.email,
       name: row.name,
       role: row.role,
       roles: [row.role],
-      permissions: row.role === 'admin' ? ['admin'] : row.role === 'editor' ? ['editor'] : [],
+      permissions: row.role === 'admin' ? ['admin'] : row.role === 'editor' ? ['editor'] : []
     }),
-    getPermissions: (row: any) =>
-      row.role === 'admin' ? ['admin'] : row.role === 'editor' ? ['editor'] : [],
-  }),
+    getPermissions: (row: { role: string }) =>
+      row.role === 'admin' ? ['admin'] : row.role === 'editor' ? ['editor'] : []
+  })
 ]

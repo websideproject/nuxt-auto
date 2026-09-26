@@ -22,7 +22,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   tooltipText: undefined,
-  disabledVariant: 'soft',
+  disabledVariant: 'soft'
 })
 
 const {
@@ -30,7 +30,7 @@ const {
   canRead,
   canUpdate,
   canDelete,
-  getActionTooltip,
+  getActionTooltip
 } = useResourceActions(props.resource)
 
 const isAllowed = computed(() => {
@@ -50,13 +50,15 @@ const isAllowed = computed(() => {
 
 const disabled = computed(() => !isAllowed.value)
 
+const attrs = useAttrs()
+
 const buttonVariant = computed<ButtonVariant>(() => {
   if (disabled.value) {
     return props.disabledVariant
   }
 
   // Get variant from attrs if provided, otherwise use 'solid'
-  const attrsVariant = (props as any).variant
+  const attrsVariant = attrs.variant as ButtonVariant | undefined
   return attrsVariant || 'solid'
 })
 

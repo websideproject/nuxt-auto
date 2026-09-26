@@ -7,7 +7,7 @@ export const UserFactory = {
     email: `test${Date.now()}_${counter++}@example.com`,
     name: 'Test User',
     role: 'user',
-    ...overrides
+    ...overrides,
   }),
 
   create: async (db: any, schema: any, overrides = {}) => {
@@ -15,7 +15,7 @@ export const UserFactory = {
       .values(UserFactory.build(overrides))
       .returning()
     return user
-  }
+  },
 }
 
 export const PostFactory = {
@@ -24,7 +24,7 @@ export const PostFactory = {
     content: 'Test content',
     userId,
     published: false,
-    ...overrides
+    ...overrides,
   }),
 
   create: async (db: any, schema: any, userId: number, overrides = {}) => {
@@ -32,5 +32,5 @@ export const PostFactory = {
       .values(PostFactory.build(userId, overrides))
       .returning()
     return post
-  }
+  },
 }

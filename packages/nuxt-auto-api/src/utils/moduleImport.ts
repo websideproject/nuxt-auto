@@ -26,6 +26,6 @@ export function createModuleImport(modulePath: string, exportName?: string) {
 /**
  * Check if a value is a module import reference
  */
-export function isModuleImport(value: any): value is { __modulePath: string; __exportName?: string; __isModuleImport: true } {
+export function isModuleImport(value: any): value is { __modulePath: string, __exportName?: string, __isModuleImport: true } {
   return value && typeof value === 'object' && value.__isModuleImport === true
 }

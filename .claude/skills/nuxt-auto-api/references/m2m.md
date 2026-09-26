@@ -174,16 +174,21 @@ interface M2MOperationResponse {
 
 ## M2M in Authorization
 
+Both sides are checked before any row is touched: list needs `read` on the resource and the related resource;
+sync/add/remove/batch need `update` on the resource and `read` on the related one. The parent row must be visible
+(tenant, listFilter, objectLevel) and every linked id must be a visible row of the related resource (else 404).
+
+Both `requireUpdateOnRelated` and `relations[…]` are keyed by RELATION name (= the related resource's registered name).
+
 ```ts
-authorization: {
-  posts: {
-    permissions: {
-      m2m: {
-        read:   'user',
-        sync:   ['editor', 'admin'],
-        add:    'editor',
-        remove: 'editor',
-      },
+// on the LEFT resource's ResourceAuthConfig
+permissions: {
+  update: 'editor',
+  m2m: {
+    requireUpdateOnRelated: ['categories'],   // need `update` (not just read) on these to link them
+    // requireUpdateToLink: true,             // …or on every relation
+    relations: {
+      tags: { check: ({ right, user }) => right.records!.every(t => !t.locked) },  // custom per-relation check
     },
   },
 }
@@ -197,5 +202,6 @@ authorization: {
 GET /api/_m2m/detect/:resource     Detect M2M relations for a resource
 GET /api/_m2m/is-junction/:table   Check if a table is a junction table
 GET /api/_m2m/junctions            List all detected junction tables
-GET /api/_m2m/debug-detection      Debug M2M detection across all tables
 ```
+
+All require a signed-in caller; `detect/:resource` also needs `read` on the resource.

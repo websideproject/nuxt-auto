@@ -43,7 +43,10 @@
       </PermissionButton>
     </div>
 
-    <div v-if="isLoading" class="space-y-4">
+    <div
+      v-if="isLoading"
+      class="space-y-4"
+    >
       <USkeleton class="h-32" />
       <USkeleton class="h-32" />
     </div>
@@ -57,7 +60,10 @@
       :description="String(error)"
     />
 
-    <div v-else-if="articles" class="space-y-4">
+    <div
+      v-else-if="articles"
+      class="space-y-4"
+    >
       <UCard
         v-for="article in articles.data"
         :key="article.id"
@@ -125,85 +131,103 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <UModal v-model="showFormModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold">
-            {{ editingArticle ? 'Edit Article' : 'Create Article' }}
-          </h3>
-        </template>
+    <UModal
+      v-model:open="showFormModal"
+      :title="editingArticle ? 'Edit Article' : 'Create Article'"
+    >
+      <template #body>
+        <form
+          id="article-form"
+          class="space-y-4 p-4"
+          @submit.prevent="submitForm"
+        >
+          <UFormField
+            label="Title"
+            required
+          >
+            <UInput
+              v-model="formData.title"
+              placeholder="Enter article title"
+            />
+          </UFormField>
 
-        <form @submit.prevent="submitForm" class="space-y-4">
-          <UFormGroup label="Title" required>
-            <UInput v-model="formData.title" placeholder="Enter article title" />
-          </UFormGroup>
+          <UFormField
+            label="Slug"
+            required
+          >
+            <UInput
+              v-model="formData.slug"
+              placeholder="url-friendly-slug"
+            />
+          </UFormField>
 
-          <UFormGroup label="Slug" required>
-            <UInput v-model="formData.slug" placeholder="url-friendly-slug" />
-          </UFormGroup>
+          <UFormField
+            label="Content"
+            required
+          >
+            <UTextarea
+              v-model="formData.content"
+              placeholder="Enter article content"
+              :rows="4"
+            />
+          </UFormField>
 
-          <UFormGroup label="Content" required>
-            <UTextarea v-model="formData.content" placeholder="Enter article content" rows="4" />
-          </UFormGroup>
-
-          <UFormGroup label="Published">
-            <UCheckbox v-model="formData.published" label="Publish this article" />
-          </UFormGroup>
-
-          <div class="flex justify-end gap-2">
-            <UButton
-              type="button"
-              variant="outline"
-              @click="closeFormModal"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              type="submit"
-              :loading="isSubmitting"
-              :disabled="!formData.title || !formData.slug || !formData.content"
-            >
-              {{ editingArticle ? 'Update' : 'Create' }}
-            </UButton>
-          </div>
+          <UFormField label="Published">
+            <UCheckbox
+              v-model="formData.published"
+              label="Publish this article"
+            />
+          </UFormField>
         </form>
-      </UCard>
+      </template>
+
+      <template #footer>
+        <UButton
+          variant="outline"
+          @click="closeFormModal"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          type="submit"
+          form="article-form"
+          :loading="isSubmitting"
+          :disabled="!formData.title || !formData.slug || !formData.content"
+        >
+          {{ editingArticle ? 'Update' : 'Create' }}
+        </UButton>
+      </template>
     </UModal>
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model="showDeleteModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold text-red-600">
-            Delete Article
-          </h3>
-        </template>
-
-        <div class="space-y-4">
-          <p>Are you sure you want to delete this article?</p>
-          <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded">
-            <p class="font-medium">{{ deletingArticle?.title }}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ deletingArticle?.content }}</p>
-          </div>
-          <p class="text-sm text-red-600">This action cannot be undone.</p>
-
-          <div class="flex justify-end gap-2">
-            <UButton
-              variant="outline"
-              @click="closeDeleteModal"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              color="error"
-              :loading="isDeleting"
-              @click="confirmDelete"
-            >
-              Delete
-            </UButton>
-          </div>
+    <UModal
+      v-model:open="showDeleteModal"
+      title="Delete Article"
+    >
+      <template #body>
+        <div class="space-y-4 p-4">
+          <p>Are you sure you want to delete <strong>{{ deletingArticle?.title }}</strong>?</p>
+          <p class="text-sm text-red-600">
+            This action cannot be undone.
+          </p>
         </div>
-      </UCard>
+      </template>
+
+      <template #footer>
+        <UButton
+          variant="outline"
+          @click="closeDeleteModal"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          color="error"
+          :loading="isDeleting"
+          @click="confirmDelete"
+        >
+          Delete
+        </UButton>
+      </template>
     </UModal>
   </div>
 </template>
@@ -219,7 +243,7 @@ interface Article {
 }
 
 const { data: articles, isLoading, error, refetch } = useAutoApiList<Article>('articles', {
-  sort: '-createdAt',
+  sort: '-createdAt'
 })
 
 // Create/Edit modal state
@@ -230,7 +254,7 @@ const formData = reactive({
   title: '',
   slug: '',
   content: '',
-  published: false,
+  published: false
 })
 
 // Delete modal state
@@ -242,24 +266,24 @@ const isDeleting = ref(false)
 const { mutateAsync: createArticle } = useAutoApiMutation('articles', 'create', {
   toast: {
     success: { title: 'Article created successfully!' },
-    error: { title: 'Failed to create article' },
-  },
+    error: { title: 'Failed to create article' }
+  }
 })
 
 // Update mutation
 const { mutateAsync: updateArticle } = useAutoApiMutation('articles', 'update', {
   toast: {
     success: { title: 'Article updated successfully!' },
-    error: { title: 'Failed to update article' },
-  },
+    error: { title: 'Failed to update article' }
+  }
 })
 
 // Delete mutation
 const { mutateAsync: deleteArticle } = useAutoApiMutation('articles', 'delete', {
   toast: {
     success: { title: 'Article deleted successfully!' },
-    error: { title: 'Failed to delete article' },
-  },
+    error: { title: 'Failed to delete article' }
+  }
 })
 
 // Modal handlers
@@ -294,12 +318,10 @@ async function submitForm() {
       // Update existing article
       await updateArticle({
         id: editingArticle.value.id,
-        data: {
-          title: formData.title,
-          slug: formData.slug,
-          content: formData.content,
-          published: formData.published,
-        },
+        title: formData.title,
+        slug: formData.slug,
+        content: formData.content,
+        published: formData.published
       })
     } else {
       // Create new article
@@ -307,7 +329,7 @@ async function submitForm() {
         title: formData.title,
         slug: formData.slug,
         content: formData.content,
-        published: formData.published,
+        published: formData.published
       })
     }
 

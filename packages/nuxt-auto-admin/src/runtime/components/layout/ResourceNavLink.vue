@@ -9,10 +9,13 @@
         ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60'
         : isActive
           ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
-          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white',
     ]"
   >
-    <UIcon :name="resource.icon" class="h-4 w-4 flex-shrink-0" />
+    <UIcon
+      :name="resource.icon"
+      class="h-4 w-4 flex-shrink-0"
+    />
     <span>{{ resource.displayName }}</span>
   </component>
 </template>
@@ -22,6 +25,8 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { NuxtLink } from '#components'
 import type { ResourceSchema } from '../../types'
+import { useAdminPermissions } from '../../composables/useAdminPermissions'
+import { useAdminConfig } from '../../composables/useAdminConfig'
 
 const props = defineProps<{
   resource: ResourceSchema
@@ -55,6 +60,8 @@ const isDisabled = computed(() => {
 
 const isActive = computed(() => {
   if (isDisabled.value) return false
-  return route.path.startsWith(`${props.adminPrefix}/${props.resource.name}`)
+  if (!route?.path) return false
+  const base = `${props.adminPrefix}/${props.resource.name}`
+  return route.path === base || route.path.startsWith(`${base}/`)
 })
 </script>

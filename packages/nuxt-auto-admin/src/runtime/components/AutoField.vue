@@ -26,13 +26,13 @@ import { formatFieldLabel } from '../utils/fieldTypeMapping'
 
 const props = defineProps<{
   field: FieldConfig
-  modelValue: any
+  modelValue: unknown
   error?: string
   disabled?: boolean
 }>()
 
 defineEmits<{
-  'update:modelValue': [value: any]
+  'update:modelValue': [value: unknown]
 }>()
 
 // Static import map for all widget components
@@ -55,7 +55,7 @@ const widgetComponent = computed(() => {
 
   if (!componentLoader) {
     console.warn(`Widget "${widgetName}" not found, falling back to TextInput`)
-    return defineAsyncComponent(widgetComponentMap.TextInput)
+    return defineAsyncComponent(widgetComponentMap.TextInput!)
   }
 
   return defineAsyncComponent(componentLoader)

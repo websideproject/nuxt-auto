@@ -1,9 +1,8 @@
 import type { H3Event } from 'h3'
 import { readBody, getQuery, createError } from 'h3'
+import { getAuthConfig } from './authConfig'
 import { getDatabaseAdapter } from '../database'
-import { getContextExtenders } from '../plugins/pluginRegistry'
 import { serializeResponse } from './serializeResponse'
-import { filterHiddenFields } from './filterHiddenFields'
 import type { HandlerContext } from '../../types'
 
 /**
@@ -21,46 +20,18 @@ import type { HandlerContext } from '../../types'
  */
 export async function getAutoApiContext(
   event: H3Event,
-  opts?: { resource?: string; operation?: HandlerContext['operation'] }
+  opts?: { resource?: string, operation?: HandlerContext['operation'] },
 ): Promise<HandlerContext> {
-  let adapter
-  let db
-  try {
-    adapter = getDatabaseAdapter()
-    db = adapter.db
-  } catch {
-    db = (globalThis as any).__autoApiDb
+  const { createCallerContext } = await import('../handlers/createContextFromRegistry')
+  const context = await createCallerContext(event, opts?.operation || 'get')
+  if (opts?.resource) {
+    context.resource = opts.resource
+    context.resourceConfig = context.registry?.[opts.resource]
+    context.effectiveAuth = getAuthConfig(context, opts.resource)
   }
-
-  const user = (event.context as any).user || null
-  const permissions = (event.context as any).permissions || user?.permissions || []
-
-  const context: HandlerContext = {
-    db,
-    adapter,
-    schema: {},
-    user,
-    permissions,
-    params: (event.context as any).params || {},
-    query: getQuery(event) as Record<string, any>,
-    validated: {},
-    event,
-    resource: opts?.resource || '',
-    operation: opts?.operation || 'get',
-  }
-
-  // Run context extenders from plugins
-  const extenders = getContextExtenders()
-  for (const ext of extenders) {
-    await ext(context)
-  }
-
   return context
 }
 
-/**
- * Validate request body against a Zod schema. Throws 400 on failure.
- */
 export async function validateBody<T>(event: H3Event, schema: any): Promise<T> {
   const rawBody = await readBody(event).catch(() => null)
   const result = schema.safeParse(rawBody)
@@ -100,7 +71,7 @@ export function respondWith<T>(data: T): { data: T } {
 /**
  * Wrap list data in a standard `{ data, meta }` response envelope with serialization.
  */
-export function respondWithList<T>(data: T[], meta?: Record<string, any>): { data: T[]; meta: Record<string, any> } {
+export function respondWithList<T>(data: T[], meta?: Record<string, any>): { data: T[], meta: Record<string, any> } {
   return serializeResponse({ data, meta: meta || {} })
 }
 
@@ -118,7 +89,7 @@ export function respondWithError(statusCode: number, message: string, details?: 
 /**
  * Get the database instance and adapter.
  */
-export function getDb(): { db: any; adapter: ReturnType<typeof getDatabaseAdapter> } {
+export function getDb(): { db: any, adapter: ReturnType<typeof getDatabaseAdapter> } {
   const adapter = getDatabaseAdapter()
   return { db: adapter.db, adapter }
 }
@@ -141,4 +112,5 @@ export async function getRegistry(): Promise<Record<string, any>> {
 
 // Re-export utilities with shorter aliases
 export { serializeResponse as serialize } from './serializeResponse'
+
 export { filterHiddenFields as filterHidden } from './filterHiddenFields'

@@ -1,417 +1,171 @@
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { createError } from 'h3'
 import type { HandlerContext, BulkOperationResponse } from '../../types'
-import { checkObjectLevelAuth } from '../middleware/authz'
-import { getSoftDeleteColumn } from '../utils/softDelete'
-import { buildTenantWhere } from '../utils/tenant'
+import { getSoftDeleteColumn, buildSoftDeleteUpdates } from '../utils/softDelete'
+import { cascadeSoftDelete } from '../utils/softDeleteCascade'
 import { executeBeforeHook, executeAfterHook } from '../utils/executeHooks'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
+import { filterReadableFields } from '../utils/fieldPermissions'
+import { assertResourcePermission } from '../utils/permissions'
+import { getAuthConfig } from '../utils/authConfig'
+import { findAuthorizedRow } from '../utils/rowAccess'
+import { insertReturning, updateReturning } from '../utils/returning'
+import { serializeResponse } from '../utils/serializeResponse'
+import { primaryKeyColumn, primaryKeyName } from '../utils/table'
 import { getDatabaseAdapter } from '../database'
+import { prepareCreateData } from './create'
+import { prepareUpdateData, withUpdatedAt } from './update'
 
 /**
- * Bulk create handler - POST /api/[resource]/bulk
+ * Bulk routes apply the single-record rules to every item: the same body preparation (protected columns,
+ * tenant stamp, field-level write gate), the same row visibility and objectLevel check, the same hooks.
+ *
+ * `bulk.transactional` (default `true`): the first failing item stops the batch → 400 with the per-item
+ * errors, and the batch is rolled back — except on a database without transactions (D1), where the items
+ * before it stay written and the error says so (`data.committed`). `false`: items are applied
+ * independently and failures are reported in `meta.errors`.
  */
-export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOperationResponse> {
-  const { db, schema, resource } = context
-  const runtimeConfig = useRuntimeConfig?.()
-  const maxBatchSize = runtimeConfig?.autoApi?.bulk?.maxBatchSize ?? 100
-  const transactional = runtimeConfig?.autoApi?.bulk?.transactional ?? true
 
-  // Get the table from schema
-  const table = schema[resource]
-  if (!table) {
-    throw new Error(`Table ${resource} not found in schema`)
-  }
+interface BulkItemError { index: number, id?: string | number, error: string, statusCode?: number }
 
-  // Get items from validated body
-  const body = context.validated.body
-  if (!body || !Array.isArray(body.items)) {
-    throw createError({
-      statusCode: 400,
-      message: 'Request body must contain an "items" array',
-    })
-  }
+function bulkConfig(context: HandlerContext) {
+  const cfg = (context.runtimeConfig as any)?.autoApi?.bulk ?? {}
+  return { maxBatchSize: cfg.maxBatchSize ?? 100, transactional: cfg.transactional ?? true }
+}
 
-  const items = body.items
+function itemError(index: number, error: any, id?: string | number): BulkItemError {
+  return { index, ...(id !== undefined ? { id } : {}), error: error?.message || 'Failed', statusCode: error?.statusCode }
+}
 
-  // Check batch size limit
-  if (items.length > maxBatchSize) {
-    throw createError({
-      statusCode: 400,
-      message: `Batch size exceeds maximum of ${maxBatchSize}`,
-    })
-  }
+async function runBatch<T>(
+  context: HandlerContext,
+  count: number,
+  work: (db: any, i: number) => Promise<T>,
+  idOf: (i: number) => string | number | undefined = () => undefined,
+): Promise<{ results: T[], errors: BulkItemError[] }> {
+  const { maxBatchSize, transactional } = bulkConfig(context)
+  if (count > maxBatchSize) throw createError({ statusCode: 400, message: `Batch size exceeds maximum of ${maxBatchSize}` })
 
-  if (items.length === 0) {
-    return {
-      data: [],
-      meta: {
-        total: 0,
-        successful: 0,
-        failed: 0,
-      },
-    }
-  }
+  const results: T[] = []
+  const errors: BulkItemError[] = []
 
-  const results: any[] = []
-  const errors: Array<{ index: number; error: string }> = []
-
-  // Execute beforeCreate hook for each item
-  const processedItems: any[] = []
-  for (let i = 0; i < items.length; i++) {
-    try {
-      let itemData = items[i]
-
-      // Auto-set tenant ID if multi-tenancy is enabled
-      if (context.tenant) {
-        itemData = { ...itemData, [context.tenant.field]: context.tenant.id }
-      }
-
-      // Execute beforeCreate hook
-      itemData = await executeBeforeHook('create', context, itemData)
-      processedItems.push(itemData)
-    } catch (error: any) {
-      errors.push({
-        index: i,
-        error: error.message || 'Validation failed',
-      })
-    }
-  }
-
-  // If any validation failed and we're in transactional mode, abort
-  if (errors.length > 0 && transactional) {
-    throw createError({
-      statusCode: 400,
-      message: 'Some items failed validation',
-      data: { errors },
-    })
-  }
-
-  // Insert records
   if (transactional) {
-    // Use adapter.atomic() for engine-agnostic transaction
     const adapter = context.adapter || getDatabaseAdapter()
-    await adapter.atomic(async ({ tx }) => {
-      const created = await tx.insert(table).values(processedItems).returning()
-      results.push(...created)
-
-      // Execute afterCreate hooks
-      for (const item of created) {
-        try {
-          await executeAfterHook('create', context, item)
-        } catch (error: any) {
-          console.error('[autoApi] afterCreate hook error:', error)
+    try {
+      await adapter.atomic(async ({ tx }: any) => {
+        for (let i = 0; i < count; i++) {
+          try {
+            results.push(await work(tx, i))
+          }
+          catch (error) {
+            errors.push(itemError(i, error, idOf(i)))
+            throw error
+          }
         }
-      }
-    })
-  } else {
-    // Insert individually, collect errors
-    for (let i = 0; i < processedItems.length; i++) {
-      try {
-        const [created] = await db.insert(table).values(processedItems[i]).returning()
-        results.push(created)
-
-        // Execute afterCreate hook
-        try {
-          await executeAfterHook('create', context, created)
-        } catch (error: any) {
-          console.error('[autoApi] afterCreate hook error:', error)
-        }
-      } catch (error: any) {
-        errors.push({
-          index: i,
-          error: error.message || 'Insert failed',
+      })
+    }
+    catch (error: any) {
+      if (errors.length === 0) throw error
+      if (adapter.supportsTransactions === false) {
+        throw createError({
+          statusCode: 400,
+          message: `Bulk operation failed at item ${errors[0]!.index}; the ${results.length} item(s) before it were written (${adapter.engine} has no transactions)`,
+          data: { errors, committed: results.length },
         })
+      }
+      throw createError({ statusCode: 400, message: 'Bulk operation failed (rolled back)', data: { errors } })
+    }
+  }
+  else {
+    for (let i = 0; i < count; i++) {
+      try {
+        results.push(await work(context.db, i))
+      }
+      catch (error) {
+        errors.push(itemError(i, error, idOf(i)))
       }
     }
   }
+  return { results, errors }
+}
 
-  // Filter hidden fields from all results
-  const filteredResults = filterHiddenFields(results, context)
-
+async function respond(context: HandlerContext, rows: any[], total: number, errors: BulkItemError[]): Promise<BulkOperationResponse> {
+  const data = await filterReadableFields(filterHiddenFields(rows, context), context)
   return {
-    data: filteredResults,
-    meta: {
-      total: items.length,
-      successful: results.length,
-      failed: errors.length,
-      errors: errors.length > 0 ? errors : undefined,
-    },
+    data: serializeResponse(data),
+    meta: { total, successful: rows.length, failed: errors.length, ...(errors.length ? { errors } : {}) },
   }
 }
 
-/**
- * Bulk update handler - PATCH /api/[resource]/bulk
- */
+/** Bulk create - POST /api/[resource]/bulk  `{ items: [...] }` */
+export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOperationResponse> {
+  const table = context.schema[context.resource]
+  const items: any[] = context.validated.body?.items ?? []
+
+  const { results, errors } = await runBatch(context, items.length, async (db, i) => {
+    let data = await prepareCreateData(context, table, items[i])
+    data = await executeBeforeHook('create', context, data)
+    const [created] = await insertReturning(db, table, data)
+    await executeAfterHook('create', context, created)
+    return created
+  })
+  return respond(context, results, items.length, errors)
+}
+
+/** Bulk update - PATCH /api/[resource]/bulk  `{ items: [{ id, data }] }` */
 export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOperationResponse> {
-  const { db, schema, resource } = context
-  const runtimeConfig = useRuntimeConfig?.()
-  const maxBatchSize = runtimeConfig?.autoApi?.bulk?.maxBatchSize ?? 100
-  const transactional = runtimeConfig?.autoApi?.bulk?.transactional ?? true
-
-  // Get the table from schema
-  const table = schema[resource]
-  if (!table) {
-    throw new Error(`Table ${resource} not found in schema`)
-  }
-
-  // Get items from validated body
-  const body = context.validated.body
-  if (!body || !Array.isArray(body.items)) {
-    throw createError({
-      statusCode: 400,
-      message: 'Request body must contain an "items" array with {id, data} objects',
-    })
-  }
-
-  const items = body.items
-
-  // Validate structure
-  for (let i = 0; i < items.length; i++) {
-    if (!items[i].id || !items[i].data) {
-      throw createError({
-        statusCode: 400,
-        message: `Item at index ${i} must have "id" and "data" properties`,
-      })
+  const { resource } = context
+  const table = context.schema[resource]
+  const items: Array<{ id: string | number, data: any }> = context.validated.body?.items ?? []
+  items.forEach((item, i) => {
+    if (!item || item.id === undefined || item.id === null || !item.data || typeof item.data !== 'object') {
+      throw createError({ statusCode: 400, message: `Item at index ${i} must have "id" and "data"` })
     }
-  }
+  })
 
-  // Check batch size limit
-  if (items.length > maxBatchSize) {
-    throw createError({
-      statusCode: 400,
-      message: `Batch size exceeds maximum of ${maxBatchSize}`,
-    })
-  }
-
-  if (items.length === 0) {
-    return {
-      data: [],
-      meta: {
-        total: 0,
-        successful: 0,
-        failed: 0,
-      },
-    }
-  }
-
-  const results: any[] = []
-  const errors: Array<{ index: number; id: string | number; error: string }> = []
-
-  const performUpdate = async (tx: any) => {
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      const { id, data } = item
-
-      try {
-        // Check if record exists (with tenant scoping)
-        let whereClause = eq(table.id, id)
-        if (context.tenant && !context.tenant.canAccessAllTenants) {
-          const tenantWhere = buildTenantWhere(table, context.tenant.id, context.tenant.field)
-          whereClause = and(whereClause, tenantWhere)
-        }
-
-        const [existing] = await tx.select().from(table).where(whereClause)
-
-        if (!existing) {
-          throw new Error(`Record with id ${id} not found`)
-        }
-
-        // Check object-level authorization
-        await checkObjectLevelAuth(existing, context)
-
-        // Execute beforeUpdate hook
-        let processedData = await executeBeforeHook('update', context, data, id)
-
-        // Update the record
-        const [updated] = await tx
-          .update(table)
-          .set({
-            ...processedData,
-            updatedAt: new Date(),
-          })
-          .where(eq(table.id, id))
-          .returning()
-
-        results.push(updated)
-
-        // Execute afterUpdate hook
-        try {
-          await executeAfterHook('update', context, updated)
-        } catch (error: any) {
-          console.error('[autoApi] afterUpdate hook error:', error)
-        }
-      } catch (error: any) {
-        errors.push({
-          index: i,
-          id,
-          error: error.message || 'Update failed',
-        })
-
-        // If transactional and error, rollback will happen
-        if (transactional) {
-          throw error
-        }
-      }
-    }
-  }
-
-  if (transactional) {
-    try {
-      const adapter = context.adapter || getDatabaseAdapter()
-      await adapter.atomic(async ({ tx }) => performUpdate(tx))
-    } catch (error: any) {
-      throw createError({
-        statusCode: 400,
-        message: 'Bulk update failed (transaction rolled back)',
-        data: { errors },
-      })
-    }
-  } else {
-    await performUpdate(db)
-  }
-
-  // Filter hidden fields from all results
-  const filteredResults = filterHiddenFields(results, context)
-
-  return {
-    data: filteredResults,
-    meta: {
-      total: items.length,
-      successful: results.length,
-      failed: errors.length,
-      errors: errors.length > 0 ? errors : undefined,
-    },
-  }
+  const { results, errors } = await runBatch(context, items.length, async (db, i) => {
+    const existing = await findAuthorizedRow(context, resource, items[i]!.id, { db })
+    const id = existing[primaryKeyName(table)]
+    let data = await prepareUpdateData(context, table, items[i]!.data)
+    data = await executeBeforeHook('update', context, data, id)
+    const updated = Object.keys(data).length === 0 ? existing : await updateReturning(db, table, id, withUpdatedAt(table, data))
+    await executeAfterHook('update', context, updated)
+    return updated
+  }, i => items[i]?.id)
+  return respond(context, results, items.length, errors)
 }
 
-/**
- * Bulk delete handler - DELETE /api/[resource]/bulk
- */
+/** Bulk delete - DELETE /api/[resource]/bulk  `{ ids: [...] }`  (`?force=true` purges) */
 export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOperationResponse> {
-  const { db, schema, resource } = context
-  const runtimeConfig = useRuntimeConfig?.()
-  const maxBatchSize = runtimeConfig?.autoApi?.bulk?.maxBatchSize ?? 100
-  const transactional = runtimeConfig?.autoApi?.bulk?.transactional ?? true
+  const { resource, query } = context
+  const table = context.schema[resource]
+  const ids: Array<string | number> = context.validated.body?.ids ?? []
 
-  // Get the table from schema
-  const table = schema[resource]
-  if (!table) {
-    throw new Error(`Table ${resource} not found in schema`)
-  }
+  const softCol = getSoftDeleteColumn(table)
+  const purge = !!softCol && ((query as any)?.force === true || (query as any)?.force === 'true')
+  if (purge) await assertResourcePermission(resource, 'purge', context)
 
-  // Get IDs from validated body
-  const body = context.validated.body
-  if (!body || !Array.isArray(body.ids)) {
-    throw createError({
-      statusCode: 400,
-      message: 'Request body must contain an "ids" array',
-    })
-  }
+  // One server-generated deletionId for the whole batch, so a batch restore/purge acts on the unit.
+  const deletionId = crypto.randomUUID()
+  const reason = (query as any)?.reason ? String((query as any).reason) : null
+  const userId = context.user?.id != null ? String(context.user.id) : null
+  const cascade = getAuthConfig(context, resource)?.softDelete?.cascade
 
-  const ids = body.ids
-
-  // Check batch size limit
-  if (ids.length > maxBatchSize) {
-    throw createError({
-      statusCode: 400,
-      message: `Batch size exceeds maximum of ${maxBatchSize}`,
-    })
-  }
-
-  if (ids.length === 0) {
-    return {
-      data: [],
-      meta: {
-        total: 0,
-        successful: 0,
-        failed: 0,
-      },
+  const { results, errors } = await runBatch(context, ids.length, async (db, i) => {
+    const existing = await findAuthorizedRow(context, resource, ids[i]!, { db, softDeleted: purge ? 'include' : 'exclude' })
+    const id = existing[primaryKeyName(table)]
+    await executeBeforeHook('delete', context, undefined, id)
+    if (softCol && !purge) {
+      if (cascade !== 'off') await cascadeSoftDelete({ ...context, db }, resource, id, deletionId, { reason })
+      await db.update(table).set(buildSoftDeleteUpdates(table, { deletionId, reason, userId })).where(eq(primaryKeyColumn(table), id))
     }
-  }
-
-  const softDeleteCol = getSoftDeleteColumn(table)
-  const results: any[] = []
-  const errors: Array<{ index: number; id: string | number; error: string }> = []
-
-  const performDelete = async (tx: any) => {
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i]
-
-      try {
-        // Check if record exists (with tenant scoping)
-        let whereClause = eq(table.id, id)
-        if (context.tenant && !context.tenant.canAccessAllTenants) {
-          const tenantWhere = buildTenantWhere(table, context.tenant.id, context.tenant.field)
-          whereClause = and(whereClause, tenantWhere)
-        }
-
-        const [existing] = await tx.select().from(table).where(whereClause)
-
-        if (!existing) {
-          throw new Error(`Record with id ${id} not found`)
-        }
-
-        // Check object-level authorization
-        await checkObjectLevelAuth(existing, context)
-
-        // Execute beforeDelete hook
-        await executeBeforeHook('delete', context, undefined, id)
-
-        // Perform delete (soft or hard)
-        if (softDeleteCol) {
-          await tx.update(table)
-            .set({ [softDeleteCol]: new Date() })
-            .where(eq(table.id, id))
-        } else {
-          await tx.delete(table).where(eq(table.id, id))
-        }
-
-        results.push({ id, deleted: true })
-
-        // Execute afterDelete hook
-        try {
-          await executeAfterHook('delete', context, undefined, id)
-        } catch (error: any) {
-          console.error('[autoApi] afterDelete hook error:', error)
-        }
-      } catch (error: any) {
-        errors.push({
-          index: i,
-          id,
-          error: error.message || 'Delete failed',
-        })
-
-        // If transactional and error, rollback will happen
-        if (transactional) {
-          throw error
-        }
-      }
+    else {
+      await db.delete(table).where(eq(primaryKeyColumn(table), id))
     }
-  }
+    await executeAfterHook('delete', context, undefined, id)
+    return { id, deleted: true }
+  }, i => ids[i])
 
-  if (transactional) {
-    try {
-      const adapter = context.adapter || getDatabaseAdapter()
-      await adapter.atomic(async ({ tx }) => performDelete(tx))
-    } catch (error: any) {
-      throw createError({
-        statusCode: 400,
-        message: 'Bulk delete failed (transaction rolled back)',
-        data: { errors },
-      })
-    }
-  } else {
-    await performDelete(db)
-  }
-
-  return {
-    data: results,
-    meta: {
-      total: ids.length,
-      successful: results.length,
-      failed: errors.length,
-      errors: errors.length > 0 ? errors : undefined,
-    },
-  }
+  const response = await respond(context, results, ids.length, errors)
+  return softCol && !purge ? { ...response, meta: { ...response.meta, deletionId } } as any : response
 }

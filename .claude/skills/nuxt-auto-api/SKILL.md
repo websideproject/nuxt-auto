@@ -28,16 +28,34 @@ export default defineNuxtConfig({
   modules: ['@websideproject/nuxt-auto-api'],
   autoApi: {
     prefix: '/api',
-    database: { client: 'd1' },
   },
 })
 
-// server/plugins/register-api.ts — register resources via hook
-export default defineNitroPlugin((nitroApp) => {
-  // Resources are registered at build time via nuxt hook:
-  // nuxt.hook('autoApi:registerSchema', (registry) => { registry.register(...) })
+// modules/blog/index.ts — resources are registered at BUILD time from a Nuxt module
+import { defineNuxtModule, createResolver } from '@nuxt/kit'
+import { createModuleImport } from '@websideproject/nuxt-auto-api'
+
+export default defineNuxtModule({
+  setup(_, nuxt) {
+    const r = createResolver(import.meta.url)
+    nuxt.hook('autoApi:registerSchema', (registry) => {
+      registry.register('posts', {
+        schema: createModuleImport(r.resolve('./schema'), 'posts'),
+        authorization: createModuleImport(r.resolve('./auth'), 'postsAuth'), // REQUIRED — see below
+      })
+    })
+  },
 })
+
+// modules/blog/auth.ts
+export const postsAuth: ResourceAuthConfig = {
+  permissions: { read: true, create: ctx => !!ctx.user, update: 'posts:write', delete: 'admin' },
+}
 ```
+
+**Deny by default:** an undeclared operation is refused (401 anon / 403 signed in); a resource with no
+`authorization` refuses everything. `'*'` in `ctx.permissions` passes all. Rows the caller can't see (tenant,
+`listFilter`, soft delete, `objectLevel`) are 404 on every route. Unknown/hidden fields in filter/sort/fields are 400.
 
 ```vue
 <!-- pages/posts.vue -->
@@ -60,8 +78,8 @@ GET    /api/{name}              List (filter, sort, paginate, include relations)
 GET    /api/{name}/:id          Get by ID
 POST   /api/{name}              Create
 PATCH  /api/{name}/:id          Update
-DELETE /api/{name}/:id          Delete (soft-delete if deletedAt column exists)
-POST   /api/{name}/:id/restore  Restore soft-deleted
+DELETE /api/{name}/:id          Delete (soft-delete if deletedAt column exists; ?force=true purges — needs `purge` perm)
+POST   /api/{name}/:id/restore  Restore soft-deleted (restores its cascade batch too)
 GET    /api/{name}/permissions  Per-resource permissions
 POST   /api/{name}/bulk         Bulk create
 PATCH  /api/{name}/bulk         Bulk update
@@ -71,6 +89,7 @@ GET    /api/{name}/:id/relations/:rel       List M2M
 POST   /api/{name}/:id/relations/:rel       Sync M2M
 POST   /api/{name}/:id/relations/:rel/add   Add M2M
 DELETE /api/{name}/:id/relations/:rel/remove Remove M2M
+POST   /api/{name}/:id/relations/batch      Sync several relations
 GET    /api/permissions         All resource permissions
 ```
 
@@ -81,11 +100,14 @@ GET    /api/permissions         All resource permissions
 | **[references/setup.md](references/setup.md)** | Module options, database adapters, resource registration, built-in plugins list |
 | **[references/composables-query.md](references/composables-query.md)** | useAutoApiList, useAutoApiGet, useAutoApiInfinite — all query params |
 | **[references/composables-mutations.md](references/composables-mutations.md)** | useAutoApiCreate/Update/Delete/Mutation, bulk ops, optimistic updates |
-| **[references/authorization.md](references/authorization.md)** | ResourceAuthConfig, HandlerContext, permissions, listFilter, objectLevel, fields |
-| **[references/hooks-plugins.md](references/hooks-plugins.md)** | ResourceHooks (all lifecycle events), defineAutoApiPlugin, middleware, context extenders |
+| **[references/authorization.md](references/authorization.md)** | ResourceAuthConfig, permissions, listFilter, objectLevel, fields, **custom endpoint permissions** |
+| **[references/hooks-plugins.md](references/hooks-plugins.md)** | ResourceHooks, defineAutoApiPlugin, middleware, context extenders; **hook execution order, frozen-result caveat, requestMeta bridge** |
 | **[references/m2m.md](references/m2m.md)** | M2M config, useM2MRelation, useM2MSync, useM2MAdd, useM2MRemove, useM2MBatchSync |
-| **[references/advanced.md](references/advanced.md)** | useAutoApiAggregate, usePermissions, useAllPermissions, multi-tenancy, custom endpoints |
-| **[references/module-authoring.md](references/module-authoring.md)** | Building a Nuxt module that registers resources: hook, createModuleImport, schema/auth/hooks co-location |
+| **[references/advanced.md](references/advanced.md)** | useAutoApiAggregate, usePermissions, multi-tenancy, **createEndpoint with endpointName + authorize** |
+| **[references/module-authoring.md](references/module-authoring.md)** | createModuleImport, schema/auth/hooks/validation co-location, **JSON columns (mode:'json')** |
+| **[references/schema-presets.md](references/schema-presets.md)** | Cross-engine `id`/`timestamps`/`softDelete`/`tenant`/`audit`/`liveUnique` presets — "import = feature on" |
+
+Whole-batch restore/purge (by `deletionId`) is a server util: `restoreSoftDeletedBatch(ctx, id)` / `purgeSoftDeletedBatch(ctx, id)` — all-or-nothing, permission + visibility checked per row.
 
 ## Progressive Loading
 
@@ -97,6 +119,7 @@ GET    /api/permissions         All resource permissions
 - Many-to-many relationships? → [references/m2m.md](references/m2m.md)
 - Aggregations, permissions, multi-tenancy? → [references/advanced.md](references/advanced.md)
 - Building a Nuxt module that ships resources? → [references/module-authoring.md](references/module-authoring.md)
+- Defining cross-cutting table columns (timestamps/softDelete/audit)? → [references/schema-presets.md](references/schema-presets.md)
 
 **DO NOT read all files at once.**
 

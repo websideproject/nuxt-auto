@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  data: any
+  data: unknown
   highlightFields?: string[]
 }>()
 

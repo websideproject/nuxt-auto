@@ -1,4 +1,7 @@
-- 🎯 **Schema-Driven** - Generate API endpoints and admin UI from your Drizzle schema
-- 🔐 **Auth & AuthZ Built-in** - Authentication and authorization out of the box
-- 📦 **Reusable Admin Panel** - Auto-generated admin interface based on your schema
-- 🚀 **Type-Safe** - Full TypeScript support with type inference from your schema
+- 🎯 **Schema-driven** - CRUD, filtering, sorting, pagination, nested relations, bulk, aggregations and many-to-many from your Drizzle tables
+- 🔐 **Secure by default** - every operation is denied until you declare who may do it; row visibility (tenant, `listFilter`, `objectLevel`) applies to every route; server-owned columns can't be written from a request
+- 🏢 **Multi-tenant** - organization scoping resolved on the server and failing closed, ready for better-auth organizations
+- 🧩 **Bring your own auth** - a better-auth plugin is included; any session works through a context extender
+- ⚡ **Typed, SSR-aware composables** - TanStack Query with cache invalidation, optimistic updates and permission checks for the UI
+- 🗄️ **Any Drizzle engine** - SQLite, Cloudflare D1, Turso, Postgres, MySQL and PlanetScale
+- 📦 **Admin panel** - generated from the same resources with `@websideproject/nuxt-auto-admin`

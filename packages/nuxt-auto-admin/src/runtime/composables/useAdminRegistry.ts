@@ -3,7 +3,7 @@ import type { ResourceSchema } from '../types'
 
 // Module-level cache (not serialized for SSR)
 let registryCache: Record<string, ResourceSchema> | null = null
-let registryPromise: Promise<any> | null = null
+let registryPromise: Promise<Record<string, ResourceSchema>> | null = null
 
 /**
  * Access the admin registry (all resources)
@@ -14,9 +14,9 @@ export function useAdminRegistry() {
 
   // Lazy load registry on first use
   if (!registryCache && !registryPromise) {
-    registryPromise =
-      // @ts-ignore - virtual module
-      import('#nuxt-auto-admin-registry')
+    registryPromise
+      // @ts-expect-error - virtual module
+      = import('#nuxt-auto-admin-registry')
         .then((mod) => {
           registryCache = mod.registry
           registry.value = mod.registry
@@ -27,7 +27,8 @@ export function useAdminRegistry() {
           console.error('[nuxt-auto-admin] Failed to load registry:', err)
           isLoading.value = false
         })
-  } else if (registryPromise && !registryCache) {
+  }
+  else if (registryPromise && !registryCache) {
     // Wait for existing promise
     registryPromise.then(() => {
       registry.value = registryCache || {}

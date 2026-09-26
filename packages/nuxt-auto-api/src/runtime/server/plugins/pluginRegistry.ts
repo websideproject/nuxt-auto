@@ -1,11 +1,12 @@
 import type { AutoApiMiddleware, ContextExtender, MiddlewareStage } from '../../types/plugin'
-import type { ResourceHooks, HandlerContext } from '../../types'
+import type { ResourceHooks, HandlerContext, PermissionEvaluator } from '../../types'
 
 interface PluginRegistryState {
   middleware: AutoApiMiddleware[]
   contextExtenders: ContextExtender[]
   globalHooks: ResourceHooks[]
   resourceHooks: Record<string, ResourceHooks[]>
+  permissionEvaluators: PermissionEvaluator[]
   initialized: boolean
 }
 
@@ -20,6 +21,7 @@ function getRegistry(): PluginRegistryState {
       contextExtenders: [],
       globalHooks: [],
       resourceHooks: {},
+      permissionEvaluators: [],
       initialized: false,
     }
   }
@@ -41,6 +43,22 @@ export function addMiddleware(middleware: AutoApiMiddleware): void {
  */
 export function addContextExtender(fn: ContextExtender): void {
   getRegistry().contextExtenders.push(fn)
+}
+
+/**
+ * Register an evaluator for structured (object) permission values. Generic seam — auto-api
+ * never interprets the object; registered evaluators do. First evaluator returning a non-undefined
+ * result wins. Registered from outside via the plugin runtime context.
+ */
+export function registerPermissionEvaluator(fn: PermissionEvaluator): void {
+  getRegistry().permissionEvaluators.push(fn)
+}
+
+/**
+ * Get all registered permission evaluators (for object-form permission values).
+ */
+export function getPermissionEvaluators(): PermissionEvaluator[] {
+  return getRegistry().permissionEvaluators
 }
 
 /**
@@ -67,10 +85,10 @@ export function addGlobalHook(hooks: ResourceHooks): void {
 export function getMiddlewareForStage(
   stage: MiddlewareStage,
   resource?: string,
-  operation?: HandlerContext['operation']
+  operation?: HandlerContext['operation'],
 ): AutoApiMiddleware[] {
   const registry = getRegistry()
-  return registry.middleware.filter(mw => {
+  return registry.middleware.filter((mw) => {
     if (mw.stage !== stage) return false
     if (mw.resources && resource && !mw.resources.includes(resource)) return false
     if (mw.operations && operation && !mw.operations.includes(operation)) return false
@@ -90,16 +108,16 @@ export function getContextExtenders(): ContextExtender[] {
  */
 export function getPluginHooks(
   resource: string,
-  hookName: keyof ResourceHooks
-): Function[] {
+  hookName: keyof ResourceHooks,
+): Array<(...args: any[]) => any> {
   const registry = getRegistry()
-  const hooks: Function[] = []
+  const hooks: Array<(...args: any[]) => any> = []
 
   // Global hooks
   for (const globalHook of registry.globalHooks) {
     const fn = globalHook[hookName]
     if (fn && typeof fn === 'function') {
-      hooks.push(fn as Function)
+      hooks.push(fn as (...args: any[]) => any)
     }
   }
 
@@ -109,7 +127,7 @@ export function getPluginHooks(
     for (const resourceHook of resourceHooksList) {
       const fn = resourceHook[hookName]
       if (fn && typeof fn === 'function') {
-        hooks.push(fn as Function)
+        hooks.push(fn as (...args: any[]) => any)
       }
     }
   }

@@ -32,22 +32,36 @@
       <!-- Interactive Query Builder -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Interactive Query Builder</h2>
+          <h2 class="text-xl font-semibold">
+            Interactive Query Builder
+          </h2>
         </template>
 
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium mb-2">Author Fields to Include</label>
             <div class="grid grid-cols-3 gap-2">
-              <UCheckbox v-model="queryBuilder.includeId" label="id" />
-              <UCheckbox v-model="queryBuilder.includeTitle" label="name" />
-              <UCheckbox v-model="queryBuilder.includeContent" label="email" />
+              <UCheckbox
+                v-model="queryBuilder.includeId"
+                label="id"
+              />
+              <UCheckbox
+                v-model="queryBuilder.includeTitle"
+                label="name"
+              />
+              <UCheckbox
+                v-model="queryBuilder.includeContent"
+                label="email"
+              />
             </div>
           </div>
 
           <div>
             <label class="block text-sm font-medium mb-2">Post Filters</label>
-            <UCheckbox v-model="queryBuilder.publishedOnly" label="Published only" />
+            <UCheckbox
+              v-model="queryBuilder.publishedOnly"
+              label="Published only"
+            />
           </div>
 
           <div>
@@ -62,25 +76,32 @@
           </div>
 
           <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-            <p class="text-sm font-medium mb-2">Generated Query:</p>
+            <p class="text-sm font-medium mb-2">
+              Generated Query:
+            </p>
             <code class="text-sm">{{ generatedQuery }}</code>
           </div>
 
           <UButton
-            @click="executeQuery"
             :loading="customQueryLoading"
             icon="i-heroicons-play"
             color="green"
+            @click="executeQuery"
           >
             Run Query
           </UButton>
 
           <div v-if="customQueryResult">
-            <p class="text-sm font-medium mb-2">Result:</p>
+            <p class="text-sm font-medium mb-2">
+              Result:
+            </p>
             <ApiResponse :data="customQueryResult" />
           </div>
 
-          <div v-if="customQueryError" class="text-red-600">
+          <div
+            v-if="customQueryError"
+            class="text-red-600"
+          >
             Error: {{ customQueryError }}
           </div>
         </div>
@@ -89,13 +110,17 @@
       <!-- Example Gallery -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Example Gallery</h2>
+          <h2 class="text-xl font-semibold">
+            Example Gallery
+          </h2>
         </template>
 
         <div class="space-y-6">
           <!-- Field Selection Example -->
           <div>
-            <h3 class="font-medium mb-2">Field Selection</h3>
+            <h3 class="font-medium mb-2">
+              Field Selection
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
               Select only specific fields from the relation:
             </p>
@@ -104,20 +129,26 @@
               language="http"
             />
             <UButton
-              @click="runExample('author[id,name,email]')"
               :loading="example1Loading"
               size="sm"
               variant="outline"
               class="mt-2"
+              @click="runExample('author[id,name,email]')"
             >
               Try it
             </UButton>
-            <ApiResponse v-if="example1Result" :data="example1Result?.data?.slice(0, 2)" class="mt-2" />
+            <ApiResponse
+              v-if="example1Result"
+              :data="example1Result?.data?.slice(0, 2)"
+              class="mt-2"
+            />
           </div>
 
           <!-- Pagination Example -->
           <div>
-            <h3 class="font-medium mb-2">Pagination</h3>
+            <h3 class="font-medium mb-2">
+              Pagination
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
               Limit the number of related items returned:
             </p>
@@ -126,20 +157,26 @@
               language="http"
             />
             <UButton
-              @click="runExample('posts{limit:3}', 'users')"
               :loading="example2Loading"
               size="sm"
               variant="outline"
               class="mt-2"
+              @click="runExample('posts{limit:3}', 'users')"
             >
               Try it
             </UButton>
-            <ApiResponse v-if="example2Result" :data="example2Result?.data?.slice(0, 1)" class="mt-2" />
+            <ApiResponse
+              v-if="example2Result"
+              :data="example2Result?.data?.slice(0, 1)"
+              class="mt-2"
+            />
           </div>
 
           <!-- Filtering Example -->
           <div>
-            <h3 class="font-medium mb-2">Filtering Relations</h3>
+            <h3 class="font-medium mb-2">
+              Filtering Relations
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
               Filter related items by specific criteria:
             </p>
@@ -148,20 +185,26 @@
               language="http"
             />
             <UButton
-              @click="runExample('posts{filter:{published:true}}', 'users')"
               :loading="example3Loading"
               size="sm"
               variant="outline"
               class="mt-2"
+              @click="runExample('posts{filter:{published:true}}', 'users')"
             >
               Try it
             </UButton>
-            <ApiResponse v-if="example3Result" :data="example3Result?.data?.slice(0, 1)" class="mt-2" />
+            <ApiResponse
+              v-if="example3Result"
+              :data="example3Result?.data?.slice(0, 1)"
+              class="mt-2"
+            />
           </div>
 
           <!-- Combined Example -->
           <div>
-            <h3 class="font-medium mb-2">Combined: Fields + Filtering + Limit</h3>
+            <h3 class="font-medium mb-2">
+              Combined: Fields + Filtering + Limit
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
               Combine all features for precise control:
             </p>
@@ -170,20 +213,26 @@
               language="http"
             />
             <UButton
-              @click="runExample('posts[id,title]{limit:2,filter:{published:true}}', 'users')"
               :loading="example4Loading"
               size="sm"
               variant="outline"
               class="mt-2"
+              @click="runExample('posts[id,title]{limit:2,filter:{published:true}}', 'users')"
             >
               Try it
             </UButton>
-            <ApiResponse v-if="example4Result" :data="example4Result?.data?.slice(0, 1)" class="mt-2" />
+            <ApiResponse
+              v-if="example4Result"
+              :data="example4Result?.data?.slice(0, 1)"
+              class="mt-2"
+            />
           </div>
 
           <!-- Deep Nesting Example -->
           <div>
-            <h3 class="font-medium mb-2">Deep Nesting</h3>
+            <h3 class="font-medium mb-2">
+              Deep Nesting
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
               Traverse multiple levels of relationships:
             </p>
@@ -192,15 +241,19 @@
               language="http"
             />
             <UButton
-              @click="runExample('comments.author[name,email]')"
               :loading="example5Loading"
               size="sm"
               variant="outline"
               class="mt-2"
+              @click="runExample('comments.author[name,email]')"
             >
               Try it
             </UButton>
-            <ApiResponse v-if="example5Result" :data="example5Result?.data?.slice(0, 1)" class="mt-2" />
+            <ApiResponse
+              v-if="example5Result"
+              :data="example5Result?.data?.slice(0, 1)"
+              class="mt-2"
+            />
           </div>
         </div>
       </UCard>
@@ -217,7 +270,7 @@ const queryBuilder = reactive({
   limit: '5'
 })
 
-const customQueryParams = ref<any>(null)
+const customQueryParams = ref<Record<string, unknown> | null>(null)
 const customQueryResult = ref(null)
 const customQueryError = ref(null)
 
@@ -225,7 +278,7 @@ const customQueryError = ref(null)
 const { data: customData, isLoading: customQueryLoading, error: customError } = useAutoApiList('posts',
   computed(() => customQueryParams.value),
   {
-    enabled: computed(() => customQueryParams.value !== null),
+    enabled: computed(() => customQueryParams.value !== null)
   }
 )
 
@@ -238,7 +291,7 @@ watch(customData, (newData) => {
 
 watch(customError, (newError) => {
   if (newError) {
-    customQueryError.value = (newError as any).message || 'Failed to fetch'
+    customQueryError.value = (newError as Error).message || 'Failed to fetch'
   }
 })
 
@@ -254,7 +307,7 @@ const example5Result = ref(null)
 const example5Loading = ref(false)
 
 const generatedQuery = computed(() => {
-  let query = '/api/posts?'
+  const query = '/api/posts?'
   const params = []
 
   // Build include parameter with field selection
@@ -297,7 +350,7 @@ const executeQuery = () => {
     includeValue += `[${authorFields.join(',')}]`
   }
 
-  const params: any = { include: includeValue }
+  const params: Record<string, unknown> = { include: includeValue }
 
   // Add limit for posts (root resource)
   if (queryBuilder.limit) {
@@ -313,26 +366,41 @@ const executeQuery = () => {
   customQueryParams.value = params
 }
 
+type ExampleKey = 'example1' | 'example2' | 'example3' | 'example4' | 'example5'
+
+const exampleLoading: Record<ExampleKey, typeof example1Loading> = {
+  example1: example1Loading,
+  example2: example2Loading,
+  example3: example3Loading,
+  example4: example4Loading,
+  example5: example5Loading
+}
+
+const exampleResult: Record<ExampleKey, typeof example1Result> = {
+  example1: example1Result,
+  example2: example2Result,
+  example3: example3Result,
+  example4: example4Result,
+  example5: example5Result
+}
+
 const runExample = async (includeValue: string, resource = 'posts') => {
-  const loadingKey = includeValue.includes('author[id,name,email]') ? 'example1Loading' :
-    includeValue.includes('posts{limit:3}') ? 'example2Loading' :
-    includeValue.includes('posts{filter:{published:true}}') && !includeValue.includes('[') ? 'example3Loading' :
-    includeValue.includes('posts[id,title]') ? 'example4Loading' : 'example5Loading'
+  const key: ExampleKey = includeValue.includes('author[id,name,email]')
+    ? 'example1'
+    : includeValue.includes('posts{limit:3}')
+      ? 'example2'
+      : includeValue.includes('posts{filter:{published:true}}') && !includeValue.includes('[')
+        ? 'example3'
+        : includeValue.includes('posts[id,title]') ? 'example4' : 'example5'
 
-  const resultKey = includeValue.includes('author[id,name,email]') ? 'example1Result' :
-    includeValue.includes('posts{limit:3}') ? 'example2Result' :
-    includeValue.includes('posts{filter:{published:true}}') && !includeValue.includes('[') ? 'example3Result' :
-    includeValue.includes('posts[id,title]') ? 'example4Result' : 'example5Result'
-
-  eval(`${loadingKey}.value = true`)
+  exampleLoading[key].value = true
 
   try {
-    const result = await $fetch(`/api/${resource}?include=${includeValue}`)
-    eval(`${resultKey}.value = result`)
+    exampleResult[key].value = await $fetch(`/api/${resource}?include=${includeValue}`)
   } catch (err) {
     console.error('Failed to fetch example:', err)
   } finally {
-    eval(`${loadingKey}.value = false`)
+    exampleLoading[key].value = false
   }
 }
 </script>

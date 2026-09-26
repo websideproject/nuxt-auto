@@ -2,14 +2,12 @@ import {
   defineNuxtModule,
   addPlugin,
   createResolver,
-  addComponent,
   addImportsDir,
   addTemplate,
   addLayout,
-  addServerHandler,
 } from '@nuxt/kit'
 import type { ModuleOptions } from './runtime/types'
-import type { BuildTimeRegistry } from '@websideproject/nuxt-auto-api'
+import type { BuildTimeRegistry, ResourceRegistration } from '@websideproject/nuxt-auto-api'
 
 export type { ModuleOptions }
 
@@ -42,8 +40,19 @@ export default defineNuxtModule<ModuleOptions>({
     // Add tailwindcss support
     nuxt.options.css.unshift(resolver.resolve('./runtime/assets/css/main.css'))
 
+    // The admin is an authenticated, client-driven app: render its routes on the client. Server-rendering them
+    // hydrated per-user state (permissions, the resource registry, query results) that the client computes
+    // differently — hydration mismatches on every page — and buys nothing (no SEO behind a login).
+    // An app's own routeRules for these paths win.
+    const prefix = (options.prefix || '/admin').replace(/\/+$/, '')
+    nuxt.options.routeRules ||= {}
+    for (const rule of [prefix, `${prefix}/**`]) {
+      nuxt.options.routeRules[rule] = { ssr: false, ...nuxt.options.routeRules[rule] }
+    }
+
     // Add runtime config
-    nuxt.options.runtimeConfig.public.autoAdmin = {
+    // Assigned as a plain record: the generated runtime-config type is inferred from one app's values.
+    ;(nuxt.options.runtimeConfig.public as Record<string, unknown>).autoAdmin = {
       prefix: options.prefix,
       branding: options.branding,
       features: options.features,
@@ -59,7 +68,10 @@ export default defineNuxtModule<ModuleOptions>({
     // modules:done fires, all subscribers have populated the registry.
     let capturedRegistry: BuildTimeRegistry | null = null
 
-    nuxt.hook('autoApi:registerSchema' as any, async (registry: BuildTimeRegistry) => {
+    // `autoApi:registerSchema` is typed by nuxt-auto-api's NuxtHooks augmentation. In an app that applies; in this
+    // workspace the admin resolves its own copy of @nuxt/schema, so the augmentation does not reach it — hence the
+    // explicitly typed call.
+    ;(nuxt.hook as (name: string, fn: (registry: BuildTimeRegistry) => void) => void)('autoApi:registerSchema', (registry) => {
       capturedRegistry = registry
     })
 
@@ -92,7 +104,7 @@ export default defineNuxtModule<ModuleOptions>({
       // Register virtual module alias
       nuxt.options.alias['#nuxt-auto-admin-registry'] = resolver.resolve(
         nuxt.options.buildDir,
-        'nuxt-auto-admin-registry.mjs'
+        'nuxt-auto-admin-registry.mjs',
       )
 
       console.log('[nuxt-auto-admin] ✓ Generated admin registry')
@@ -127,26 +139,31 @@ export default defineNuxtModule<ModuleOptions>({
           name: 'admin',
           path: adminPrefix,
           file: resolver.resolve('./runtime/pages/admin/index.vue'),
+          meta: { layout: 'admin' },
         },
         {
           name: 'admin-resource-create',
           path: `${adminPrefix}/:resource/new`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/new.vue'),
+          meta: { layout: 'admin' },
         },
         {
           name: 'admin-resource-edit',
           path: `${adminPrefix}/:resource/:id/edit`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/[id]/edit.vue'),
+          meta: { layout: 'admin' },
         },
         {
           name: 'admin-resource-detail',
           path: `${adminPrefix}/:resource/:id`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/[id].vue'),
+          meta: { layout: 'admin' },
         },
         {
           name: 'admin-resource-list',
           path: `${adminPrefix}/:resource`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/index.vue'),
+          meta: { layout: 'admin' },
         },
       ]
 
@@ -161,23 +178,38 @@ export default defineNuxtModule<ModuleOptions>({
       dirs.push(resolver.resolve('./runtime/middleware'))
     })
 
-    // Register server API routes
-    addServerHandler({
-      route: '/api/admin/m2m/sync',
-      handler: resolver.resolve('./runtime/server/api/admin/m2m/sync.post'),
-      method: 'post',
-    })
+    // (The deprecated POST /api/admin/m2m/sync route was removed: it wrote arbitrary junction rows into any
+    // registered table with no authentication. M2M writes go through nuxt-auto-api's authorized
+    // /api/{resource}/:id/relations/:relation routes.)
 
     console.log('[nuxt-auto-admin] ✓ Module setup complete')
   },
 })
 
+type BuildTimeResource = ResourceRegistration
+
+interface BuildTimeResourceConfig {
+  displayName?: string
+  icon?: string
+  listFields?: string[]
+  formFields?: unknown
+  hiddenFields?: string[]
+  readonlyFields?: string[]
+  actions?: unknown
+  group?: string
+  order?: number
+  disabled?: boolean
+  type?: string
+  [key: string]: unknown
+}
+
 /**
  * Generate admin registry virtual module
  */
-function generateAdminRegistry(resources: any[], options: ModuleOptions): string {
+function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOptions): string {
   const imports: string[] = []
   const registryEntries: string[] = []
+  const schemaMapEntries: string[] = []
 
   // Build a map of all resource names for foreign key resolution
   const resourceNames = resources
@@ -185,7 +217,7 @@ function generateAdminRegistry(resources: any[], options: ModuleOptions): string
     .map(r => r.name)
 
   resources.forEach((resource, index) => {
-    const resourceConfig = options.resources?.[resource.name] || {}
+    const resourceConfig = (options.resources?.[resource.name] || {}) as BuildTimeResourceConfig
 
     // Skip disabled resources
     if (resourceConfig.disabled) {
@@ -195,11 +227,12 @@ function generateAdminRegistry(resources: any[], options: ModuleOptions): string
     const varName = `resource${index}`
 
     // Import schema for introspection
-    const schemaImport = resource.schema as any
+    const schemaImport = resource.schema as Record<string, unknown> & { __modulePath?: string, __exportName?: string }
     if (schemaImport.__modulePath) {
       const exportName = schemaImport.__exportName || resource.name
       const modulePath = ensureExtension(schemaImport.__modulePath)
       imports.push(`import { ${exportName} as ${varName}Schema } from '${modulePath}'`)
+      schemaMapEntries.push(`  '${resource.name}': ${varName}Schema`)
     }
 
     // Build resource schema entry
@@ -208,6 +241,11 @@ function generateAdminRegistry(resources: any[], options: ModuleOptions): string
   })
 
   return `${imports.join('\n')}
+
+// Map of resource names to their Drizzle table objects (for FK resolution via col.references)
+const schemaMap = {
+${schemaMapEntries.join(',\n')}
+}
 
 // Utility functions needed for schema introspection
 function formatFieldLabel(fieldName) {
@@ -303,10 +341,10 @@ export const adminConfig = config
  * Build resource schema entry with introspection
  */
 function buildResourceSchemaEntry(
-  resource: any,
-  config: any,
+  resource: BuildTimeResource,
+  config: BuildTimeResourceConfig,
   varName: string,
-  allResourceNames: string[]
+  allResourceNames: string[],
 ): string {
   const displayName = config.displayName || formatResourceName(resource.name)
   const icon = config.icon || 'i-heroicons-table-cells'
@@ -346,13 +384,19 @@ function buildResourceSchemaEntry(
           // Try different variations to find the actual resource
           let targetResource = null
 
-          // 1. Check if there's a Drizzle foreign key reference
+          // 1. Use Drizzle col.references() — compare referenced table by identity against schemaMap
           if (col.references) {
-            // Extract the table name from the Drizzle reference
-            const referencedTable = col.references()
-            if (referencedTable && referencedTable.constructor && referencedTable.constructor.name) {
-              targetResource = referencedTable.constructor.name
-            }
+            try {
+              const referencedCol = col.references()
+              if (referencedCol && referencedCol.table) {
+                for (const [resourceName, resourceSchema] of Object.entries(schemaMap)) {
+                  if (resourceSchema === referencedCol.table) {
+                    targetResource = resourceName
+                    break
+                  }
+                }
+              }
+            } catch (_) {}
           }
 
           // 2. Try to match against registered resources
@@ -372,6 +416,15 @@ function buildResourceSchemaEntry(
               if (availableResources.includes(iesForm)) {
                 targetResource = iesForm
               }
+            }
+
+            // 3. Suffix match for prefixed resource names (e.g. 'project' -> 'sampleProjects')
+            if (!targetResource) {
+              const lower = baseName.toLowerCase()
+              targetResource = availableResources.find(r => {
+                const rl = r.toLowerCase()
+                return rl.endsWith(lower + 's') || rl.endsWith(lower + 'es') || rl.endsWith(lower)
+              }) || null
             }
           }
 
@@ -447,7 +500,7 @@ function buildResourceSchemaEntry(
 
       for (const col of columns) {
         // Skip certain fields
-        if (col.isPrimaryKey && col.isAutoIncrement) continue
+        if (col.isPrimaryKey) continue
         if (col.name === 'createdAt' || col.name === 'updatedAt') continue
         if (col.name === 'deletedAt') continue
 
@@ -471,6 +524,12 @@ function buildResourceSchemaEntry(
             resource: col.foreignKey.table,
             displayField: 'name',
           }
+        }
+
+        if (field.widget === 'DateTimePicker') {
+          const lowerType = (col.type || col.dataType || '').toLowerCase()
+          const isDatetime = lowerType.includes('timestamp') || lowerType.includes('datetime') || col.name.toLowerCase().endsWith('at')
+          field.options = { ...field.options, showTime: isDatetime }
         }
 
         fields.push(field)
@@ -498,7 +557,7 @@ function buildResourceSchemaEntry(
       group: ${config.group ? `'${config.group}'` : 'undefined'},
       order: ${config.order || 0},
       disabled: false,
-      type: ${config.type ? `'${config.type}'` : "'resource'"},
+      type: ${config.type ? `'${config.type}'` : '\'resource\''},
     }
   })()`
 }
@@ -509,7 +568,7 @@ function buildResourceSchemaEntry(
 function formatResourceName(name: string): string {
   return name
     .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (str) => str.toUpperCase())
+    .replace(/^./, str => str.toUpperCase())
     .trim()
 }
 
@@ -526,7 +585,7 @@ function ensureExtension(path: string): string {
 /**
  * Generate TypeScript types for admin registry
  */
-function generateAdminRegistryTypes(resources: any[]): string {
+function generateAdminRegistryTypes(resources: BuildTimeResource[]): string {
   const resourceTypes = resources.map(r => `'${r.name}'`).join(' | ')
 
   return `import type { ResourceSchema, AdminRegistry } from './runtime/types'

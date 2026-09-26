@@ -13,6 +13,7 @@ export function createPostgresAdapter(db: any): DatabaseAdapter {
       return result?.rowCount ?? result?.count ?? 0
     },
     supportsReturning: true,
+    supportsTransactions: true,
     supportsNativeBatch: false,
   }
 }

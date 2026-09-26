@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import { createEndpoint } from '../../../src/runtime/server/utils/createEndpoint'
+
 // Use vi.hoisted to define mocks before vi.mock hoisting
 const { mockContext, mockAuthorize, mockValidate, mockRunMiddleware } = vi.hoisted(() => ({
   mockContext: {
@@ -40,6 +42,10 @@ vi.mock('../../../src/runtime/server/handlers/createContextFromRegistry', () => 
     validate: mockValidate,
     runMiddleware: mockRunMiddleware,
   }),
+  // Standalone endpoints (no `resource`) build a caller-only context.
+  createCallerContext: vi.fn(async (event: any, operation: any) => ({
+    ...mockContext, resource: '', operation, event, schema: {}, registry: {},
+  })),
 }))
 
 // Mock database
@@ -51,6 +57,7 @@ vi.mock('../../../src/runtime/server/database', () => ({
     getMutationCount: vi.fn(),
     supportsReturning: true,
     supportsNativeBatch: false,
+    supportsTransactions: true,
   })),
 }))
 
@@ -64,8 +71,6 @@ vi.mock('../../../src/runtime/server/plugins/pluginRegistry', () => ({
 vi.mock('../../../src/runtime/server/utils/serializeResponse', () => ({
   serializeResponse: vi.fn((data: any) => data),
 }))
-
-import { createEndpoint } from '../../../src/runtime/server/utils/createEndpoint'
 
 describe('createEndpoint', () => {
   beforeEach(() => {
@@ -86,7 +91,7 @@ describe('createEndpoint', () => {
       const handler = createEndpoint({
         resource: 'users',
         operation: 'get',
-        handler: async (ctx) => ({ user: ctx.user }),
+        handler: async ctx => ({ user: ctx.user }),
       })
 
       const mockEvent = { method: 'GET', path: '/api/users/1', context: {} } as any
@@ -135,7 +140,7 @@ describe('createEndpoint', () => {
       await handler({ method: 'GET', path: '/api/custom', context: {} } as any)
 
       expect(handlerSpy).toHaveBeenCalled()
-      const ctx = handlerSpy.mock.calls[0][0]
+      const ctx = handlerSpy.mock.calls[0]![0]
       expect(ctx.resource).toBe('')
     })
   })
@@ -161,7 +166,7 @@ describe('createEndpoint', () => {
       await handler({ method: 'POST', path: '/api/custom', context: {} } as any)
 
       expect(mockSchema.safeParse).toHaveBeenCalledWith({ name: 'John' })
-      expect(handlerSpy.mock.calls[0][0].body).toEqual({ name: 'John' })
+      expect(handlerSpy.mock.calls[0]![0].body).toEqual({ name: 'John' })
     })
 
     it('should throw 400 on body validation failure', async () => {
@@ -181,7 +186,7 @@ describe('createEndpoint', () => {
       })
 
       await expect(
-        handler({ method: 'POST', path: '/api/custom', context: {} } as any)
+        handler({ method: 'POST', path: '/api/custom', context: {} } as any),
       ).rejects.toThrow('Body validation failed')
     })
   })
@@ -206,7 +211,7 @@ describe('createEndpoint', () => {
 
       await handler({ method: 'GET', path: '/api/custom', context: {} } as any)
 
-      expect(handlerSpy.mock.calls[0][0].queryParams).toEqual({ page: 1 })
+      expect(handlerSpy.mock.calls[0]![0].queryParams).toEqual({ page: 1 })
     })
   })
 
@@ -214,7 +219,7 @@ describe('createEndpoint', () => {
     it('should apply transform to result', async () => {
       const handler = createEndpoint({
         handler: async () => ({ value: 5 }),
-        transform: (result) => ({ ...result, doubled: result.value * 2 }),
+        transform: result => ({ ...result, doubled: result.value * 2 }),
       })
 
       const result = await handler({ method: 'GET', path: '/api/custom', context: {} } as any)

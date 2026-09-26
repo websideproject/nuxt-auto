@@ -18,12 +18,20 @@
     </div>
 
     <!-- Permission Warning (if button behavior is disable) -->
-    <UCard v-if="!isLoadingPermissions && !canUpdate && showButtonBehavior === 'disable'" class="border-orange-200/60 dark:border-orange-800/60">
+    <UCard
+      v-if="!isLoadingPermissions && !canUpdate && showButtonBehavior === 'disable'"
+      class="border-orange-200/60 dark:border-orange-800/60"
+    >
       <div class="p-4">
         <div class="flex items-start gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-          <UIcon name="i-heroicons-exclamation-triangle" class="h-6 w-6 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+          <UIcon
+            name="i-heroicons-exclamation-triangle"
+            class="h-6 w-6 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5"
+          />
           <div>
-            <h3 class="font-semibold text-orange-900 dark:text-orange-200">Limited Access</h3>
+            <h3 class="font-semibold text-orange-900 dark:text-orange-200">
+              Limited Access
+            </h3>
             <p class="text-sm text-orange-700 dark:text-orange-300 mt-1">
               You can view this record but don't have permission to update it.
             </p>
@@ -33,12 +41,20 @@
     </UCard>
 
     <!-- Permission Denied (if button behavior is hide) -->
-    <UCard v-else-if="!isLoadingPermissions && !canUpdate && showButtonBehavior === 'hide'" class="border-gray-200/60 dark:border-gray-800/60">
+    <UCard
+      v-else-if="!isLoadingPermissions && !canUpdate && showButtonBehavior === 'hide'"
+      class="border-gray-200/60 dark:border-gray-800/60"
+    >
       <div class="p-6">
         <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <UIcon name="i-heroicons-exclamation-circle" class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+          <UIcon
+            name="i-heroicons-exclamation-circle"
+            class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+          />
           <div>
-            <h3 class="font-semibold text-red-900 dark:text-red-200">Permission Denied</h3>
+            <h3 class="font-semibold text-red-900 dark:text-red-200">
+              Permission Denied
+            </h3>
             <p class="text-sm text-red-700 dark:text-red-300 mt-1">
               {{ getPermissionDeniedMessage('update') }}
             </p>
@@ -48,10 +64,13 @@
     </UCard>
 
     <!-- Form Card -->
-    <UCard v-else class="border-gray-200/60 dark:border-gray-800/60">
+    <UCard
+      v-else
+      class="border-gray-200/60 dark:border-gray-800/60"
+    >
       <ResourceForm
-        :resource-name="resourceName"
         :id="id"
+        :resource-name="resourceName"
         mode="edit"
         :disabled="!canUpdate"
         show-cancel
@@ -76,12 +95,16 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
+import { useRoute } from '#app'
 import M2MRelationCard from '../../../../components/M2MRelationCard.vue'
 import { useM2MDetection } from '../../../../composables/useM2MDetection'
+import type { M2MFieldConfig } from '../../../../composables/useM2MDetection'
+import { useAdminResource } from '../../../../composables/useAdminResource'
+import { useAdminActions } from '../../../../composables/useAdminActions'
+import { useAdminPermissions } from '../../../../composables/useAdminPermissions'
+import { useAdminConfig } from '../../../../composables/useAdminConfig'
 
-definePageMeta({
-  layout: 'admin',
-})
+defineOptions({ name: 'AdminResourceEditPage' })
 
 const route = useRoute()
 const resourceName = computed(() => route.params.resource as string)
@@ -92,7 +115,7 @@ const { goToDetail } = useAdminActions(resourceName.value)
 const {
   canUpdate,
   isLoading: isLoadingPermissions,
-  getPermissionDeniedMessage
+  getPermissionDeniedMessage,
 } = useAdminPermissions(resourceName.value)
 
 const { permissions: permissionConfig } = useAdminConfig()
@@ -100,7 +123,7 @@ const showButtonBehavior = computed(() => permissionConfig.unauthorizedButtons |
 
 // Auto-detect M2M fields
 const { detectM2MFields, mergeM2MFields } = useM2MDetection()
-const autoM2MFields = ref<any[]>([])
+const autoM2MFields = ref<M2MFieldConfig[]>([])
 
 onMounted(async () => {
   autoM2MFields.value = await detectM2MFields(resourceName.value)
@@ -111,7 +134,7 @@ const manualM2MFields = computed(() => {
   if (!resource.value?.formFields?.edit) return []
 
   return resource.value.formFields.edit.filter(
-    field => field.widget === 'MultiRelationSelect' && field.options?.junctionTable
+    field => field.widget === 'MultiRelationSelect' && field.options?.junctionTable,
   )
 })
 

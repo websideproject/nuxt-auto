@@ -1,123 +1,62 @@
+import { and } from 'drizzle-orm'
 import { createError } from 'h3'
-import type { HandlerContext, AggregationResponse, AggregationQuery } from '../../types'
-import {
-  parseAggregateParam,
-  executeComplexAggregation,
-  validateAggregation,
-} from '../utils/buildAggregation'
-import { buildTenantWhere } from '../utils/tenant'
-import { getSoftDeleteColumn } from '../utils/softDelete'
-import { and, isNull } from 'drizzle-orm'
+import type { HandlerContext, AggregationResponse } from '../../types'
+import { parseAggregateParam, executeComplexAggregation, validateAggregation } from '../utils/buildAggregation'
+import { buildWhereClause, parseFilterParam } from '../utils/buildWhereClause'
+import { assertQueryField, readableColumns } from '../utils/queryFields'
+import { rowScope } from '../utils/rowAccess'
+import { serializeResponse } from '../utils/serializeResponse'
+import { softDeleteModeFor } from './list'
 
 /**
- * Aggregate handler - GET /api/[resource]/aggregate
- * Handles complex aggregations with groupBy and having
+ * Aggregate handler - GET /api/[resource]/aggregate?aggregate=count,sum(total)&groupBy=status&filter=...
+ *
+ * Aggregates run over exactly the rows the caller could list (tenant, listFilter, soft delete). Aggregated,
+ * grouped and filtered fields must be readable — `min(password)` or `groupBy=password` would otherwise
+ * return a hidden column's values.
  */
 export async function aggregateHandler(context: HandlerContext): Promise<AggregationResponse> {
-  const { db, schema, query, resource } = context
-
-  // Get the table from schema
+  const { db, schema, resource } = context
+  const q = context.validated.query || context.query
   const table = schema[resource]
-  if (!table) {
-    throw new Error(`Table ${resource} not found in schema`)
+  if (!table) throw createError({ statusCode: 404, message: `Resource "${resource}" not found` })
+  if (!q.aggregate) throw createError({ statusCode: 400, message: 'aggregate parameter is required' })
+
+  const readable = await readableColumns(context, resource, table)
+  const aggregates = parseAggregateParam(String(q.aggregate))
+  const groupBy = q.groupBy
+    ? (Array.isArray(q.groupBy) ? q.groupBy : String(q.groupBy).split(',')).map((f: string) => f.trim()).filter(Boolean)
+    : undefined
+
+  const check = validateAggregation(aggregates, groupBy, context)
+  if (!check.valid) throw createError({ statusCode: 400, message: check.error || 'Invalid aggregation' })
+  for (const a of aggregates) if (a.field && a.field !== '*') assertQueryField(a.field, readable, 'aggregate')
+  for (const f of groupBy ?? []) assertQueryField(f, readable, 'groupBy')
+
+  const conditions: any[] = []
+  const filterWhere = buildWhereClause(parseFilterParam(q.filter), table, readable)
+  if (filterWhere) conditions.push(filterWhere)
+  const scope = rowScope(context, resource, table, { softDeleted: await softDeleteModeFor(context, q) })
+  if (scope) conditions.push(scope)
+  const where = conditions.length === 0 ? undefined : conditions.length === 1 ? conditions[0] : and(...conditions)
+
+  let having: Record<string, any> | undefined
+  if (q.having) {
+    having = parseFilterParam(q.having)
   }
 
-  // Parse aggregation parameters
-  if (!query.aggregate) {
-    throw createError({
-      statusCode: 400,
-      message: 'aggregate parameter is required',
-    })
-  }
+  const rows = await executeComplexAggregation(db, table, { aggregates, groupBy, having }, where)
 
-  const aggregates = parseAggregateParam(query.aggregate as string)
-
-  // Validate aggregation
-  const validation = validateAggregation(aggregates, query.groupBy as string | string[])
-  if (!validation.valid) {
-    throw createError({
-      statusCode: 400,
-      message: validation.error || 'Invalid aggregation',
-    })
-  }
-
-  // Build aggregation query
-  const aggregationQuery: AggregationQuery = {
-    aggregates,
-    groupBy: query.groupBy
-      ? Array.isArray(query.groupBy)
-        ? query.groupBy
-        : String(query.groupBy).split(',').map(f => f.trim())
-      : undefined,
-    having: query.having as Record<string, any>,
-    filter: query.filter as Record<string, any>,
-  }
-
-  // Apply soft delete filter
-  const softDeleteCol = getSoftDeleteColumn(table)
-  if (softDeleteCol) {
-    const includeDeleted = query.includeDeleted === true || query.includeDeleted === 'true'
-    const canViewDeleted = context.permissions.includes('admin')
-
-    if (!includeDeleted || !canViewDeleted) {
-      // Add to filter
-      if (!aggregationQuery.filter) {
-        aggregationQuery.filter = {}
-      }
-      // Note: This is a simplified approach
-      // In production, you'd want to merge this with existing filters more carefully
-    }
-  }
-
-  // Apply tenant scoping
-  if (context.tenant && !context.tenant.canAccessAllTenants) {
-    if (!aggregationQuery.filter) {
-      aggregationQuery.filter = {}
-    }
-    aggregationQuery.filter[context.tenant.field] = context.tenant.id
-  }
-
-  // Execute aggregation
-  const results = await executeComplexAggregation(db, table, aggregationQuery)
-
-  // Transform results to separate group fields from aggregates
-  const transformedResults = results.map((row: any) => {
+  const groupKeys = new Set<string>(groupBy ?? [])
+  const data = rows.map((row: any) => {
     const group: Record<string, any> = {}
-    const aggregateValues: Record<string, any> = {}
-
-    // Separate group fields from aggregate fields
-    const groupByFields = aggregationQuery.groupBy || []
-    
-    // Create a set of potential keys for grouping (property names AND column names)
-    const groupKeys = new Set<string>()
-    if (groupByFields) {
-      groupByFields.forEach(field => {
-        groupKeys.add(field)
-        // Add column name if available
-        if (table[field] && table[field].name) {
-          groupKeys.add(table[field].name)
-        }
-      })
-    }
-
+    const values: Record<string, any> = {}
     for (const [key, value] of Object.entries(row)) {
-      if (groupKeys.has(key)) {
-        group[key] = value
-      } else {
-        aggregateValues[key] = value
-      }
+      if (groupKeys.has(key)) group[key] = value
+      else values[key] = value
     }
-
-    return {
-      ...(Object.keys(group).length > 0 ? { group } : {}),
-      ...aggregateValues,
-    }
+    return { ...(Object.keys(group).length ? { group } : {}), ...values }
   })
 
-  return {
-    data: transformedResults,
-    meta: {
-      total: results.length,
-    },
-  }
+  return { data: serializeResponse(data), meta: { total: data.length } }
 }

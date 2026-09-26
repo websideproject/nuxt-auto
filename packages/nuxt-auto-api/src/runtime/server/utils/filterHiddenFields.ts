@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nitropack/runtime'
 import type { HandlerContext } from '../../types'
 
 /**
@@ -7,7 +8,7 @@ import type { HandlerContext } from '../../types'
  */
 export function getHiddenFields(context: HandlerContext, includeAllResources = true): string[] {
   const hiddenFields = new Set<string>()
-  const runtimeConfig = useRuntimeConfig?.()
+  const runtimeConfig: any = context.runtimeConfig ?? useRuntimeConfig?.()
 
   // Global hidden fields (from config)
   const globalFields = runtimeConfig?.autoApi?.hiddenFields?.global
@@ -67,7 +68,7 @@ function isPlainObject(value: any): boolean {
 function filterObjectHiddenFields(
   obj: Record<string, any>,
   hiddenFields: string[],
-  recursive: boolean = true
+  recursive: boolean = true,
 ): Record<string, any> {
   if (!obj || typeof obj !== 'object') {
     return obj
@@ -87,16 +88,19 @@ function filterObjectHiddenFields(
         filtered[key] = value.map(item =>
           isPlainObject(item)
             ? filterObjectHiddenFields(item, hiddenFields, recursive)
-            : item
+            : item,
         )
-      } else if (isPlainObject(value)) {
+      }
+      else if (isPlainObject(value)) {
         // Only recursively filter plain objects, not Date, RegExp, etc.
         filtered[key] = filterObjectHiddenFields(value, hiddenFields, recursive)
-      } else {
+      }
+      else {
         // Preserve special object types (Date, RegExp, etc.) as-is
         filtered[key] = value
       }
-    } else {
+    }
+    else {
       filtered[key] = value
     }
   }
@@ -111,7 +115,7 @@ function filterObjectHiddenFields(
 export function filterHiddenFields<T = any>(
   data: T | T[],
   context: HandlerContext,
-  recursive: boolean = true
+  recursive: boolean = true,
 ): T | T[] {
   const hiddenFields = getHiddenFields(context)
 
@@ -123,7 +127,7 @@ export function filterHiddenFields<T = any>(
   // Handle array of results
   if (Array.isArray(data)) {
     return data.map(item =>
-      filterObjectHiddenFields(item as any, hiddenFields, recursive)
+      filterObjectHiddenFields(item as any, hiddenFields, recursive),
     ) as T[]
   }
 

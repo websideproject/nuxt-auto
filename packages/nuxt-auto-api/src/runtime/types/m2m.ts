@@ -41,7 +41,8 @@ export interface M2MRelationConfig {
  */
 export interface M2MPermissionConfig {
   /**
-   * Resources that require update permission (not just read) on the related resource
+   * Relations that require `update` (not just `read`) on the related resource to link or unlink.
+   * Keyed by relation name — the `:relation` route segment, which is the related resource's registered name.
    * Example: ['categories'] means linking categories requires update permission on categories
    */
   requireUpdateOnRelated?: string[]
@@ -53,7 +54,7 @@ export interface M2MPermissionConfig {
   requireUpdateToLink?: boolean
 
   /**
-   * Custom permission checks per relation
+   * Custom permission checks per relation, keyed by relation name (the same key as `requireUpdateOnRelated`).
    */
   relations?: Record<string, {
     /**
@@ -168,7 +169,7 @@ export interface M2MPermissionContext {
  * M2M permission check function
  */
 export type M2MPermissionFunction = (
-  context: M2MPermissionContext
+  context: M2MPermissionContext,
 ) => boolean | Promise<boolean>
 
 /**

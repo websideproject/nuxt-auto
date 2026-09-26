@@ -32,7 +32,9 @@
       <!-- Trigger Error Demo -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Invalid Relation Example</h2>
+          <h2 class="text-xl font-semibold">
+            Invalid Relation Example
+          </h2>
         </template>
 
         <div class="space-y-4">
@@ -41,15 +43,18 @@
           </p>
 
           <UButton
-            @click="triggerInvalidRelation"
             :loading="invalidLoading"
             icon="i-heroicons-exclamation-triangle"
             color="error"
+            @click="triggerInvalidRelation"
           >
             Request Invalid Relation
           </UButton>
 
-          <div v-if="invalidError" class="space-y-3">
+          <div
+            v-if="invalidError"
+            class="space-y-3"
+          >
             <UAlert
               icon="i-heroicons-exclamation-circle"
               color="error"
@@ -59,7 +64,9 @@
               <template #description>
                 <div class="space-y-2">
                   <p>{{ invalidError.message }}</p>
-                  <p class="text-xs">Status Code: {{ invalidError.statusCode }}</p>
+                  <p class="text-xs">
+                    Status Code: {{ invalidError.statusCode }}
+                  </p>
                 </div>
               </template>
             </UAlert>
@@ -79,8 +86,13 @@
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-x-circle" class="text-red-500" />
-              <h3 class="font-semibold">Incorrect</h3>
+              <UIcon
+                name="i-heroicons-x-circle"
+                class="text-red-500"
+              />
+              <h3 class="font-semibold">
+                Incorrect
+              </h3>
             </div>
           </template>
 
@@ -107,8 +119,13 @@
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-check-circle" class="text-green-500" />
-              <h3 class="font-semibold">Correct</h3>
+              <UIcon
+                name="i-heroicons-check-circle"
+                class="text-green-500"
+              />
+              <h3 class="font-semibold">
+                Correct
+              </h3>
             </div>
           </template>
 
@@ -136,7 +153,9 @@
       <!-- Try It Yourself -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">Try It Yourself</h2>
+          <h2 class="text-xl font-semibold">
+            Try It Yourself
+          </h2>
         </template>
 
         <div class="space-y-4">
@@ -152,10 +171,10 @@
               @keyup.enter="testRelationQuery"
             />
             <UButton
-              @click="testRelationQuery"
               :loading="testLoading"
               icon="i-heroicons-play"
               color="green"
+              @click="testRelationQuery"
             >
               Test
             </UButton>
@@ -171,7 +190,10 @@
               :description="`The '${testRelation}' relation exists and returned ${testResult.count} records.`"
             />
 
-            <div v-else class="space-y-3">
+            <div
+              v-else
+              class="space-y-3"
+            >
               <UAlert
                 icon="i-heroicons-exclamation-circle"
                 color="error"
@@ -181,7 +203,9 @@
               />
 
               <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                <p class="text-sm font-medium mb-2">Full Error Response:</p>
+                <p class="text-sm font-medium mb-2">
+                  Full Error Response:
+                </p>
                 <ApiResponse :data="testResult.fullError" />
               </div>
             </div>
@@ -192,12 +216,16 @@
       <!-- How to Fix Guide -->
       <UCard>
         <template #header>
-          <h2 class="text-xl font-semibold">How to Fix Relation Errors</h2>
+          <h2 class="text-xl font-semibold">
+            How to Fix Relation Errors
+          </h2>
         </template>
 
         <div class="space-y-4">
           <div>
-            <h3 class="font-medium mb-2">Step 1: Define the relation in your schema</h3>
+            <h3 class="font-medium mb-2">
+              Step 1: Define the relation in your schema
+            </h3>
             <CodeBlock
               :code="fixStep1"
               language="typescript"
@@ -205,7 +233,9 @@
           </div>
 
           <div>
-            <h3 class="font-medium mb-2">Step 2: Configure it in nuxt.config.ts</h3>
+            <h3 class="font-medium mb-2">
+              Step 2: Configure it in nuxt.config.ts
+            </h3>
             <CodeBlock
               :code="fixStep2"
               language="typescript"
@@ -213,7 +243,9 @@
           </div>
 
           <div>
-            <h3 class="font-medium mb-2">Step 3: Use it in your queries</h3>
+            <h3 class="font-medium mb-2">
+              Step 3: Use it in your queries
+            </h3>
             <CodeBlock
               :code="fixStep3"
               language="typescript"
@@ -235,11 +267,11 @@
 
 <script setup lang="ts">
 const invalidLoading = ref(false)
-const invalidError = ref<any>(null)
+const invalidError = ref<{ message: string, statusCode: number, data: unknown } | null>(null)
 
 const testRelation = ref('')
 const testLoading = ref(false)
-const testResult = ref<any>(null)
+const testResult = ref<{ success: boolean, count?: number, error?: string, fullError?: unknown } | null>(null)
 
 const triggerInvalidRelation = async () => {
   invalidLoading.value = true
@@ -247,11 +279,12 @@ const triggerInvalidRelation = async () => {
 
   try {
     await $fetch('/api/posts?include=nonexistent')
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }, message?: string, statusCode?: number }
     invalidError.value = {
-      message: err.data?.message || err.message || 'Unknown error',
-      statusCode: err.statusCode || 500,
-      data: err.data
+      message: e.data?.message || e.message || 'Unknown error',
+      statusCode: e.statusCode || 500,
+      data: (e as { data?: unknown }).data
     }
   } finally {
     invalidLoading.value = false
@@ -270,11 +303,12 @@ const testRelationQuery = async () => {
       success: true,
       count: result.data?.length || 0
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }, message?: string }
     testResult.value = {
       success: false,
-      error: err.data?.message || err.message || 'Unknown error',
-      fullError: err.data || err
+      error: e.data?.message || e.message || 'Unknown error',
+      fullError: (e as { data?: unknown }).data || e
     }
   } finally {
     testLoading.value = false

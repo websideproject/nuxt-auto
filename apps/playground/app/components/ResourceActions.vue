@@ -51,11 +51,11 @@ interface Props {
   showDelete?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   itemId: undefined,
   showCreate: false,
   showEdit: false,
-  showDelete: false,
+  showDelete: false
 })
 
 const emit = defineEmits<{

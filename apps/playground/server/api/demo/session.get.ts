@@ -12,20 +12,20 @@ const DEMO_USERS: Record<string, DemoUser> = {
     id: 1,
     name: 'Admin User',
     email: 'admin@example.com',
-    role: 'admin',
+    role: 'admin'
   },
   editor: {
     id: 2,
     name: 'Editor User',
     email: 'editor@example.com',
-    role: 'editor',
+    role: 'editor'
   },
   user: {
     id: 3,
     name: 'Regular User',
     email: 'user@example.com',
-    role: 'user',
-  },
+    role: 'user'
+  }
 }
 
 /**

@@ -1,175 +1,57 @@
-import { eq } from 'drizzle-orm'
 import { createError, readBody } from 'h3'
 import type { HandlerContext, M2MBatchSyncRequest, M2MBatchSyncResponse } from '../../../types'
-import { detectJunction, validateJunctionConfig } from '../../utils/m2m/detectJunction'
-import { validateResourceExists, validateBatchSize, validateMetadata, sanitizeIds } from '../../utils/m2m/validateM2M'
-import { buildM2MPermissionContext, checkM2MPermissions } from '../../utils/m2m/permissions'
 import { executeBatchM2MWithChunking, getCurrentRelations, calculateDiff } from '../../utils/m2m/batchOperations'
+import { executeHook } from '../../utils/executeHooks'
+import { getDatabaseAdapter } from '../../database'
+import { alignMetadata, authorizeRelatedIds, m2mPrelude, runCustomM2MCheck, validateM2MMetadata } from './shared'
 
 /**
- * Batch sync multiple M2M relations in a single transaction
- * POST /api/{resource}/{id}/relations/batch
+ * POST /api/{resource}/:id/relations/batch  `{ relations: { tags: { ids, metadata? }, … } }` — sync several
+ * relations at once. Every relation is authorized before anything is written; the writes run in one
+ * transaction where the database supports it.
  */
 export async function m2mBatchHandler(context: HandlerContext): Promise<M2MBatchSyncResponse> {
-  const { db, schema, params, event, resource } = context
+  const body = context.validated?.body ?? await readBody(context.event) as M2MBatchSyncRequest
+  if (!body || typeof body !== 'object' || !body.relations || typeof body.relations !== 'object' || Array.isArray(body.relations)) {
+    throw createError({ statusCode: 400, message: 'Request body must include a "relations" object' })
+  }
+  const entries = Object.entries(body.relations) as Array<[string, { ids: Array<string | number>, metadata?: Array<Record<string, any>> } | undefined]>
+  if (entries.length === 0) throw createError({ statusCode: 400, message: 'relations must be a non-empty object' })
 
-  // Get parameters
-  const leftId = params.id
-
-  if (!leftId) {
-    throw createError({
-      statusCode: 400,
-      message: 'Resource ID is required',
-    })
+  const plans: Array<{ side: Awaited<ReturnType<typeof m2mPrelude>>, ids: Array<string | number>, metadata?: Array<Record<string, any>> }> = []
+  for (const [relation, data] of entries) {
+    if (!data || !Array.isArray(data.ids)) throw createError({ statusCode: 400, message: `relations.${relation}.ids must be an array` })
+    const side = await m2mPrelude(context, 'sync', relation)
+    validateM2MMetadata(data.metadata, side)
+    const { ids, records } = await authorizeRelatedIds(context, side, data.ids)
+    const metadata = alignMetadata(data.ids, data.metadata, ids)
+    await runCustomM2MCheck(context, side, 'sync', ids, records, metadata)
+    const hookIds = await executeHook('beforeM2MSync', context, relation, ids, context)
+    plans.push({ side, ids: Array.isArray(hookIds) ? hookIds : ids, metadata })
   }
 
-  // Parse and validate request body
-  const body = await readBody(event) as M2MBatchSyncRequest
-
-  if (!body || typeof body !== 'object' || !body.relations) {
-    throw createError({
-      statusCode: 400,
-      message: 'Request body must include "relations" object',
-    })
-  }
-
-  const { relations } = body
-
-  if (typeof relations !== 'object' || Object.keys(relations).length === 0) {
-    throw createError({
-      statusCode: 400,
-      message: 'relations must be a non-empty object',
-    })
-  }
-
-  // Validate each relation
-  for (const [relationName, relationData] of Object.entries(relations)) {
-    if (!Array.isArray(relationData.ids)) {
-      throw createError({
-        statusCode: 400,
-        message: `relations.${relationName}.ids must be an array`,
-      })
-    }
-
-    validateResourceExists(schema, relationName)
-
-    if (relationData.ids.length > 0) {
-      validateBatchSize(relationData.ids)
+  const results: M2MBatchSyncResponse['results'] = {}
+  const apply = async (db: any) => {
+    for (const { side, ids, metadata } of plans) {
+      const current = await getCurrentRelations(db, side.junction, side.leftId)
+      const { toAdd, toRemove } = calculateDiff(current, ids)
+      const addMetadata = metadata ? toAdd.map(id => metadata[ids.findIndex((d: string | number) => String(d) === String(id))] ?? {}) : undefined
+      const r = await executeBatchM2MWithChunking(db, side.junction, side.leftId, { toAdd, toRemove, metadata: addMetadata })
+      results[side.relation] = { added: r.added, removed: r.removed, total: ids.length }
     }
   }
 
-  const parsedLeftId = /^\d+$/.test(leftId) ? parseInt(leftId, 10) : leftId
-
-  // Verify left record exists
-  const leftTable = schema[resource]
-  const [leftRecord] = await db
-    .select()
-    .from(leftTable)
-    .where(eq(leftTable.id, parsedLeftId))
-    .limit(1)
-
-  if (!leftRecord) {
-    throw createError({
-      statusCode: 404,
-      message: `${resource} with id ${leftId} not found`,
-    })
-  }
-
-  // Execute all operations in a single transaction
-  const result = await db.transaction(async (tx: any) => {
-    const results: M2MBatchSyncResponse['results'] = {}
-
-    for (const [relationName, relationData] of Object.entries(relations)) {
-      try {
-        // Detect junction table
-        const junction = detectJunction(schema, resource, relationName)
-        validateJunctionConfig(junction, schema)
-
-        // Validate metadata if provided
-        if (relationData.metadata) {
-          validateMetadata(relationData.metadata, junction)
-        }
-
-        // Sanitize IDs
-        const sanitizedIds = sanitizeIds(relationData.ids)
-
-        // Verify related records exist (if IDs provided)
-        if (sanitizedIds.length > 0) {
-          const relatedTable = schema[relationName]
-          const { inArray } = await import('drizzle-orm')
-          const rightRecords = await tx
-            .select()
-            .from(relatedTable)
-            .where(inArray(relatedTable.id, sanitizedIds))
-
-          if (rightRecords.length !== sanitizedIds.length) {
-            const foundIds = rightRecords.map((r: any) => r.id)
-            const missingIds = sanitizedIds.filter(id => !foundIds.includes(id))
-            throw createError({
-              statusCode: 404,
-              message: `Some ${relationName} not found: ${missingIds.join(', ')}`,
-            })
-          }
-
-          // Check M2M permissions for this relation
-          const permissionContext = buildM2MPermissionContext(context, {
-            relation: relationName,
-            relationResource: relationName,
-            ids: sanitizedIds,
-            metadata: relationData.metadata,
-            junction: {
-              tableName: junction.tableName,
-              leftKey: junction.leftKey,
-              rightKey: junction.rightKey,
-            },
-            leftRecord,
-            rightRecords,
-            operation: 'sync',
-          })
-
-          await checkM2MPermissions(permissionContext)
-        }
-
-        // Get current relations and calculate diff
-        const currentIds = await getCurrentRelations(tx, junction, parsedLeftId)
-        const { toAdd, toRemove } = calculateDiff(currentIds, sanitizedIds)
-
-        // Execute batch operation (use tx instead of db)
-        const opResult = await executeBatchM2MWithChunking(
-          tx,
-          junction,
-          parsedLeftId,
-          {
-            toAdd,
-            toRemove,
-            metadata: relationData.metadata,
-          }
-        )
-
-        results[relationName] = {
-          added: opResult.added,
-          removed: opResult.removed,
-          total: opResult.total,
-        }
-      } catch (error: any) {
-        // Store error for this relation
-        results[relationName] = {
-          added: 0,
-          removed: 0,
-          total: 0,
-          error: error.message || 'Unknown error',
-        }
-
-        // Re-throw to rollback transaction
-        throw error
-      }
+  const adapter = context.adapter ?? (() => {
+    try {
+      return getDatabaseAdapter()
     }
+    catch {
+      return undefined
+    }
+  })()
+  if (adapter) await adapter.atomic(({ tx }: any) => apply(tx))
+  else await apply(context.db)
 
-    return results
-  })
-
-  return {
-    success: true,
-    results: result,
-  }
+  for (const { side } of plans) await executeHook('afterM2MSync', context, side.relation, results[side.relation], context)
+  return { success: true, results }
 }

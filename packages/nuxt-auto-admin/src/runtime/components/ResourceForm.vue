@@ -1,11 +1,20 @@
 <template>
   <div>
-    <div v-if="isLoadingResource || (mode === 'edit' && isLoadingData)" class="flex items-center justify-center p-8">
-      <UIcon name="i-heroicons-arrow-path" class="animate-spin h-6 w-6" />
+    <div
+      v-if="isLoadingResource || (mode === 'edit' && isLoadingData)"
+      class="flex items-center justify-center p-8"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="animate-spin h-6 w-6"
+      />
       <span class="ml-2">Loading...</span>
     </div>
 
-    <div v-else-if="loadError" class="p-4 bg-red-50 text-red-600 rounded">
+    <div
+      v-else-if="loadError"
+      class="p-4 bg-red-50 text-red-600 rounded"
+    >
       {{ loadError }}
     </div>
 
@@ -25,10 +34,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import AutoForm from './AutoForm.vue'
-
-// Composables are auto-imported
+import { useAdminResource } from '../composables/useAdminResource'
+import { useResourceForm } from '../composables/useResourceForm'
+import { useAutoApiGet, useAutoApiCreate, useAutoApiUpdate } from '@websideproject/nuxt-auto-api/composables'
 
 const props = defineProps<{
   resourceName: string
@@ -41,11 +51,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  success: [data: any]
+  success: [data: unknown]
   cancel: []
 }>()
 
-const { resource, isLoading: isLoadingResource } = useAdminResource(props.resourceName)
+const { isLoading: isLoadingResource } = useAdminResource(props.resourceName)
 const { fields } = useResourceForm(props.resourceName, props.mode || 'create')
 
 // Load existing data for edit mode
@@ -60,8 +70,8 @@ const {
 })
 
 // Mutations
-const { mutate: createResource, isPending: isCreating } = useAutoApiCreate(props.resourceName)
-const { mutate: updateResource, isPending: isUpdating } = useAutoApiUpdate(props.resourceName)
+const { mutate: createResource } = useAutoApiCreate(props.resourceName)
+const { mutate: updateResource } = useAutoApiUpdate(props.resourceName)
 
 const initialData = computed(() => {
   if (props.mode === 'edit' && existingData.value) {
@@ -71,7 +81,7 @@ const initialData = computed(() => {
   return {}
 })
 
-function handleSubmit(data: Record<string, any>) {
+function handleSubmit(data: Record<string, unknown>) {
   if (props.mode === 'edit' && props.id) {
     updateResource(
       { id: props.id, data },
@@ -79,17 +89,18 @@ function handleSubmit(data: Record<string, any>) {
         onSuccess: (result) => {
           emit('success', result)
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
           console.error('Failed to update:', error)
         },
-      }
+      },
     )
-  } else {
+  }
+  else {
     createResource(data, {
       onSuccess: (result) => {
         emit('success', result)
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Failed to create:', error)
       },
     })

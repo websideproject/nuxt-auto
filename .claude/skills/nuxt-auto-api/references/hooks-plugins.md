@@ -2,7 +2,7 @@
 
 ## Resource Hooks
 
-Lifecycle hooks fire around every CRUD operation. Register via `autoApi.hooks` config or inside a plugin.
+Lifecycle hooks fire around every CRUD operation. Register them on the resource (`hooks: createModuleImport(...)`) or at runtime with `addResourceHook` / a plugin — never in nuxt.config.
 
 ```ts
 interface ResourceHooks {
@@ -39,28 +39,94 @@ interface ResourceHooks {
 **Return values from `after*` hooks modify the response** sent to the client.
 **Return values from `before*` hooks modify the data** passed to the operation (except void hooks).
 
-### Static hook registration (nuxt.config.ts)
+### Hook execution order
+
+```
+beforeCreate(data, ctx)
+  → db.insert(...)
+    → parseJsonColumns(created)   ← JSON columns are parsed here
+      → afterCreate(created, ctx) ← hook sees parsed values (arrays, not strings)
+        → filterHiddenFields
+          → response
+```
+
+The same order applies to `get`, `list`, and `update`.
+
+### Critical: never mutate the raw DB result
+
+D1 (and some other drivers) may return non-writable result objects. Always **spread-copy** before modifying in an `after*` hook:
 
 ```ts
-autoApi: {
-  hooks: {
-    posts: {
-      beforeCreate: async (data, ctx) => {
-        data.authorId = ctx.user!.id
-        data.slug = generateSlug(data.title)
-        return data
-      },
-      afterCreate: async (result, ctx) => {
-        await sendNotification(result.id)
-        return result
-      },
-      beforeDelete: async (id, ctx) => {
-        await cleanupPostAssets(id)
-      },
-    },
+// ✅ Safe — works with all drivers
+afterCreate: async (result, ctx) => {
+  const copy = Object.assign({}, result)
+  copy.plainKey = '...'
+  delete copy.hashedKey
+  return copy
+},
+
+// ❌ Unsafe — throws silently on D1 ("cannot delete property")
+afterCreate: async (result, ctx) => {
+  delete result.hashedKey   // TypeError swallowed by errorHandling:'log'
+  return result
+},
+```
+
+### Passing data between `before*` and `after*` via `requestMeta`
+
+`ctx` is the same `HandlerContext` object throughout the pipeline. Use `ctx.requestMeta` to stash values computed in a `before*` hook so an `after*` hook can read them without a second DB call:
+
+```ts
+export const postsHooks: ResourceHooks = {
+  beforeCreate: async (data, ctx) => {
+    const plainToken = generateToken()
+    data.hashedToken = hash(plainToken)
+    ctx.requestMeta ??= {}
+    ctx.requestMeta._tokenOnce = plainToken   // stash for afterCreate
+    return data
+  },
+
+  afterCreate: async (result, ctx) => {
+    const copy = Object.assign({}, result)
+    copy.tokenOnce = ctx.requestMeta?._tokenOnce ?? null
+    if (ctx.requestMeta) delete ctx.requestMeta._tokenOnce
+    delete copy.hashedToken
+    return copy
   },
 }
 ```
+
+### After-hook error handling
+
+`after*` hooks default to `errorHandling: 'log'` — errors are **silently swallowed** and the original unmodified record is returned. If an `after*` hook appears to not run, it is likely throwing. Check server logs. Set `autoApi.hookConfig.errorHandling: 'throw'` during development to surface them.
+
+### Runtime hook registration (Nitro plugin)
+
+`autoApi.hooks` in nuxt.config was removed (functions never survive runtimeConfig serialization; setting it fails
+the build). Register on the resource (`hooks: createModuleImport(...)`) or at runtime:
+
+```ts
+// server/plugins/post-hooks.ts
+import { addResourceHook } from '@websideproject/nuxt-auto-api/plugins'
+
+export default defineNitroPlugin(() => {
+  addResourceHook('posts', {
+    beforeCreate: async (data, ctx) => {
+      data.slug = generateSlug(data.title)
+      return data
+    },
+    afterCreate: async (result) => {
+      await sendNotification(result.id)
+    },
+    beforeDelete: async (id) => {
+      await cleanupPostAssets(id)
+    },
+  })
+})
+```
+
+Plugin hooks run before the resource's registered hooks. A hook that throws `createError({ statusCode: 409 })`
+answers 409.
 
 ### Via module registration
 
@@ -95,6 +161,10 @@ const MyPlugin = defineAutoApiPlugin({
 
   // Runtime: add middleware, hooks, context extensions
   runtimeSetup?: async (ctx: PluginRuntimeContext) => {
+    // ctx.runtimeConfig is the full Nitro runtimeConfig — use it instead of
+    // calling useRuntimeConfig() directly (see External Package Plugins below).
+    const myOption = ctx.runtimeConfig.public?.myModule?.option
+
     // Add middleware for specific resources/operations
     ctx.addMiddleware({
       name: 'my-middleware',
@@ -121,7 +191,7 @@ const MyPlugin = defineAutoApiPlugin({
       },
     })
 
-    // Extend HandlerContext with custom data
+    // Extend HandlerContext with custom data on every request
     ctx.extendContext(async (handlerCtx) => {
       const featureFlags = await getFeatureFlags(handlerCtx.event)
       handlerCtx.requestMeta = { ...handlerCtx.requestMeta, featureFlags }
@@ -138,6 +208,124 @@ autoApi: {
   // or plugin directory:
   // plugins: './server/plugins/auto-api',
 }
+```
+
+---
+
+## Built-in backends: rate-limit & cache (pluggable stores)
+
+`createRateLimitPlugin` and `createCachePlugin` keep state in process memory by default
+(`InMemoryRateLimitStore` / `InMemoryCacheStore`). **On Cloudflare Workers each isolate has its
+own memory** → rate limits leak and cache hit-rate is poor. Inject a shared backend instead.
+
+```ts
+// counter store (full X-RateLimit-* headers)
+interface RateLimitStore { increment(key, windowMs): Promise<{ count, resetAt }>, reset?(key): Promise<void> }
+// decision limiter — shape == Cloudflare RateLimit binding, pass env.RATE_LIMITER straight through
+interface RateLimitLimiter { limit(args: { key: string }): Promise<{ success: boolean }> }
+interface CacheStore { get(key), set(key, value, ttlMs), deleteByPrefix(prefix) }   // all async
+```
+
+```ts
+// Rate limit on Cloudflare — native binding, plan-aware via billing context.
+// limiter runs pre-auth, AFTER auth/billing extenders → ctx.requestMeta.billing is set.
+createRateLimitPlugin({
+  byUser: true,
+  limiter: (ctx) => {
+    const env = ctx.event.context.cloudflare?.env
+    const paid = ctx.requestMeta?.billing?.isActive || ctx.requestMeta?.billing?.isTrialing
+    return paid ? env?.PAID_USER_RATE_LIMITER : env?.FREE_USER_RATE_LIMITER
+  },
+})
+```
+
+Notes: `limiter` takes precedence over `store`; CF binding returns only `{ success }` so headers are
+best-effort (`X-RateLimit-Limit` + `Retry-After`). `failOpen` defaults `true`. `byIp` prefers
+`CF-Connecting-IP`. Cache keys for tenant-scoped resources must include the auth scope (`keyGenerator`)
+or only cache public read-mostly resources. `limiter`/`keyGenerator`/`store` are **functions** → wire
+them in `server/autoapi-plugins.ts` (build-time), not serializable `nuxt.config`. See the Rate Limiting
+and Plugin Catalog docs for stores (KV/Redis) and `wrangler.toml` setup.
+
+---
+
+## User-Land Plugin File (`server/autoapi-plugins.ts`)
+
+For app-level plugins that need Nitro auto-imports (e.g. `useRuntimeConfig`, `getCurrentSession`), export an array of plugins from a file inside the Nitro scan directory:
+
+```ts
+// apps/my-app/server/autoapi-plugins.ts
+import { defineAutoApiPlugin } from '@websideproject/nuxt-auto-api/plugins'
+
+const authPlugin = defineAutoApiPlugin({
+  name: 'better-auth',
+  runtimeSetup(ctx) {
+    ctx.extendContext(async (handlerCtx) => {
+      if (handlerCtx.user) return
+      const session = await getCurrentSession(handlerCtx.event)  // Nitro auto-import
+      if (!session?.user) return
+      handlerCtx.user = {
+        id: session.user.id,
+        email: session.user.email,
+        roles: session.user.role ? [session.user.role] : [],
+        permissions: session.user.permissions ?? [],
+        organizationId: session.session?.activeOrganizationId ?? null,
+      } as any
+    })
+  },
+})
+
+export default [authPlugin]
+```
+
+The generated virtual module `#nuxt-auto-api-plugins` imports this file. Because the file lives in `server/`, Nitro auto-imports (`getCurrentSession`, `useRuntimeConfig`, etc.) are available.
+
+---
+
+## External Package Plugins
+
+Plugins shipped inside npm/workspace packages **cannot use Nitro virtual modules** (`#imports`, `#nitro-utils`) or auto-imports — they are resolved via standard ESM outside Nitro's transform pass.
+
+**Rules for external package plugins:**
+
+1. **Use `ctx.runtimeConfig` instead of `useRuntimeConfig()`** — `initPlugins.ts` reads `useRuntimeConfig()` (via `#imports` in the built dist) and passes it to every plugin's `runtimeSetup`. Read config from `ctx.runtimeConfig`.
+
+2. **Use explicit package imports** for everything else — no auto-imports.
+
+```ts
+// packages/my-module/runtime/auto-api-plugins/my-plugin.ts
+import { defineAutoApiPlugin } from '@websideproject/nuxt-auto-api/plugins'
+import { getDatabaseAdapter } from '@websideproject/nuxt-auto-api/database'
+import { eq } from 'drizzle-orm'
+import { myTable } from '@my-package/schema'         // explicit package import
+import type { MyType } from '@my-package/types'      // explicit package import
+
+export default defineAutoApiPlugin({
+  name: 'my-plugin',
+  runtimeSetup(ctx) {
+    // ✅ Read config from ctx.runtimeConfig — not useRuntimeConfig()
+    const myConfig = (ctx.runtimeConfig.public as any)?.myModule ?? {}
+
+    ctx.extendContext(async (handlerCtx) => {
+      const { db } = getDatabaseAdapter()            // ✅ explicit import
+      const user = handlerCtx.user as any
+      if (!user?.id) return
+
+      const row = await db.select().from(myTable)
+        .where(eq(myTable.userId, user.id))
+        .limit(1)
+        .then((rows: any[]) => rows[0] ?? null)
+
+      handlerCtx.requestMeta = { ...handlerCtx.requestMeta, myData: row }
+    })
+  },
+})
+```
+
+Then import it in the app's `server/autoapi-plugins.ts`:
+
+```ts
+import myPlugin from '@my-package/runtime/auto-api-plugins/my-plugin'
+export default [authPlugin, myPlugin]
 ```
 
 ---
@@ -193,7 +381,7 @@ interface PluginRuntimeContext {
   addHook: (resource: string, hooks: ResourceHooks) => void
   addGlobalHook: (hooks: ResourceHooks) => void
   extendContext: (fn: (ctx: HandlerContext) => void|Promise<void>) => void
-  runtimeConfig: any
+  runtimeConfig: any    // Full Nitro runtimeConfig — use this instead of useRuntimeConfig()
   logger: PluginLogger
 }
 ```

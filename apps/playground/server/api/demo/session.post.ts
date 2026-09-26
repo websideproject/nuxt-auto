@@ -12,20 +12,20 @@ const DEMO_USERS: Record<string, DemoUser> = {
     id: 1,
     name: 'Admin User',
     email: 'admin@example.com',
-    role: 'admin',
+    role: 'admin'
   },
   editor: {
     id: 2,
     name: 'Editor User',
     email: 'editor@example.com',
-    role: 'editor',
+    role: 'editor'
   },
   user: {
     id: 3,
     name: 'Regular User',
     email: 'user@example.com',
-    role: 'user',
-  },
+    role: 'user'
+  }
 }
 
 /**
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     // Clear the session
     setCookie(event, 'demo-session', '', {
       maxAge: 0,
-      path: '/',
+      path: '/'
     })
     return { user: null }
   }
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
   if (!user) {
     throw createError({
       statusCode: 400,
-      message: `Invalid role: ${body.role}`,
+      message: `Invalid role: ${body.role}`
     })
   }
 
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
     httpOnly: false, // Allow client-side access for demo purposes
-    sameSite: 'lax',
+    sameSite: 'lax'
   })
 
   return { user }

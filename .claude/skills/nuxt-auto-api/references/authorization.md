@@ -1,6 +1,55 @@
 # Authorization
 
-Authorization is configured per-resource via `autoApi.authorization` in `nuxt.config.ts` or via the `authorization` field in `registry.register()`.
+Authorization is configured per-resource via the `authorization` field in `registry.register()` (the build-time path) or via `autoApi.authorization` in `nuxt.config.ts` (the override path).
+
+> **⚠️ Functions vs strings — this distinction is load-bearing.**
+> `autoApi.authorization` in `nuxt.config.ts` is assigned into **`runtimeConfig`** by the module, which Nuxt serializes — so **only `string` / `string[]` permission rules survive there**. `PermissionFunction`s, `listFilter`, and `objectLevel` are **silently dropped** from the config-object form and kept from the resource's build-time default.
+>
+> **Functions are only honored when declared at build time:** in a module's `auth.ts` passed to `registry.register({ authorization })`, or in an app-level build-time authorization file (string-path form of the option, where supported). The config-object form is for **string/array overrides only**.
+>
+> All the function-based examples below (`(ctx) => …`, `objectLevel`, `listFilter`) therefore belong in a **build-time `auth.ts`** (see "Authorization from Module Registration"), **not** in a `nuxt.config.ts` `authorization: { … }` object.
+
+---
+
+## Wiring the caller (better-auth)
+
+auto-api authenticates nobody: a context extender sets `ctx.user` / `ctx.permissions`. With better-auth:
+
+```ts
+// server/autoapi-plugins.ts   (nuxt.config: autoApi.plugins: '~/server/autoapi-plugins')
+import { createBetterAuthPlugin } from '@websideproject/nuxt-auto-api/plugins'
+export default [
+  createBetterAuthPlugin({
+    getSession: event => serverAuth().api.getSession({ headers: event.headers }),
+    // both receive (user, session) — the org plugin's activeOrganizationId is on the SESSION
+    mapUser: (u, s) => ({ id: u.id, email: u.email, roles: [u.role], orgRole: u.orgRole, organizationId: s?.activeOrganizationId ?? null }),
+    getPermissions: u => ROLE_PERMISSIONS[u.role] ?? [],   // permission STRINGS match ctx.permissions
+  }),
+]
+```
+
+Default (no mapUser): `{ id, email, roles, permissions, organizationId: session.activeOrganizationId }`. A custom
+`mapUser` MUST copy `organizationId` or every tenant-scoped request is 403. Member role (`owner/admin/member`) is on
+better-auth's `member` row: `auth.api.getActiveMember({ headers })` per request, or cache a `{orgId: role}` map on
+the user (`additionalFields`) and read it in `mapUser` (zero queries).
+
+## Declarative policies (permission objects)
+
+A permission may be a plain object; a registered evaluator decides it (return `undefined` = "not mine"; unclaimed =
+DENIED). Same object can drive server, `/api/permissions` and UI:
+
+```ts
+// server/plugins/policy.ts
+import { registerPermissionEvaluator } from '@websideproject/nuxt-auto-api/plugins'
+export default defineNitroPlugin(() => {
+  registerPermissionEvaluator((value, ctx) => isPolicy(value) ? evaluatePolicy(value, factsFrom(ctx)) : undefined)
+})
+// auth.ts:  create: { orgRoles: ['owner', 'admin'], feature: 'reports' }
+```
+
+Plan gating: load the subscription in a context extender into `ctx.requestMeta.billing` (features, limits); gate with
+`create: ctx => ctx.requestMeta?.billing?.features.includes('x')`; quotas in a `beforeCreate` hook that counts rows and
+throws `createError({ statusCode: 402, data: { reason: 'quota' } })` (a hook's status is kept).
 
 ---
 
@@ -50,7 +99,7 @@ interface HandlerContext {
   schema: any                     // Drizzle schema (table exports)
   fullSchema?: any                // Full schema including relations
   user: AuthUser | null           // Current authenticated user (null if unauthenticated)
-  permissions: string[]           // User's permission strings
+  permissions: string[]           // User's global permission strings (from session.user.permissions)
   params: Record<string, string>  // Route params (e.g. { id: '123' })
   query: Record<string, any>      // Query string params
   validated: { body?: any; query?: any }  // Zod-validated request data
@@ -58,26 +107,107 @@ interface HandlerContext {
   resource: string                // Resource name (e.g. 'posts')
   operation: 'list' | 'get' | 'create' | 'update' | 'delete' | 'bulk' | 'aggregate' | 'm2m'
   tenant?: { id: string|number; field: string; canAccessAllTenants: boolean }
-  requestMeta?: {
-    ip?: string; country?: string; userAgent?: string; [key: string]: any
-  }
   additionalFilters?: SQL[]       // Push extra SQL conditions here (in hooks/plugins)
+  requestMeta?: {
+    ip?: string; country?: string; userAgent?: string
+    // Extended by context extender plugins — see requestMeta Extensions below
+    [key: string]: any
+  }
 }
 
 interface AuthUser {
   id: string | number
   email?: string
-  roles?: string[]
-  permissions?: string[]
+  roles?: string[]               // global user roles
+  permissions?: string[]         // global user permissions
+  organizationId?: string | null // active org ID (set by auth plugin from session)
   [key: string]: any
 }
 ```
 
 ---
 
+## `requestMeta` Extensions
+
+Context extender plugins populate `requestMeta` with domain-specific data once per request, making it available to all permission functions without extra DB calls per resource.
+
+### Billing context (`requestMeta.billing`)
+
+Set by `@websideproject/module-auto-billing`'s `billing-context` plugin. Reflects the **active org's subscription** when `user.organizationId` is set, otherwise the user's personal subscription.
+
+```ts
+// In resource auth.ts — no imports needed
+const billing = (ctx: any) => ctx.requestMeta?.billing as {
+  status: string
+  planId: string | null
+  isActive: boolean
+  isTrialing: boolean
+  isPastDue: boolean
+  features: string[]
+  trialEndsAt: Date | null
+} | undefined
+
+// Gate on active/trialing subscription
+create: (ctx) => billing(ctx)?.isActive || billing(ctx)?.isTrialing
+
+// Gate on a specific feature flag from the plan config
+create: (ctx) => billing(ctx)?.features.includes('api_access') ?? false
+```
+
+### Org member role (`requestMeta.orgRole`)
+
+Set by the auth context-extender plugin (in `server/autoapi-plugins.ts`). Resolved from the **`orgMemberRoles` map** on the session user — a `{ [orgId]: role }` JSON object cached in the session cookie — indexed by the session's `activeOrganizationId`. **Zero DB queries per request** (it's read from the cookie cache, not `auth_members`). Is `null` when no active org is set in the session.
+
+```ts
+// Equivalent of what the plugin does:
+//   const map = JSON.parse(session.user.orgMemberRoles ?? '{}')   // all orgs → role
+//   ctx.requestMeta.orgRole = map[session.activeOrganizationId] ?? null   // active org only
+
+const orgRole = (ctx: any) => ctx.requestMeta?.orgRole as
+  'owner' | 'admin' | 'member' | null
+
+// Only org owners and admins can create when inside an org context
+create: (ctx) => {
+  if (!ctx.user) return false
+  const role = orgRole(ctx)
+  if (role !== null) return role === 'owner' || role === 'admin'
+  return true  // no active org — fall through to personal auth
+}
+```
+
+> `requestMeta.orgRole` is the role for the **active** org only. To gate an action on a *different* org than the active one (e.g. an explicit `?orgId=`), re-resolve from the full map: `JSON.parse(ctx.user.orgMemberRoles)[targetOrgId]` — don't assume "admin anywhere" means "admin here." The role string may be comma-separated for multi-role members (`"admin,member"`).
+
+### Combining billing + org role
+
+```ts
+// Pro plan AND org admin required
+create: (ctx) => {
+  const b = billing(ctx)
+  const role = orgRole(ctx)
+  return (b?.isActive || b?.isTrialing) && (role === 'owner' || role === 'admin')
+}
+```
+
+### Plugin execution order
+
+The standard plugin chain in `server/autoapi-plugins.ts`:
+
+```
+auth plugin          →  sets ctx.user + ctx.user.organizationId
+org-role plugin      →  queries auth_members → sets ctx.requestMeta.orgRole
+billing-context      →  queries billing_subscriptions → sets ctx.requestMeta.billing
+resource permission  →  receives fully enriched ctx
+```
+
+All three run once per request before any permission function is called.
+
+---
+
 ## Examples
 
-### Role-based (string match)
+> The `authorization: { posts: { … } }` shape below is shown for brevity. **String/array** rules work in either the build-time `auth.ts` or the `nuxt.config.ts` override. **Function** rules (`(ctx) => …`), `objectLevel`, and `listFilter` only work in a build-time `auth.ts` (see "Authorization from Module Registration") — never in the `nuxt.config.ts` config object.
+
+### Role-based (string match) — works in config override OR build-time
 
 ```ts
 authorization: {
@@ -92,33 +222,51 @@ authorization: {
 }
 ```
 
-### Function-based (custom logic)
+### Function-based (custom logic) — **build-time `auth.ts` only**
 
 ```ts
-authorization: {
-  posts: {
-    permissions: {
-      read: (ctx) => ctx.user !== null,      // must be authenticated
-      create: (ctx) => ctx.user?.roles?.includes('editor'),
-      update: async (ctx) => {
-        // Check subscription tier from DB
-        const user = await getUserWithPlan(ctx.db, ctx.user!.id)
-        return user.plan === 'pro'
-      },
+// auth.ts → registry.register({ authorization }). NOT valid in nuxt.config (serialized away).
+export const postsAuth: ResourceAuthConfig = {
+  permissions: {
+    read: (ctx) => ctx.user !== null,
+    create: (ctx) => ctx.user?.roles?.includes('editor'),
+    update: async (ctx) => {
+      const user = await getUserWithPlan(ctx.db, ctx.user!.id)
+      return user.plan === 'pro'
     },
   },
 }
 ```
 
+### Soft-delete permissions (restore / purge / viewDeleted)
+
+First-class permission keys for soft-deletable resources (same value types as read/create/update/delete;
+entitlement-gate objects work too). Optional typed `softDelete{}` block is the alternative home + holds
+`cascade`/`retentionDays`.
+
+```ts
+export const articlesAuth: ResourceAuthConfig = {
+  permissions: {
+    update: 'editor',
+    restore: 'editor',       // POST /:id/restore (+ batch)   — falls back: restore → softDelete.restore → update
+    purge: 'admin',          // DELETE /:id?force=true (+ batch) — purge → softDelete.purge → delete
+    viewDeleted: 'editor',   // ?includeDeleted / ?onlyDeleted  — viewDeleted → softDelete.viewDeleted → restore
+  },
+  softDelete: { restore: 'editor', purge: 'admin', viewDeleted: 'editor', cascade: 'auto', retentionDays: 30 },
+}
+```
+
+Nothing declared on the chain → **denied** (a `'*'` super-admin still passes); there is no hardcoded `admin` role. Registry-loaded `auth.ts` reads
+config from **`ctx.runtimeConfig`**, never a bare `useRuntimeConfig()` (see module-authoring).
+
 ### Object-level authorization (post-fetch)
 
-Applied per item after the list query runs. Use `listFilter` for performance when possible.
+Applied per item after the list query. Use `listFilter` for performance with large datasets.
 
 ```ts
 authorization: {
   documents: {
     objectLevel: (doc, ctx) => {
-      // Only own documents or public ones
       return doc.ownerId === ctx.user?.id || doc.visibility === 'public'
     },
   },
@@ -127,7 +275,7 @@ authorization: {
 
 ### SQL-level filter (`listFilter`) — preferred
 
-Appended to the WHERE clause — more efficient than objectLevel for large datasets.
+Appended to the WHERE clause — more efficient than objectLevel.
 
 ```ts
 import { eq, or } from 'drizzle-orm'
@@ -155,35 +303,89 @@ authorization: {
         read: (ctx) => ctx.user?.id === ctx.params.id || ctx.user?.roles?.includes('admin'),
         write: (ctx) => ctx.user?.id === ctx.params.id,
       },
-      salary: {
-        read: 'hr',    // only hr role
-        write: 'hr',
+      // Field hidden from non-subscribers — billing-context plugin must be active
+      authorEmail: {
+        read: (ctx) => billing(ctx)?.isActive || ctx.user?.roles?.includes('admin'),
+        write: () => true,
       },
     },
   },
 }
 ```
 
+**Enforcement contract** (both halves are enforced by the CRUD handlers):
+
+- `read` **filters** the field out of the response; `write` **refuses** the request with `403` naming the
+  fields, before anything is written — a body mixing an allowed field with a denied one changes nothing.
+- The write gate reads the **request body, before hooks**, so a hook's own derived writes are not gated.
+- Declaring only `read` does not restrict writing (and vice versa).
+- ⚠ The `*` permission wildcard does **not** open a field gate — `read: () => false` holds for a platform
+  admin, and `/permissions` reports exactly what is enforced.
+- ⚠ **Root resource only** — a denied column reached through `?include=` is still returned; use
+  `hiddenFields` for that.
+- `useResourceForm` in nuxt-auto-admin marks non-writable fields readonly, so generated forms never submit
+  a field the API will refuse.
+
+---
+
+## Custom Endpoint Permissions
+
+Named custom endpoints (created with `createEndpoint({ endpointName: '...' })`) can have their own permission gates declared in `ResourceAuthConfig.custom`. The app can override these from `nuxt.config.ts` using string/array values.
+
+```ts
+// auth.ts — module defaults (functions allowed here)
+export const postsAuth: ResourceAuthConfig = {
+  permissions: { ... },
+
+  custom: {
+    export: { permissions: { read: (ctx) => !!ctx.user } },
+    publish: { permissions: { update: (ctx) => ctx.user?.roles?.includes('editor') } },
+    archive: { permissions: { delete: 'admin' } },
+  },
+}
+```
+
+```ts
+// nuxt.config.ts — app override (strings/arrays only, no functions)
+autoApi: {
+  authorization: {
+    posts: {
+      custom: {
+        export: { permissions: { read: 'admin' } },   // tighten to admin-only
+      },
+    },
+  },
+}
+```
+
+Permission key is inferred from `operation` (`'get'`/`'list'` → `'read'`, others pass through). The collection-level `permissions.read/create/update/delete` check always runs first; `custom[name]` is an additional gate.
+
 ---
 
 ## M2M Permission Config
 
+Base rule (no config needed): list = `read` on both resources; sync/add/remove/batch = `update` on this resource +
+`read` on the related one, parent row visible, every linked id a visible related row (else 404). Tighten on the
+LEFT resource — keys are RELATION names (the `:relation` segment = the related resource's registered name):
+
 ```ts
 permissions: {
-  m2m?: {
-    read?: PermissionRule
-    sync?: PermissionRule    // POST /:id/relations/:rel
-    add?: PermissionRule     // POST /:id/relations/:rel/add
-    remove?: PermissionRule  // DELETE /:id/relations/:rel/remove
+  update: 'posts:write',
+  m2m: {
+    requireUpdateOnRelated?: string[]   // relations that need `update` (not read) on the related resource
+    requireUpdateToLink?: boolean       // …for every relation
+    relations?: {
+      [relation: string]: { check: (m2mCtx) => boolean | Promise<boolean> }  // m2mCtx: { left, right: { ids, records }, operation, user, junction }
+    }
   }
 }
 ```
 
+There are NO `m2m.read/sync/add/remove` keys — they never existed at runtime.
+
 ---
 
 ## Authorization from Module Registration
-
-Per-resource auth can be defined alongside the schema in `registry.register()`:
 
 ```ts
 registry.register('posts', {
@@ -203,3 +405,46 @@ export const postsAuth: ResourceAuthConfig = {
     ctx.user ? undefined : eq(table.status, 'published'),
 }
 ```
+
+This is the **build-time** path — functions, `listFilter`, `objectLevel`, and `fields` all work here, because `auth.ts` is imported at build time (via `createModuleImport`), not serialized into `runtimeConfig`.
+
+---
+
+## Overriding a module's authorization from the app
+
+A module ships its default `ResourceAuthConfig` via `registry.register()` (above). An app can change it, with an important limitation:
+
+| You want to override with… | How | Works? |
+|---|---|---|
+| A **string / string[]** permission (per operation, or `custom.<name>`) | `autoApi.authorization.<resource>` in `nuxt.config.ts` — shallow-merged over the module default per operation | ✅ |
+| A **function** (`PermissionFunction`), `listFilter`, or `objectLevel` | the config object form **cannot** carry these (serialized into `runtimeConfig`) | ❌ |
+
+```ts
+// nuxt.config.ts — STRING/ARRAY overrides only; merged over the module's auth.ts default
+autoApi: {
+  authorization: {
+    posts: {
+      permissions: { create: 'admin' },                          // tighten create to admin
+      custom: { export: { permissions: { read: 'admin' } } },    // tighten a custom endpoint
+    },
+  },
+}
+```
+
+To override a module gate with a **function** today, either (a) have the module read its requirement from its own module options so you tune it via the module's configKey, or (b) re-register the resource with your own build-time `auth.ts`. (A build-time app-level override file — a string-path form of `authorization`, resolved like `autoApi.plugins` — would close this gap; not currently available.)
+
+---
+
+## Live Permission Checking (Client)
+
+```ts
+// Check permissions for a single resource (hits /api/{resource}/permissions)
+const { canCreate, canRead, canUpdate, canDelete, refetch } =
+  usePermissions('posts', { individual: true })
+
+// Check all resources at once (hits /api/permissions)
+const { data } = useAllPermissions()
+const canCreatePost = data.value?.permissions?.posts?.canCreate
+```
+
+`usePermissions` re-runs the full server-side permission chain on demand — useful for showing live permission state after switching active org or billing plan.

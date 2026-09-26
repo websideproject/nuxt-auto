@@ -34,7 +34,9 @@
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Hook Activity Feed</h2>
+              <h2 class="text-lg font-semibold">
+                Hook Activity Feed
+              </h2>
               <UButton
                 icon="i-heroicons-trash"
                 size="xs"
@@ -56,7 +58,9 @@
         <!-- Create Demo -->
         <UCard>
           <template #header>
-            <h3 class="font-semibold">Create Hook Demo</h3>
+            <h3 class="font-semibold">
+              Create Hook Demo
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               beforeCreate hook transforms title to uppercase
             </p>
@@ -70,15 +74,18 @@
             />
 
             <UButton
-              @click="handleCreate"
               :loading="createMutation.isPending.value"
               icon="i-heroicons-plus"
               color="green"
+              @click="handleCreate"
             >
               Create Post
             </UButton>
 
-            <div v-if="createdPost" class="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+            <div
+              v-if="createdPost"
+              class="bg-green-50 dark:bg-green-950 p-4 rounded-lg"
+            >
               <p class="text-sm font-medium text-green-700 dark:text-green-300 mb-2">
                 ✓ Post created successfully!
               </p>
@@ -95,7 +102,9 @@
         <!-- Update Demo -->
         <UCard>
           <template #header>
-            <h3 class="font-semibold">Update Hook Demo</h3>
+            <h3 class="font-semibold">
+              Update Hook Demo
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               afterUpdate hook logs changes
             </p>
@@ -112,8 +121,14 @@
                 v-model="selectedPostId"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"
               >
-                <option :value="null">-- Select a post --</option>
-                <option v-for="post in posts?.data?.slice(0, 5)" :key="post.id" :value="post.id">
+                <option :value="null">
+                  -- Select a post --
+                </option>
+                <option
+                  v-for="post in posts?.data?.slice(0, 5)"
+                  :key="post.id"
+                  :value="post.id"
+                >
                   {{ post.title }}
                 </option>
               </select>
@@ -128,11 +143,11 @@
 
               <UButton
                 v-if="selectedPostId"
-                @click="handleUpdate"
                 :loading="updateMutation.isPending.value"
                 icon="i-heroicons-pencil"
                 color="green"
                 class="mt-3"
+                @click="handleUpdate"
               >
                 Update Post
               </UButton>
@@ -143,7 +158,9 @@
         <!-- Delete Demo -->
         <UCard>
           <template #header>
-            <h3 class="font-semibold">Delete Hook Demo</h3>
+            <h3 class="font-semibold">
+              Delete Hook Demo
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               beforeDelete hook validates permissions
             </p>
@@ -160,19 +177,25 @@
                 v-model="selectedDeleteId"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"
               >
-                <option :value="null">-- Select a post --</option>
-                <option v-for="post in posts?.data?.slice(0, 5)" :key="post.id" :value="post.id">
+                <option :value="null">
+                  -- Select a post --
+                </option>
+                <option
+                  v-for="post in posts?.data?.slice(0, 5)"
+                  :key="post.id"
+                  :value="post.id"
+                >
                   {{ post.title }}
                 </option>
               </select>
 
               <UButton
                 v-if="selectedDeleteId"
-                @click="handleDelete"
                 :loading="deleteMutation.isPending.value"
                 icon="i-heroicons-trash"
                 color="error"
                 class="mt-3"
+                @click="handleDelete"
               >
                 Delete Post
               </UButton>
@@ -183,7 +206,9 @@
         <!-- List Demo -->
         <UCard>
           <template #header>
-            <h3 class="font-semibold">List Hook Demo</h3>
+            <h3 class="font-semibold">
+              List Hook Demo
+            </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               afterList hook logs query execution
             </p>
@@ -191,15 +216,18 @@
 
           <div class="space-y-4">
             <UButton
-              @click="handleList"
               :loading="postsLoading"
               icon="i-heroicons-list-bullet"
               color="green"
+              @click="handleList"
             >
               Fetch Posts
             </UButton>
 
-            <div v-if="listResult" class="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+            <div
+              v-if="listResult"
+              class="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg"
+            >
               <p class="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
                 ✓ Fetched {{ listResult.data?.length || 0 }} posts
               </p>
@@ -210,7 +238,9 @@
         <!-- Execution Order Diagram -->
         <UCard>
           <template #header>
-            <h3 class="font-semibold">Hook Execution Order</h3>
+            <h3 class="font-semibold">
+              Hook Execution Order
+            </h3>
           </template>
 
           <div class="space-y-3">
@@ -219,13 +249,17 @@
                 1
               </div>
               <div class="flex-1">
-                <p class="font-medium text-sm">beforeCreate / beforeUpdate / beforeDelete</p>
-                <p class="text-xs text-gray-500">Validate, transform, or reject the operation</p>
+                <p class="font-medium text-sm">
+                  beforeCreate / beforeUpdate / beforeDelete
+                </p>
+                <p class="text-xs text-gray-500">
+                  Validate, transform, or reject the operation
+                </p>
               </div>
             </div>
 
             <div class="flex items-center gap-3 ml-4">
-              <div class="w-0.5 h-8 bg-gray-300 dark:bg-gray-700"></div>
+              <div class="w-0.5 h-8 bg-gray-300 dark:bg-gray-700" />
             </div>
 
             <div class="flex items-center gap-3">
@@ -233,13 +267,17 @@
                 2
               </div>
               <div class="flex-1">
-                <p class="font-medium text-sm">Database Operation</p>
-                <p class="text-xs text-gray-500">Execute the actual query</p>
+                <p class="font-medium text-sm">
+                  Database Operation
+                </p>
+                <p class="text-xs text-gray-500">
+                  Execute the actual query
+                </p>
               </div>
             </div>
 
             <div class="flex items-center gap-3 ml-4">
-              <div class="w-0.5 h-8 bg-gray-300 dark:bg-gray-700"></div>
+              <div class="w-0.5 h-8 bg-gray-300 dark:bg-gray-700" />
             </div>
 
             <div class="flex items-center gap-3">
@@ -247,8 +285,12 @@
                 3
               </div>
               <div class="flex-1">
-                <p class="font-medium text-sm">afterCreate / afterUpdate / afterDelete</p>
-                <p class="text-xs text-gray-500">Log, notify, or trigger side effects</p>
+                <p class="font-medium text-sm">
+                  afterCreate / afterUpdate / afterDelete
+                </p>
+                <p class="text-xs text-gray-500">
+                  Log, notify, or trigger side effects
+                </p>
               </div>
             </div>
           </div>
@@ -291,7 +333,7 @@ const { data: posts, isLoading: postsLoading, refetch } = useAutoApiList('posts'
 
 // Create Demo
 const createTitle = ref('')
-const createdPost = ref<any>(null)
+const createdPost = ref<unknown>(null)
 
 const createMutation = useAutoApiCreate('posts', {
   onMutate: () => {
@@ -325,7 +367,7 @@ const updateMutation = useAutoApiUpdate('posts', {
   onMutate: () => {
     addActivity('beforeUpdate', `Preparing to update post ${selectedPostId.value}`, 'before')
   },
-  onSuccess: (data) => {
+  onSuccess: () => {
     addActivity('afterUpdate', `Post ${selectedPostId.value} updated successfully`, 'after')
     selectedPostId.value = null
     updateTitle.value = ''
@@ -369,7 +411,7 @@ const handleDelete = () => {
 }
 
 // List Demo
-const listResult = ref<any>(null)
+const listResult = ref<unknown>(null)
 
 const handleList = async () => {
   addActivity('beforeList', 'Executing list query', 'before')

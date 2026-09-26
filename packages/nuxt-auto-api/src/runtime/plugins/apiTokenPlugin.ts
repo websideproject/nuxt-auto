@@ -91,7 +91,12 @@ function parseScopes(value: unknown): string[] | null {
   if (value == null) return null
   if (Array.isArray(value)) return value as string[]
   if (typeof value === 'string') {
-    try { return JSON.parse(value) } catch { return null }
+    try {
+      return JSON.parse(value)
+    }
+    catch {
+      return null
+    }
   }
   return null
 }
@@ -117,12 +122,13 @@ class TokenCache {
   private byRecordKey = new Map<string, string>() // "resource:id" → hash
   private ttlMs: number
   private maxEntries: number
-  private cleanupTimer: ReturnType<typeof setInterval> | null = null
 
   constructor(ttlMs: number, maxEntries: number) {
     this.ttlMs = ttlMs
     this.maxEntries = maxEntries
-    this.cleanupTimer = setInterval(() => this.cleanup(), ttlMs).unref()
+    // No periodic timer: Cloudflare Workers disallow setInterval/setTimeout in global scope,
+    // and runtimeSetup constructs this at isolate init. Expiry is handled lazily in get() (per
+    // entry on read) and stale entries are swept in set() when the cache fills — see below.
   }
 
   get(hash: string): CachedToken | null {
@@ -136,10 +142,14 @@ class TokenCache {
   }
 
   set(entry: CachedToken): void {
-    // Evict oldest if over limit (Map keeps insertion order)
     if (this.byHash.size >= this.maxEntries) {
-      const oldest = this.byHash.keys().next().value
-      if (oldest) this.deleteByHash(oldest)
+      // At capacity: first drop any expired entries (replaces the old periodic timer sweep),
+      // then evict the oldest if still full (Map keeps insertion order).
+      this.cleanup()
+      if (this.byHash.size >= this.maxEntries) {
+        const oldest = this.byHash.keys().next().value
+        if (oldest) this.deleteByHash(oldest)
+      }
     }
     this.byHash.set(entry.hash, entry)
     this.byRecordKey.set(`${entry.resource}:${entry.recordId}`, entry.hash)
@@ -221,7 +231,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
 
   const resourceNames = Object.keys(resources)
 
-  function cfg(resource: string): ApiTokenResourceConfig & { secretField: string; userField: string; userResource: string } {
+  function cfg(resource: string): ApiTokenResourceConfig & { secretField: string, userField: string, userResource: string } {
     const r = resources[resource]!
     return {
       ...r,
@@ -383,7 +393,6 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
             }
 
             console.log(`[api-token] Found token record id=${tokenRecord.id} in "${resName}"`)
-
 
             // Check expiry
             if (c.expiresField && tokenRecord[c.expiresField]) {
@@ -564,7 +573,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
           // -- afterList: mask the hash --------------------------------
           afterList(results: any[], _context: HandlerContext) {
             if (!results) return results
-            return results.map(item => {
+            return results.map((item) => {
               if (!item[c.secretField]) return item
               return { ...item, [c.secretField]: maskToken(item[c.secretField]) }
             })
@@ -581,9 +590,10 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
               const hashed = hashToken(rawToken, hashAlgorithm)
               updated[c.secretField] = hashed
               ;(context as any)._rawToken = rawToken
-            } else {
+            }
+            else {
               // Block direct writes to the secret field
-              delete updated[c.secretField]
+              Reflect.deleteProperty(updated, c.secretField)
             }
 
             return updated
@@ -690,7 +700,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
         if (!table) return
 
         const parsedId = typeof recordId === 'string' && /^\d+$/.test(recordId)
-          ? parseInt(recordId, 10)
+          ? Number.parseInt(recordId, 10)
           : recordId
 
         context.db

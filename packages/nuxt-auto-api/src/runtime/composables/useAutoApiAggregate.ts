@@ -1,56 +1,33 @@
+import { computed, unref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import type { UseQueryOptions } from '@tanstack/vue-query'
+import type { UseQueryOptions, UseQueryReturnType } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
+import { prerenderSafeEnabled } from './prerenderEnabled'
+import { useAutoApiPath } from './autoApiPath'
+import { useAutoApiFetch } from './autoApiFetch'
 
 export interface AggregateOptions {
-  aggregate?: 'count' | 'sum' | 'avg' | 'min' | 'max' | string[]
-  field?: string
+  /** `count`, `sum(total)`, … or a list of them. */
+  aggregate: string | string[]
   groupBy?: string | string[]
+  /** Conditions on aggregate results by name, e.g. `{ count: { $gt: 5 } }`. */
   having?: Record<string, any>
   filter?: Record<string, any>
 }
 
-export interface AggregateResult {
-  [key: string]: any
-  _count?: number
-  _sum?: number
-  _avg?: number
-  _min?: number
-  _max?: number
+/** `GET /api/{resource}/aggregate` response: one row per group (`group` holds the group-by values). */
+export interface AggregateResponse<Row = Record<string, any>> {
+  data: Array<Row & { group?: Record<string, any> }>
+  meta: { total: number }
 }
 
-/**
- * Aggregate query with TanStack Query
- *
- * @example
- * // Simple count
- * const { data } = useAutoApiAggregate('posts', {
- *   aggregate: 'count'
- * })
- *
- * @example
- * // Group by with multiple aggregations
- * const { data } = useAutoApiAggregate('posts', {
- *   aggregate: ['count', 'avg'],
- *   field: 'views',
- *   groupBy: 'published'
- * })
- *
- * @example
- * // With filtering and having
- * const { data } = useAutoApiAggregate('posts', {
- *   aggregate: 'sum',
- *   field: 'views',
- *   groupBy: 'authorId',
- *   filter: { published: true },
- *   having: { _sum: { gt: 1000 } }
- * })
- */
-export function useAutoApiAggregate<T = AggregateResult>(
+export function useAutoApiAggregate<T = AggregateResponse>(
   resource: MaybeRef<string>,
   aggregateOptions: MaybeRef<AggregateOptions>,
-  queryOptions?: Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>
+  queryOptions?: Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>,
 ) {
+  const path = useAutoApiPath()
+  const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
   const optionsRef = computed(() => unref(aggregateOptions))
 
@@ -59,7 +36,7 @@ export function useAutoApiAggregate<T = AggregateResult>(
       'autoapi',
       resourceRef.value,
       'aggregate',
-      optionsRef.value
+      optionsRef.value,
     ]),
     queryFn: async () => {
       const params = new URLSearchParams()
@@ -70,21 +47,18 @@ export function useAutoApiAggregate<T = AggregateResult>(
       if (opts.aggregate) {
         if (Array.isArray(opts.aggregate)) {
           params.append('aggregate', opts.aggregate.join(','))
-        } else {
+        }
+        else {
           params.append('aggregate', opts.aggregate)
         }
-      }
-
-      // Handle field parameter
-      if (opts.field) {
-        params.append('field', opts.field)
       }
 
       // Handle groupBy parameter
       if (opts.groupBy) {
         if (Array.isArray(opts.groupBy)) {
           params.append('groupBy', opts.groupBy.join(','))
-        } else {
+        }
+        else {
           params.append('groupBy', opts.groupBy)
         }
       }
@@ -99,10 +73,11 @@ export function useAutoApiAggregate<T = AggregateResult>(
         params.append('having', JSON.stringify(opts.having))
       }
 
-      const url = `/api/${resourceRef.value}/aggregate?${params.toString()}`
+      const url = `${path(resourceRef.value, 'aggregate')}?${params.toString()}`
 
-      return await $fetch<T>(url)
+      return await fetcher<T>(url)
     },
-    ...queryOptions
-  } as any)
+    ...queryOptions,
+    enabled: prerenderSafeEnabled((queryOptions as any)?.enabled),
+  } as any) as UseQueryReturnType<T, Error>
 }

@@ -15,5 +15,5 @@
 </template>
 
 <script setup lang="ts">
-// Layout wrapper with responsive design and dark mode support
+defineOptions({ name: 'AdminLayout' })
 </script>

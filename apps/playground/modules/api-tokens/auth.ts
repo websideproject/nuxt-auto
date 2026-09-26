@@ -8,13 +8,13 @@ import type { ResourceAuthConfig } from '../../../packages/nuxt-auto-api/src/run
  */
 export const apiKeysAuth: ResourceAuthConfig = {
   permissions: {
-    read: (ctx) => !!ctx.user,
-    create: (ctx) => !!ctx.user,
-    update: (ctx) => !!ctx.user,
-    delete: (ctx) => !!ctx.user,
+    read: ctx => !!ctx.user,
+    create: ctx => !!ctx.user,
+    update: ctx => !!ctx.user,
+    delete: ctx => !!ctx.user
   },
   objectLevel: async (object, ctx) => {
     if (ctx.user?.role === 'admin') return true
     return ctx.user && String(object.userId) === String(ctx.user.id)
-  },
+  }
 }

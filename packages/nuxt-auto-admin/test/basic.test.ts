@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
-import { setup, $fetch } from '@nuxt/test-utils/e2e'
+import { setup, $fetch, fetch } from '@nuxt/test-utils/e2e'
 
 describe('nuxt-auto-admin module', async () => {
   await setup({
@@ -21,18 +21,24 @@ describe('nuxt-auto-admin module', async () => {
     expect(html).toBeTruthy()
   })
 
+  it('renders admin pages on the client (no server-rendered per-user state to mismatch on hydration)', async () => {
+    for (const path of ['/admin', '/admin/posts']) {
+      const html = await $fetch<string>(path, { responseType: 'text' })
+      // The client-only shell: an empty app root, no rendered page content.
+      expect(html).toContain('data-ssr="false"')
+      expect(html).toMatch(/<div id="__nuxt"[^>]*><\/div>/)
+      expect(html).not.toContain('Manage all')
+    }
+  })
+
   // ─── Admin API endpoints ──────────────────────────────────────────────────
 
-  it('registers POST /api/admin/m2m/sync endpoint', async () => {
-    // The endpoint exists — a bad request returns 4xx (not 404)
-    const status = await $fetch('/api/admin/m2m/sync', {
-      method: 'POST',
-      body: {},
-      responseType: 'json',
-      ignoreResponseError: true,
-    }).catch((err: any) => err.response?.status ?? err.status)
-
-    expect(status).not.toBe(404)
+  it('does not expose the removed POST /api/admin/m2m/sync', async () => {
+    // It wrote arbitrary junction rows without authentication. The admin UI uses the API's authorized M2M routes.
+    // (The test that stood here asserted the route EXISTED via `$fetch(…, { ignoreResponseError })`, which returns the
+    // error body instead of a status — so it passed whatever the server said.)
+    const res = await fetch('/api/admin/m2m/sync', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+    expect(res.status).toBe(404)
   })
 
   // ─── Resource API (via nuxt-auto-api) ─────────────────────────────────────

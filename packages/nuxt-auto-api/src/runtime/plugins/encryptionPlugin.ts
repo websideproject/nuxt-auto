@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
+import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 import { defineAutoApiPlugin } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
@@ -18,7 +18,6 @@ function deriveKey(secret: string): Buffer {
   const buf = Buffer.from(secret, 'hex')
   if (buf.length === 32) return buf
   // If not valid hex or wrong length, hash it
-  const { createHash } = require('node:crypto')
   return createHash('sha256').update(secret).digest()
 }
 
@@ -104,7 +103,8 @@ export function createEncryptionPlugin(options: EncryptionPluginOptions): AutoAp
               if (decrypted[field] != null && typeof decrypted[field] === 'string') {
                 try {
                   decrypted[field] = decrypt(decrypted[field], key)
-                } catch {
+                }
+                catch {
                   // Value may not be encrypted (e.g., migrating existing data)
                 }
               }
@@ -114,13 +114,14 @@ export function createEncryptionPlugin(options: EncryptionPluginOptions): AutoAp
 
           afterList(results, _context) {
             if (!results) return results
-            return results.map(item => {
+            return results.map((item) => {
               const decrypted = { ...item }
               for (const field of fields) {
                 if (decrypted[field] != null && typeof decrypted[field] === 'string') {
                   try {
                     decrypted[field] = decrypt(decrypted[field], key)
-                  } catch {
+                  }
+                  catch {
                     // Value may not be encrypted
                   }
                 }

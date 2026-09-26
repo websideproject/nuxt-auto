@@ -1,8 +1,14 @@
 <template>
   <div class="space-y-4">
     <!-- Loading state -->
-    <div v-if="isLoading" class="flex flex-col items-center justify-center p-12">
-      <UIcon name="i-heroicons-arrow-path" class="animate-spin h-8 w-8 text-primary-500 mb-4" />
+    <div
+      v-if="isLoading"
+      class="flex flex-col items-center justify-center p-12"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="animate-spin h-8 w-8 text-primary-500 mb-4"
+      />
       <span class="text-gray-600 dark:text-gray-400">Loading data...</span>
     </div>
 
@@ -13,13 +19,29 @@
     />
 
     <!-- Error state -->
-    <div v-else-if="error" class="p-6">
+    <div
+      v-else-if="error"
+      class="p-6"
+    >
       <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-        <UIcon name="i-heroicons-exclamation-circle" class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+        <UIcon
+          name="i-heroicons-exclamation-circle"
+          class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+        />
         <div>
-          <h3 class="font-semibold text-red-900 dark:text-red-200">Error Loading Data</h3>
-          <p class="text-sm text-red-700 dark:text-red-300 mt-1">{{ error }}</p>
-          <UButton variant="soft" color="error" size="sm" class="mt-3" @click="refetch">
+          <h3 class="font-semibold text-red-900 dark:text-red-200">
+            Error Loading Data
+          </h3>
+          <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+            {{ error }}
+          </p>
+          <UButton
+            variant="soft"
+            color="error"
+            size="sm"
+            class="mt-3"
+            @click="refetch"
+          >
             Try Again
           </UButton>
         </div>
@@ -27,18 +49,33 @@
     </div>
 
     <!-- Table -->
-    <UTable v-else :data="data || []" :columns="columns" :loading="isLoading">
+    <UTable
+      v-else
+      :data="data || []"
+      :columns="columns"
+      :loading="isLoading"
+    >
       <!-- Empty state -->
       <template #empty>
         <div class="text-center py-12 px-4">
           <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
-            <UIcon name="i-heroicons-inbox" class="h-8 w-8 text-gray-400" />
+            <UIcon
+              name="i-heroicons-inbox"
+              class="h-8 w-8 text-gray-400"
+            />
           </div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No records found</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No records found
+          </h3>
           <p class="text-gray-600 dark:text-gray-400 mb-6">
             Get started by creating your first {{ resourceNameValue }}
           </p>
-          <UButton v-if="canCreate" size="lg" icon="i-heroicons-plus" @click="handleCreate">
+          <UButton
+            v-if="canCreate"
+            size="lg"
+            icon="i-heroicons-plus"
+            @click="handleCreate"
+          >
             Create {{ resourceNameValue }}
           </UButton>
         </div>
@@ -46,7 +83,10 @@
     </UTable>
 
     <!-- Pagination -->
-    <div v-if="data && data.length > 0 && meta" class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
+    <div
+      v-if="data && data.length > 0 && meta"
+      class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800"
+    >
       <div class="text-sm text-gray-600 dark:text-gray-400">
         Showing <span class="font-medium text-gray-900 dark:text-white">{{ ((meta.page || 1) - 1) * (meta.limit || 20) + 1 }}</span> to
         <span class="font-medium text-gray-900 dark:text-white">{{ Math.min((meta.page || 1) * (meta.limit || 20), meta.total || 0) }}</span> of
@@ -66,7 +106,9 @@
     <UModal v-model:open="deleteModal.open">
       <template #body>
         <div class="p-4">
-          <h3 class="text-lg font-semibold mb-2">Confirm Delete</h3>
+          <h3 class="text-lg font-semibold mb-2">
+            Confirm Delete
+          </h3>
           <p class="text-gray-600">
             Are you sure you want to delete this {{ resourceNameValue }}? This action cannot be undone.
           </p>
@@ -75,8 +117,19 @@
 
       <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton variant="ghost" @click="close">Cancel</UButton>
-          <UButton color="error" :loading="isDeleting" @click="confirmDelete">Delete</UButton>
+          <UButton
+            variant="ghost"
+            @click="close"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            color="error"
+            :loading="isDeleting"
+            @click="confirmDelete"
+          >
+            Delete
+          </UButton>
         </div>
       </template>
     </UModal>
@@ -86,12 +139,13 @@
 <script setup lang="ts">
 import { h, computed, reactive, resolveComponent, unref } from 'vue'
 import type { MaybeRef } from 'vue'
-import { useRouter } from 'vue-router'
 import type { TableColumn } from '@nuxt/ui'
+import type { CellContext } from '@tanstack/vue-table'
 import { formatDisplayValue, formatFieldLabel } from '../utils/fieldTypeMapping'
 import PermissionDeniedPage from './PermissionDeniedPage.vue'
-
-// Composables are auto-imported from nuxt-auto-api and nuxt-auto-admin
+import { useAdminResource } from '../composables/useAdminResource'
+import { usePermissions, useAutoApiList } from '@websideproject/nuxt-auto-api/composables'
+import { useAdminActions } from '../composables/useAdminActions'
 
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
@@ -106,15 +160,11 @@ const emit = defineEmits<{
   edit: [id: string | number]
 }>()
 
-const router = useRouter()
-const config = useRuntimeConfig()
-const adminPrefix = config.public.autoAdmin?.prefix || '/admin'
-
 // Unwrap the resource name in case it's a ref
 const resourceNameValue = computed(() => unref(props.resourceName))
 
 const { resource } = useAdminResource(resourceNameValue.value)
-const { data: permissions } = usePermissions(resourceNameValue.value)
+const { permissions } = usePermissions(resourceNameValue.value)
 
 const canCreate = computed(() => permissions.value?.canCreate ?? true)
 const canUpdate = computed(() => permissions.value?.canUpdate ?? true)
@@ -128,23 +178,29 @@ const queryParams = reactive({
 
 const { data: response, isLoading, error, refetch } = useAutoApiList(
   resourceNameValue.value,
-  queryParams
+  queryParams,
 )
 
 const data = computed(() => response.value?.data || [])
 const meta = computed(() => response.value?.meta)
 
+interface ApiError {
+  statusCode?: number
+  message?: string
+  response?: { status: number }
+}
+
 // Check if error is a permission error (401 or 403)
 const isPermissionError = computed(() => {
   if (!error.value) return false
-  const errorObj = error.value as any
+  const errorObj = error.value as ApiError
   const statusCode = errorObj?.statusCode || errorObj?.response?.status
   return statusCode === 401 || statusCode === 403
 })
 
 const permissionErrorMessage = computed(() => {
   if (!error.value) return ''
-  const errorObj = error.value as any
+  const errorObj = error.value as ApiError
   const statusCode = errorObj?.statusCode || errorObj?.response?.status
   if (statusCode === 401) {
     return errorObj?.message || 'Authentication required. Please log in to access this resource.'
@@ -161,19 +217,19 @@ const deleteModal = reactive({
 })
 
 // Build columns dynamically from resource schema
-const columns = computed<TableColumn<any>[]>(() => {
+const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
   if (!resource.value) return []
 
-  const cols: TableColumn<any>[] = []
+  const cols: TableColumn<Record<string, unknown>>[] = []
 
   // Add data columns based on listFields
   resource.value.listFields.forEach((fieldName) => {
-    const column = resource.value!.columns.find((col) => col.name === fieldName)
+    const column = resource.value!.columns.find(col => col.name === fieldName)
 
     cols.push({
       accessorKey: fieldName,
       header: formatFieldLabel(fieldName),
-      cell: ({ row }: any) => {
+      cell: ({ row }: CellContext<Record<string, unknown>, unknown>) => {
         const value = row.getValue(fieldName)
 
         // Handle boolean values with badges
@@ -183,9 +239,9 @@ const columns = computed<TableColumn<any>[]>(() => {
             {
               class: value
                 ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+                : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
             },
-            value ? 'Yes' : 'No'
+            value ? 'Yes' : 'No',
           )
         }
 
@@ -203,9 +259,9 @@ const columns = computed<TableColumn<any>[]>(() => {
           return h(
             'span',
             {
-              class: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`
+              class: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`,
             },
-            value
+            value,
           )
         }
 
@@ -226,7 +282,7 @@ const columns = computed<TableColumn<any>[]>(() => {
         td: 'text-right',
       },
     },
-    cell: ({ row }: any) => {
+    cell: ({ row }: CellContext<Record<string, unknown>, unknown>) => {
       // Create items array as a computed to ensure reactivity
       const items = computed(() => [
         [
@@ -266,7 +322,7 @@ const columns = computed<TableColumn<any>[]>(() => {
             icon: 'i-heroicons-ellipsis-horizontal',
             variant: 'ghost',
             color: 'neutral',
-          })
+          }),
       )
     },
   })
@@ -282,19 +338,19 @@ function handleCreate() {
   emit('create')
 }
 
-function handleView(item: any) {
+function handleView(item: Record<string, unknown>) {
   const idField = resource.value?.primaryKey || 'id'
-  emit('view', item[idField])
+  emit('view', item[idField] as string | number)
 }
 
-function handleEdit(item: any) {
+function handleEdit(item: Record<string, unknown>) {
   const idField = resource.value?.primaryKey || 'id'
-  emit('edit', item[idField])
+  emit('edit', item[idField] as string | number)
 }
 
-function openDeleteModal(item: any) {
+function openDeleteModal(item: Record<string, unknown>) {
   const idField = resource.value?.primaryKey || 'id'
-  deleteModal.itemId = item[idField]
+  deleteModal.itemId = item[idField] as string | number
   deleteModal.open = true
 }
 
@@ -306,7 +362,8 @@ async function confirmDelete() {
     deleteModal.open = false
     deleteModal.itemId = null
     refetch()
-  } catch (error) {
+  }
+  catch {
     // Error is handled by useAdminActions
   }
 }

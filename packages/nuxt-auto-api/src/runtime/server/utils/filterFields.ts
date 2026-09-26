@@ -29,7 +29,7 @@ function isRelation(value: any): boolean {
  */
 export function filterFields<T extends Record<string, any>>(
   data: T | T[],
-  fields?: string | string[]
+  fields?: string | string[],
 ): T | T[] | Partial<T> | Partial<T>[] {
   if (!fields) {
     return data

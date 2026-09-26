@@ -7,64 +7,27 @@ export default defineNuxtConfig({
     '@nuxt/hints',
     // '@scalar/nuxt',
     '@websideproject/nuxt-auto-api', // Load auto-api first to expose hook
-    './modules/base',                // Registers users, posts, comments
-    './modules/blog',                // Registers articles, categories, tags
-    './modules/api-tokens',          // Registers apiKeys for token auth demo
+    './modules/base', // Registers users, posts, comments
+    './modules/blog', // Registers articles, categories, tags
+    './modules/api-tokens', // Registers apiKeys for token auth demo
     '@websideproject/nuxt-auto-admin' // Auto-generate admin UI
   ],
 
-  autoApi: {
-    prefix: '/api',
-    database: {
-      client: 'better-sqlite3'
-    },
-    // Plugins: file exports an array of AutoApiPlugin instances
-    // Full closure and import support (no serialization limitations)
-    plugins: '~/server/autoapi-plugins',
-    pagination: {
-      default: 'offset',
-      defaultLimit: 20,
-      maxLimit: 100
-    },
-    // ================================================================================
-    // M2M (Many-to-Many) Configuration
-    // ================================================================================
-    // ⚠️ IMPORTANT: Explicit configuration is STRONGLY RECOMMENDED for production!
-    // Auto-detection is experimental and fragile - it may not work with:
-    //   - Non-standard naming conventions
-    //   - Third-party database schemas
-    //   - Irregular plurals (person/people, child/children)
-    //   - Complex junction tables with business logic
-    //
-    // See docs: packages/nuxt-auto-api/docs/13.m2m-relationships.md
-    // ================================================================================
+  devtools: {
+    enabled: true
+  },
 
-    m2m: {
-      // ─────────────────────────────────────────────────────────────────────────────
-      // AUTO-DETECTION ENABLED
-      // ─────────────────────────────────────────────────────────────────────────────
-      // Auto-detects junction tables based on schema structure:
-      // - Tables with exactly 2 FK columns (articleId, categoryId)
-      // - No standalone 'id' column (composite primary key)
-      // - Naming pattern matches resource pairs (articleCategories, articleTags)
+  css: ['~/assets/css/main.css'],
 
-      autoDetect: true,
+  routeRules: {
+    '/': { prerender: true }
+  },
 
-      // Optional: Override auto-detected settings for specific relations
-      relations: {
-        articles: {
-          categories: {
-            label: 'Categories',
-            help: 'Select categories for this article',
-            displayField: 'name',
-          },
-          tags: {
-            label: 'Tags',
-            help: 'Add relevant tags to help organize this article',
-            displayField: 'name',
-          }
-        }
-      },
+  compatibilityDate: '2025-01-15',
+
+  nitro: {
+    experimental: {
+      openAPI: true
     }
   },
 
@@ -111,7 +74,7 @@ export default defineNuxtConfig({
         displayName: 'Articles',
         icon: 'i-heroicons-newspaper',
         group: 'Blog',
-        order: 1,
+        order: 1
         // M2M fields (categories, tags) are automatically detected and injected! 🎉
         // Junction tables (articleCategories, articleTags) are automatically hidden! 🎉
         // No manual configuration needed!
@@ -172,7 +135,7 @@ export default defineNuxtConfig({
         icon: 'i-heroicons-key',
         group: 'Auth',
         order: 1
-      },
+      }
 
       // ✅ Junction tables (articleCategories, articleTags) are automatically detected and hidden!
       // No manual configuration needed! 🎉
@@ -221,7 +184,7 @@ export default defineNuxtConfig({
         // Example permission check - can be string, array, or function
         // permissions: 'admin',  // Single permission string
         // permissions: ['admin', 'settings.manage'],  // Array - user needs ALL
-        canAccess: async (user: any) => {
+        canAccess: async (_user: unknown) => {
           // Custom logic - for demo, always return true
           // In real app, check user.role, user.permissions, etc.
           return true
@@ -230,23 +193,60 @@ export default defineNuxtConfig({
     ]
   },
 
-  nitro: {
-    experimental: {
-      openAPI: true,
+  autoApi: {
+    prefix: '/api',
+    database: {
+      client: 'better-sqlite3'
     },
+    // Plugins: file exports an array of AutoApiPlugin instances
+    // Full closure and import support (no serialization limitations)
+    plugins: '~/server/autoapi-plugins',
+    pagination: {
+      default: 'offset',
+      defaultLimit: 20,
+      maxLimit: 100
+    },
+    // ================================================================================
+    // M2M (Many-to-Many) Configuration
+    // ================================================================================
+    // ⚠️ IMPORTANT: Explicit configuration is STRONGLY RECOMMENDED for production!
+    // Auto-detection is experimental and fragile - it may not work with:
+    //   - Non-standard naming conventions
+    //   - Third-party database schemas
+    //   - Irregular plurals (person/people, child/children)
+    //   - Complex junction tables with business logic
+    //
+    // See docs: packages/nuxt-auto-api/docs/13.m2m-relationships.md
+    // ================================================================================
+
+    m2m: {
+      // ─────────────────────────────────────────────────────────────────────────────
+      // AUTO-DETECTION ENABLED
+      // ─────────────────────────────────────────────────────────────────────────────
+      // Auto-detects junction tables based on schema structure:
+      // - Tables with exactly 2 FK columns (articleId, categoryId)
+      // - No standalone 'id' column (composite primary key)
+      // - Naming pattern matches resource pairs (articleCategories, articleTags)
+
+      autoDetect: true,
+
+      // Optional: Override auto-detected settings for specific relations
+      relations: {
+        articles: {
+          categories: {
+            label: 'Categories',
+            help: 'Select categories for this article',
+            displayField: 'name'
+          },
+          tags: {
+            label: 'Tags',
+            help: 'Add relevant tags to help organize this article',
+            displayField: 'name'
+          }
+        }
+      }
+    }
   },
-
-  devtools: {
-    enabled: true
-  },
-
-  css: ['~/assets/css/main.css'],
-
-  routeRules: {
-    '/': { prerender: true }
-  },
-
-  compatibilityDate: '2025-01-15',
 
   eslint: {
     config: {

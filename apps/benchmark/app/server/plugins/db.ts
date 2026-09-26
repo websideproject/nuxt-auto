@@ -1,15 +1,12 @@
 import { defineNitroPlugin } from 'nitropack/runtime'
+import { initializeDatabase } from '@websideproject/nuxt-auto-api/database'
 import { useDB } from '../database/db'
 
 /**
- * Initialize database for auto-api
- * The DB instance is stored in globalThis for handlers to access
+ * Initialize the database for auto-api.
  */
-export default defineNitroPlugin((nitroApp) => {
-  const db = useDB()
-
-  // Store DB in globalThis for auto-api handlers to access
-  ;(globalThis as any).__autoApiDb = db
+export default defineNitroPlugin(() => {
+  initializeDatabase(useDB(), 'better-sqlite3')
 
   console.log('[benchmark] Database initialized for auto-api')
 })

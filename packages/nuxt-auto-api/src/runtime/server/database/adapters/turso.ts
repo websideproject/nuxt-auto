@@ -22,6 +22,7 @@ export function createTursoAdapter(db: any): DatabaseAdapter {
       return 0
     },
     supportsReturning: true,
+    supportsTransactions: typeof db.transaction === 'function',
     supportsNativeBatch: true,
   }
 }

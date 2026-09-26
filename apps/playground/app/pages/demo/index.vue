@@ -18,7 +18,10 @@
       </template>
 
       <div class="space-y-4">
-        <div v-if="user" class="flex items-center gap-4">
+        <div
+          v-if="user"
+          class="flex items-center gap-4"
+        >
           <UAvatar
             :alt="user.name"
             size="lg"
@@ -40,7 +43,10 @@
           </div>
         </div>
 
-        <div v-else class="flex items-center gap-4">
+        <div
+          v-else
+          class="flex items-center gap-4"
+        >
           <UAvatar
             alt="Anonymous"
             size="lg"
@@ -111,16 +117,28 @@
                 {{ resource }}
               </td>
               <td class="py-3 px-4">
-                <PermissionCell :resource="resource" action="create" />
+                <PermissionCell
+                  :resource="resource"
+                  action="create"
+                />
               </td>
               <td class="py-3 px-4">
-                <PermissionCell :resource="resource" action="read" />
+                <PermissionCell
+                  :resource="resource"
+                  action="read"
+                />
               </td>
               <td class="py-3 px-4">
-                <PermissionCell :resource="resource" action="update" />
+                <PermissionCell
+                  :resource="resource"
+                  action="update"
+                />
               </td>
               <td class="py-3 px-4">
-                <PermissionCell :resource="resource" action="delete" />
+                <PermissionCell
+                  :resource="resource"
+                  action="delete"
+                />
               </td>
             </tr>
           </tbody>

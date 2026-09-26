@@ -1,4 +1,4 @@
-import { defineNuxtRouteMiddleware, navigateTo } from '#app'
+import { defineNuxtRouteMiddleware, navigateTo, useRuntimeConfig, useState } from '#app'
 
 /**
  * Admin authentication middleware
@@ -14,7 +14,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   // Get access control function from module options
-  // @ts-ignore
+  // @ts-expect-error - private runtime config
   const accessControl = config.autoAdmin?.access
 
   if (!accessControl) {
@@ -33,7 +33,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
       // Redirect to login or home page
       return navigateTo('/login')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('[nuxt-auto-admin] Access control error:', error)
     return navigateTo('/login')
   }
