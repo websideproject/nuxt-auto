@@ -11,6 +11,12 @@ const testTable = sqliteTable('test', {
   status: text('status'),
 })
 
+const eventTable = sqliteTable('events', {
+  id: integer('id').primaryKey(),
+  title: text('title'),
+  at: integer('at', { mode: 'timestamp' }),
+})
+
 describe('buildWhereClause', () => {
   it('should build simple equality filter', () => {
     const filter = { name: 'John' }
@@ -150,6 +156,44 @@ describe('buildWhereClause', () => {
     expect(buildWhereClause(undefined, testTable)).toBeUndefined()
     expect(() => buildWhereClause('invalid' as any, testTable)).toThrow(/JSON object/)
     expect(() => buildWhereClause([] as any, testTable)).toThrow(/JSON object/)
+  })
+
+  it('$or: any of several filters, each checked like a top-level filter', () => {
+    const r = (f: any, allowed?: Set<string>) => dialect.sqlToQuery(buildWhereClause(f, testTable, allowed)!)
+    expect(r({ $or: [{ name: { $like: 'jo' } }, { status: { $like: 'jo' } }] })).toMatchObject({
+      sql: '("test"."name" like ? or "test"."status" like ?)',
+      params: ['%jo%', '%jo%'],
+    })
+    // ANDed with the rest of the filter
+    expect(r({ age: { $gt: 1 }, $or: [{ name: 'a' }, { name: 'b' }] })).toMatchObject({
+      sql: '("test"."age" > ? and ("test"."name" = ? or "test"."name" = ?))',
+      params: [1, 'a', 'b'],
+    })
+    expect(r({ $or: [{ name: 'a' }] })).toMatchObject({ sql: '"test"."name" = ?' })
+    // a hidden / unreadable field inside a branch is the same 400 as at the top level
+    expect(() => r({ $or: [{ name: 'a' }, { age: 3 }] }, new Set(['name']))).toThrow(/Unknown field 'age'/)
+  })
+
+  it('$or rejects malformed, empty, nested and oversized forms', () => {
+    expect(() => buildWhereClause({ $or: {} } as any, testTable)).toThrow(/non-empty array/)
+    expect(() => buildWhereClause({ $or: [] }, testTable)).toThrow(/non-empty array/)
+    expect(() => buildWhereClause({ $or: ['x'] }, testTable)).toThrow(/JSON objects/)
+    expect(() => buildWhereClause({ $or: [{}] }, testTable)).toThrow(/cannot be empty/)
+    expect(() => buildWhereClause({ $or: [{ $or: [{ name: 'a' }] }] }, testTable)).toThrow(/cannot be nested/)
+    expect(() => buildWhereClause({ $or: Array.from({ length: 21 }, () => ({ name: 'a' })) }, testTable)).toThrow(/at most 20/)
+  })
+
+  it('takes ISO strings and epoch milliseconds on a timestamp column (they used to crash the query)', () => {
+    const r = (f: any) => dialect.sqlToQuery(buildWhereClause(f, eventTable)!)
+    const seconds = Date.UTC(2026, 0, 1) / 1000
+    expect(r({ at: { $gte: '2026-01-01T00:00:00.000Z' } })).toMatchObject({ sql: '"events"."at" >= ?', params: [seconds] })
+    expect(r({ at: { $lt: Date.UTC(2026, 0, 1) } })).toMatchObject({ params: [seconds] })
+    expect(r({ at: '2026-01-01T00:00:00.000Z' })).toMatchObject({ params: [seconds] })
+    expect(r({ at: { $in: ['2026-01-01T00:00:00.000Z'] } })).toMatchObject({ params: [seconds] })
+    expect(r({ at: { $null: true } })).toMatchObject({ sql: '"events"."at" is null' })
+    expect(() => buildWhereClause({ at: { $gte: 'not a date' } }, eventTable)).toThrow(/needs a date/)
+    expect(() => buildWhereClause({ at: { $gte: true } }, eventTable)).toThrow(/needs a date/)
+    expect(() => buildWhereClause({ at: { $like: '2026' } }, eventTable)).toThrow(/needs a text column/)
   })
 
   it('parseFilterParam parses URL JSON and rejects malformed JSON', () => {
