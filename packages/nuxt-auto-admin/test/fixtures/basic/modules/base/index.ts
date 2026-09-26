@@ -16,6 +16,11 @@ export default defineNuxtModule({
         schema: createModuleImport(resolver.resolve('../../server/database/schema'), 'posts'),
         authorization: createModuleImport(resolver.resolve('./auth'), 'postsAuth'),
       })
+
+      registry.register('auditLogs', {
+        schema: createModuleImport(resolver.resolve('../../server/database/schema'), 'auditLogs'),
+        authorization: createModuleImport(resolver.resolve('./auth'), 'auditLogsAuth'),
+      })
     })
   },
 })

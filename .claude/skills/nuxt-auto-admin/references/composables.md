@@ -25,6 +25,14 @@ const config = useAdminConfig()
     auditLog: boolean
   }
   ui: { editMode: 'modal' | 'page'; viewMode: 'modal' | 'page' }
+  // What nuxt-auto-api offers, read at build time
+  api: {
+    maxLimit: number          // pagination.maxLimit
+    bulk: boolean             // bulk routes enabled
+    maxBatchSize: number      // bulk.maxBatchSize
+    export: { formats: ('csv' | 'json')[]; maxRows: number; resources?: string[] } | null  // createExportPlugin
+    auditLog: boolean         // createAuditLogPlugin
+  }
 }
 ```
 

@@ -1,8 +1,12 @@
 import { useRuntimeConfig } from '#app'
-import type { ModuleOptions } from '../types'
+import type { AdminApiInfo, ModuleOptions } from '../types'
 
 /** The admin options the module copies into `runtimeConfig.public.autoAdmin`. */
-export type AdminPublicConfig = Pick<ModuleOptions, 'prefix' | 'branding' | 'features' | 'permissions' | 'customPages' | 'ui'>
+export type AdminPublicConfig = Pick<ModuleOptions, 'prefix' | 'branding' | 'features' | 'permissions' | 'customPages' | 'ui'> & {
+  api?: AdminApiInfo
+}
+
+const API_DEFAULTS: AdminApiInfo = { maxLimit: 100, bulk: true, maxBatchSize: 100, export: null, auditLog: false }
 
 /**
  * Composable to access admin configuration
@@ -25,5 +29,6 @@ export function useAdminConfig() {
       editMode: 'modal',
       viewMode: 'modal',
     },
+    api: adminConfig.api || API_DEFAULTS,
   }
 }

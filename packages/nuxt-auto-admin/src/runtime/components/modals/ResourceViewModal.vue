@@ -70,6 +70,13 @@
           :disabled="true"
         />
       </div>
+
+      <ResourceAuditLog
+        v-if="showAuditLog"
+        class="mt-6"
+        :resource-name="resourceName"
+        :record-id="id"
+      />
     </div>
   </DefineTemplate>
 
@@ -152,6 +159,7 @@ import { computed, ref, watch } from 'vue'
 import { createReusableTemplate, useMediaQuery } from '@vueuse/core'
 import { formatFieldLabel, formatDisplayValue } from '../../utils/fieldTypeMapping'
 import M2MRelationCard from '../M2MRelationCard.vue'
+import ResourceAuditLog from '../ResourceAuditLog.vue'
 import { useM2MDetection } from '../../composables/useM2MDetection'
 import type { M2MFieldConfig } from '../../composables/useM2MDetection'
 import { useAdminResource } from '../../composables/useAdminResource'
@@ -176,7 +184,9 @@ const emit = defineEmits<{
 const { resource } = useAdminResource(props.resourceName)
 const { data: response, isLoading, error } = useAutoApiGet(props.resourceName, computed(() => props.id))
 const { canUpdate, canDelete } = useAdminPermissions(props.resourceName)
-const { permissions: permissionConfig } = useAdminConfig()
+const { permissions: permissionConfig, features, api } = useAdminConfig()
+// History needs the flag and createAuditLogPlugin's route.
+const showAuditLog = features.auditLog === true && api.auditLog
 const showButtonBehavior = computed(() => permissionConfig.unauthorizedButtons || 'disable')
 
 const isOpen = computed({

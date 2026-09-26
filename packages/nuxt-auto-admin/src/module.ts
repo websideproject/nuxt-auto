@@ -6,7 +6,7 @@ import {
   addLayout,
   addRouteMiddleware,
 } from '@nuxt/kit'
-import type { ModuleOptions } from './runtime/types'
+import type { AdminApiInfo, ModuleOptions } from './runtime/types'
 import type { BuildTimeRegistry, ResourceRegistration } from '@websideproject/nuxt-auto-api'
 
 export type { ModuleOptions }
@@ -55,13 +55,15 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Add runtime config
     // Assigned as a plain record: the generated runtime-config type is inferred from one app's values.
-    ;(nuxt.options.runtimeConfig.public as Record<string, unknown>).autoAdmin = {
+    const publicConfig: Record<string, unknown> = {
       prefix: options.prefix,
       branding: options.branding,
       features: options.features,
       permissions: options.permissions,
       customPages: options.customPages || [],
+      ...(options.ui ? { ui: options.ui } : {}),
     }
+    ;(nuxt.options.runtimeConfig.public as Record<string, unknown>).autoAdmin = publicConfig
 
     // Hook into autoApi:registerSchema to capture resource registrations.
     // Store the registry REFERENCE (not a snapshot) because other modules (e.g. the
@@ -80,6 +82,10 @@ export default defineNuxtModule<ModuleOptions>({
 
     // After modules are done, generate admin registry
     nuxt.hook('modules:done', async () => {
+      // nuxt-auto-api's options are final by now (its inline plugins added their routes during its setup).
+      const apiConfig = (nuxt.options.runtimeConfig as Record<string, any>).autoApi
+      publicConfig.api = adminApiInfo(apiConfig, (nuxt.options.runtimeConfig as Record<string, any>).autoApiPluginRoutes)
+
       const capturedResources = capturedRegistry?.getAll() ?? []
 
       if (capturedResources.length === 0) {
@@ -90,7 +96,7 @@ export default defineNuxtModule<ModuleOptions>({
       console.log(`[nuxt-auto-admin] Found ${capturedResources.length} resources`)
 
       // Generate virtual module with introspected schemas
-      const virtualModuleContent = generateAdminRegistry(capturedResources, options)
+      const virtualModuleContent = generateAdminRegistry(capturedResources, options, apiConfig?.hiddenFields)
 
       addTemplate({
         filename: 'nuxt-auto-admin-registry.mjs',
@@ -205,6 +211,24 @@ export function assertNoAccessFunctions(options: ModuleOptions): void {
   }
 }
 
+/**
+ * What nuxt-auto-api offers the admin UI, read from its options at build time: the page and batch limits, and the
+ * routes its plugins add (`createExportPlugin`, `createAuditLogPlugin`). The UI uses a plugin's route only when the
+ * app registered the plugin — otherwise the request would fall through to `GET /api/{resource}/:id`.
+ */
+export function adminApiInfo(apiConfig: Record<string, any> | undefined, pluginRoutes: Record<string, any> | undefined): AdminApiInfo {
+  const exportRoute = pluginRoutes?.export
+  return {
+    maxLimit: apiConfig?.pagination?.maxLimit ?? 100,
+    bulk: apiConfig?.bulk?.enabled !== false,
+    maxBatchSize: apiConfig?.bulk?.maxBatchSize ?? 100,
+    export: exportRoute
+      ? { formats: exportRoute.formats ?? ['csv', 'json'], maxRows: exportRoute.maxRows ?? 10000, ...(exportRoute.resources ? { resources: exportRoute.resources } : {}) }
+      : null,
+    auditLog: !!pluginRoutes?.auditLog,
+  }
+}
+
 type BuildTimeResource = ResourceRegistration
 
 interface BuildTimeResourceConfig {
@@ -225,7 +249,7 @@ interface BuildTimeResourceConfig {
 /**
  * Generate admin registry virtual module
  */
-function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOptions): string {
+function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOptions, apiHidden?: { global?: string[], resources?: Record<string, string[]> }): string {
   const imports: string[] = []
   const registryEntries: string[] = []
   const schemaMapEntries: string[] = []
@@ -255,7 +279,15 @@ function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOp
     }
 
     // Build resource schema entry
-    const schemaEntry = buildResourceSchemaEntry(resource, resourceConfig, varName, resourceNames)
+    // The API never returns (nor lets a query reference) its hidden fields: the admin hides them too, so it
+    // does not offer a filter the API would refuse with a 400.
+    const hiddenFields = [...new Set([
+      ...(resourceConfig.hiddenFields ?? []),
+      ...(resource.hiddenFields ?? []),
+      ...(apiHidden?.global ?? []),
+      ...(apiHidden?.resources?.[resource.name] ?? []),
+    ])]
+    const schemaEntry = buildResourceSchemaEntry(resource, { ...resourceConfig, hiddenFields }, varName, resourceNames)
     registryEntries.push(schemaEntry)
   })
 

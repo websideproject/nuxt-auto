@@ -136,6 +136,12 @@
       </div>
     </UCard>
 
+    <ResourceAuditLog
+      v-if="showAuditLog && canRead"
+      :resource-name="resourceName"
+      :record-id="id"
+    />
+
     <!-- Delete confirmation modal -->
     <UModal v-model:open="deleteModalOpen">
       <template #body>
@@ -189,6 +195,7 @@
 import { ref, computed } from 'vue'
 import { useRoute } from '#app'
 import { formatFieldLabel, formatDisplayValue } from '../../../utils/fieldTypeMapping'
+import ResourceAuditLog from '../../../components/ResourceAuditLog.vue'
 import { useAdminResource } from '../../../composables/useAdminResource'
 import { useAdminPermissions } from '../../../composables/useAdminPermissions'
 import { useAdminActions } from '../../../composables/useAdminActions'
@@ -212,8 +219,10 @@ const {
 } = useAdminPermissions(resourceName.value)
 const { goToList, goToEdit, handleDelete, isDeleting } = useAdminActions(resourceName.value)
 
-const { permissions: permissionConfig } = useAdminConfig()
+const { permissions: permissionConfig, features, api } = useAdminConfig()
 const showButtonBehavior = computed(() => permissionConfig.unauthorizedButtons || 'disable')
+// History needs the flag and createAuditLogPlugin's route.
+const showAuditLog = features.auditLog === true && api.auditLog
 
 // Extract actual data from response
 const data = computed(() => response.value?.data)
