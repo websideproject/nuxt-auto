@@ -1,4 +1,4 @@
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin, ContextExtender } from '../types/plugin'
 import type { AuthUser } from '../types'
 
@@ -44,7 +44,7 @@ export interface BetterAuthPluginOptions {
 export function createBetterAuthPlugin(options: BetterAuthPluginOptions = {}): AutoApiPlugin {
   const { getSession, mapUser, getPermissions } = options
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createBetterAuthPlugin', [options], {
     name: 'better-auth',
     version: '1.0.0',
     runtimeSetup(ctx) {

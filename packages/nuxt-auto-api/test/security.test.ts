@@ -226,4 +226,62 @@ describe('security (e2e)', async () => {
       expect((await req('/api/_m2m/detect/users', { user: 'alice' })).status).toBe(200)
     })
   })
+
+  describe('routes added by plugins', () => {
+    it('export is the list, authorized: anonymous is refused, hidden fields and other tenants stay out', async () => {
+      expect((await req('/api/users/export')).status).toBe(401)
+      expect((await req('/api/notes/export', { user: 'alice' })).status).toBe(403)
+
+      const users = await req('/api/users/export', { user: 'alice' })
+      expect(users.status).toBe(200)
+      expect(users.json.data.length).toBeGreaterThan(0)
+      expect(users.json.data.every((u: any) => !('password' in u))).toBe(true)
+
+      const posts = await req('/api/posts/export', { user: 'alice' })
+      expect(posts.json.data.every((p: any) => p.organizationId === 'org_a')).toBe(true)
+
+      const csv = await (await fetch('/api/users/export?format=csv', { headers: { 'x-test-user': 'alice' } })).text()
+      expect(csv.split('\r\n')[0]).not.toContain('password')
+      expect(csv).not.toContain('hunter2')
+    })
+
+    it('upload is an authorized update of a visible row', async () => {
+      const form = () => {
+        const f = new FormData()
+        f.append('file', new Blob(['png'], { type: 'image/png' }), 'cover.png')
+        return f
+      }
+      const upload = (id: number, user?: string) => fetch(`/api/posts/${id}/upload`, { method: 'POST', body: form(), headers: user ? { 'x-test-user': user } : {} })
+
+      expect((await upload(1)).status).toBe(401)
+      expect((await upload(2, 'alice')).status).toBe(404) // org_b's post
+      const ok = await upload(1, 'alice')
+      expect(ok.status).toBe(200)
+      expect((await ok.json()).data.cover).toMatch(/^\/uploads\/posts\/[\w-]+\.png$/)
+    })
+
+    it('deleting an upload never removes a file outside the upload directory', async () => {
+      const { mkdirSync, writeFileSync, existsSync } = await import('node:fs')
+      const { tmpdir } = await import('node:os')
+      const { join } = await import('node:path')
+      const root = join(tmpdir(), 'autoapi-security-uploads')
+      mkdirSync(root, { recursive: true })
+      const outside = join(root, '..', 'autoapi-security-sentinel.txt')
+      writeFileSync(outside, 'keep')
+
+      // The file column is an ordinary writable column, so it can point anywhere.
+      await req('/api/posts/1', { user: 'alice', method: 'PATCH', body: { cover: '/uploads/posts/../../autoapi-security-sentinel.txt' } })
+      const res = await fetch('/api/posts/1/upload', { method: 'DELETE', headers: { 'x-test-user': 'alice' } })
+      expect(res.status).toBe(200)
+      expect(existsSync(outside)).toBe(true)
+    })
+  })
+
+  it('a rate limiter listed inline in nuxt.config limits (its options reach the server)', async () => {
+    const hit = () => req('/api/docs', { headers: { 'x-rate-test': '1' } })
+    expect((await hit()).status).toBe(200)
+    expect((await hit()).status).toBe(200)
+    expect((await hit()).status).toBe(429)
+    expect((await req('/api/docs')).status).toBe(200)
+  })
 })

@@ -3,6 +3,7 @@ import { createError } from 'h3'
 import { resolveObjectPermission } from '../middleware/resolveObjectPermission'
 import { getAuthConfig } from './authConfig'
 import { coerceId, primaryKeyColumn } from './table'
+import { getSoftDeleteColumn } from './softDelete'
 import type {
   ResourceAuthConfig,
   HandlerContext,
@@ -116,14 +117,18 @@ export async function getResourcePermissions(
   authConfig: ResourceAuthConfig | undefined,
   context: HandlerContext,
 ): Promise<PermissionCheckResult> {
+  // Restore, purge and the trash exist only on a soft-deletable table (they fall back to `update` / `delete`,
+  // which would otherwise report them as allowed on a table that has no trash at all).
+  const table = context.schema?.[context.resource]
+  const softDeletable = !table || !!getSoftDeleteColumn(table)
   const result: PermissionCheckResult = {
     canCreate: await checkPermission('create', authConfig, context),
     canRead: await checkPermission('read', authConfig, context),
     canUpdate: await checkPermission('update', authConfig, context),
     canDelete: await checkPermission('delete', authConfig, context),
-    canRestore: await checkPermission('restore', authConfig, context),
-    canPurge: await checkPermission('purge', authConfig, context),
-    canViewDeleted: await checkPermission('viewDeleted', authConfig, context),
+    canRestore: softDeletable && await checkPermission('restore', authConfig, context),
+    canPurge: softDeletable && await checkPermission('purge', authConfig, context),
+    canViewDeleted: softDeletable && await checkPermission('viewDeleted', authConfig, context),
   }
 
   if (authConfig?.fields) {

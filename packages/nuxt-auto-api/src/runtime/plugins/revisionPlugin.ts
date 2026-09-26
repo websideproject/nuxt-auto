@@ -17,7 +17,7 @@
  */
 
 import { eq, and, desc, sql, notInArray } from 'drizzle-orm'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
 export interface RevisionPluginOptions {
@@ -69,8 +69,9 @@ export function createRevisionPlugin(opts: RevisionPluginOptions = {}): AutoApiP
       await ctx.db.insert(rev).values({
         resource: ctx.resource,
         recordId,
-        version: sql`(SELECT COALESCE(MAX(${rev.version}),0)+1 FROM ${rev}
-                       WHERE ${rev.resource}=${ctx.resource} AND ${rev.recordId}=${recordId})`,
+        // The max is read through a derived table: MySQL refuses a subquery on the table being inserted into.
+        version: sql`(SELECT COALESCE(MAX(v.version),0)+1 FROM (SELECT ${rev.version} AS version FROM ${rev}
+                       WHERE ${rev.resource}=${ctx.resource} AND ${rev.recordId}=${recordId}) AS v)`,
         operation: effectiveOp,
         data,
         userId: ctx.user?.id ? String(ctx.user.id) : null,
@@ -80,20 +81,22 @@ export function createRevisionPlugin(opts: RevisionPluginOptions = {}): AutoApiP
       })
 
       if (max > 0) {
-        // Prune to the newest `max` revisions. Select the ids to KEEP (LIMIT max — valid on all
-        // dialects) and delete everything else for this record. Avoids OFFSET-without-LIMIT, which
-        // is invalid in SQLite and not portable (LIMIT -1 / LIMIT ALL differ per engine).
-        const idsToKeep = ctx.db
+        // Prune to the newest `max` revisions: read the ids to keep, then delete the rest of this record's.
+        // Two statements — MySQL supports neither LIMIT in an IN subquery nor a subquery on the table being
+        // deleted from, and OFFSET without LIMIT is invalid in SQLite.
+        const keep: Array<{ id: unknown }> = await ctx.db
           .select({ id: rev.id }).from(rev)
           .where(and(eq(rev.resource, ctx.resource), eq(rev.recordId, recordId)))
           .orderBy(desc(rev.version))
           .limit(max)
 
-        await ctx.db.delete(rev).where(and(
-          eq(rev.resource, ctx.resource),
-          eq(rev.recordId, recordId),
-          notInArray(rev.id, idsToKeep),
-        ))
+        if (keep.length >= max) {
+          await ctx.db.delete(rev).where(and(
+            eq(rev.resource, ctx.resource),
+            eq(rev.recordId, recordId),
+            notInArray(rev.id, keep.map(r => r.id)),
+          ))
+        }
       }
     }
     catch (err) {
@@ -101,7 +104,7 @@ export function createRevisionPlugin(opts: RevisionPluginOptions = {}): AutoApiP
     }
   }
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createRevisionPlugin', [opts], {
     name: 'revision-history',
     version: '2.0.0',
     runtimeSetup(ctx) {

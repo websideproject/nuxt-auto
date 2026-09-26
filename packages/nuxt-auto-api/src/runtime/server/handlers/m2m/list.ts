@@ -9,6 +9,7 @@ import { readableColumns } from '../../utils/queryFields'
 import { contextFor, passesObjectLevel, rowScope } from '../../utils/rowAccess'
 import { serializeResponse } from '../../utils/serializeResponse'
 import { primaryKeyColumn, primaryKeyName } from '../../utils/table'
+import { selectInChunks } from '../../utils/atomicWrites'
 import { m2mPrelude } from './shared'
 
 const truthy = (v: unknown) => v === true || v === 'true' || v === '1'
@@ -65,10 +66,10 @@ export async function m2mListHandler(context: HandlerContext): Promise<M2MListRe
   }
 
   if (truthy(q.includeMetadata) && junction.metadataColumns.length > 0 && ids.length > 0) {
-    const junctionRows: any[] = await context.db.select().from(junction.table).where(and(
+    const junctionRows = await selectInChunks(ids, part => context.db.select().from(junction.table).where(and(
       eq(junction.table[junction.leftKey], side.leftId),
-      inArray(junction.table[junction.rightKey], ids),
-    ))
+      inArray(junction.table[junction.rightKey], part),
+    )))
     const byId = new Map(junctionRows.map(r => [String(r[junction.rightKey]), r]))
     response.metadata = ids.map((id) => {
       const row = byId.get(String(id)) ?? {}

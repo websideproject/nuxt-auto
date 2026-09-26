@@ -1,6 +1,7 @@
-import { getRequestHeaders, getRequestIP, type H3Event } from 'h3'
+import { getRequestHeaders, type H3Event } from 'h3'
 import type { HandlerContext, AutoApiPlugin } from '../types'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
+import { clientAddress } from './rateLimitPlugin'
 
 /**
  * Custom mapper function signature.
@@ -32,8 +33,8 @@ export interface RequestMetadataPluginOptions {
    * @param event - The H3 request event
    * @returns Object with metadata keys (ip, country, city, etc.)
    *
-   * Default: Extracts from Cloudflare headers (CF-Connecting-IP, CF-IPCountry, etc.)
-   * Falls back to X-Forwarded-For / X-Real-IP for non-Cloudflare environments.
+   * Default: the connection's address, and on Cloudflare its headers (CF-Connecting-IP, CF-IPCountry, …) —
+   * only there, where Cloudflare sets them; elsewhere a client could. `X-Forwarded-For` needs `trustProxy`.
    *
    * @example Custom MaxMind GeoIP extractor
    * ```typescript
@@ -50,6 +51,12 @@ export interface RequestMetadataPluginOptions {
    * ```
    */
   extract?: (event: H3Event) => Record<string, any> | Promise<Record<string, any>>
+
+  /**
+   * Behind your own reverse proxy: how many proxies append to `X-Forwarded-For` (`true` = 1). Without it the
+   * header is ignored — a client can put any address there. @default false
+   */
+  trustProxy?: boolean | number
 
   /**
    * Configure how metadata is stored in the database.
@@ -122,23 +129,23 @@ export interface RequestMetadataPluginOptions {
 /**
  * Default extractor: Cloudflare headers + User-Agent
  */
-function defaultExtract(event: H3Event): Record<string, any> {
+/**
+ * Cloudflare's `CF-*` headers are read only when the request came through Cloudflare's runtime, which sets them
+ * itself; anywhere else a client can send them. `X-Forwarded-For` is read only with `trustProxy` (see
+ * `clientAddress`).
+ */
+function defaultExtract(event: H3Event, trustProxy: boolean | number): Record<string, any> {
   const headers = getRequestHeaders(event)
-
-  // Try Cloudflare headers first
-  const ip = headers['cf-connecting-ip']
-    || headers['x-forwarded-for']?.split(',')[0]?.trim()
-    || headers['x-real-ip']
-    || getRequestIP(event)
+  const cf = (name: string) => ((event as any).context?.cloudflare ? headers[name] : undefined)
 
   return {
-    ip,
-    country: headers['cf-ipcountry'],
-    city: headers['cf-ipcity'],
-    region: headers['cf-ipregion'],
-    timezone: headers['cf-timezone'],
-    latitude: headers['cf-iplatitude'],
-    longitude: headers['cf-iplongitude'],
+    ip: clientAddress(event, trustProxy),
+    country: cf('cf-ipcountry'),
+    city: cf('cf-ipcity'),
+    region: cf('cf-ipregion'),
+    timezone: cf('cf-timezone'),
+    latitude: cf('cf-iplatitude'),
+    longitude: cf('cf-iplongitude'),
     userAgent: headers['user-agent'],
   }
 }
@@ -147,13 +154,14 @@ export function createRequestMetadataPlugin(
   options: RequestMetadataPluginOptions = {},
 ): AutoApiPlugin {
   const {
-    extract = defaultExtract,
+    trustProxy = false,
+    extract = (event: H3Event) => defaultExtract(event, trustProxy),
     autoPopulate = false,
     autoPopulateOn = ['create'],
     resources,
   } = options
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createRequestMetadataPlugin', [options], {
     name: 'request-metadata',
     version: '1.0.0',
 

@@ -5,9 +5,10 @@ export function createD1Adapter(db: unknown): DatabaseAdapter {
     engine: 'd1',
     db,
     async atomic<T>(fn: (ctx: { tx: unknown }) => T | Promise<T>): Promise<T> {
-      // D1 has no interactive transactions (only db.batch() of prepared statements), so an arbitrary async
-      // function cannot be made atomic: it runs directly and earlier writes stay if it throws.
-      // `supportsTransactions: false` tells callers.
+      // D1 has no interactive transactions, so an arbitrary async function cannot be made atomic: it runs
+      // directly and earlier writes stay if it throws (`supportsTransactions: false` tells callers). What D1
+      // does have is db.batch() — statements executed as one transaction — which is what `atomicWrites()`
+      // uses; the API's own multi-row writes go through it.
       return fn({ tx: db })
     },
     getMutationCount(result: any): number {

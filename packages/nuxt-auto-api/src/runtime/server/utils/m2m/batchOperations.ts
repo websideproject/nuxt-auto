@@ -1,134 +1,41 @@
-import { eq, and, inArray, sql } from 'drizzle-orm'
+import { eq, and, inArray, sql, getTableColumns } from 'drizzle-orm'
 import type { M2MBatchOperation, M2MBatchResult, DetectedJunction } from '../../../types'
-import { getDatabaseAdapter } from '../../database'
+import { atomicWritesFor, chunk, MAX_IDS_PER_STATEMENT, type Write } from '../atomicWrites'
+
+// D1 allows 100 bound parameters per statement; a multi-row insert binds one per column per row.
+const MAX_PARAMS_PER_STATEMENT = 90
 
 /**
- * Core M2M transaction logic - async version for D1/adapter path
+ * The statements that apply one M2M diff to a junction table: deletes of `toRemove`, then inserts of `toAdd`
+ * (with their metadata), chunked to fit a statement's bound-parameter limit. Plain awaited Drizzle queries,
+ * so they run on every dialect.
  */
-async function executeM2MInTxAsync(
-  tx: any,
-  junction: DetectedJunction,
-  leftId: string | number,
-  toAdd: Array<string | number>,
-  toRemove: Array<string | number>,
-  metadata?: Record<string, any>[],
-  adapter?: import('../../../types/database').DatabaseAdapter,
-): Promise<M2MBatchResult> {
-  const junctionTable = junction.table
+export function m2mWrites(junction: DetectedJunction, leftId: string | number, operation: M2MBatchOperation): Write[] {
+  const { toAdd, toRemove, metadata } = operation
+  const table = junction.table
+  const writes: Write[] = []
 
-  let removedCount = 0
-  if (toRemove.length > 0) {
-    const deleteResult = await tx
-      .delete(junctionTable)
-      .where(and(eq(junctionTable[junction.leftKey], leftId), inArray(junctionTable[junction.rightKey], toRemove)))
-      .run()
-    removedCount = adapter ? adapter.getMutationCount(deleteResult) : (deleteResult.changes ?? deleteResult.length ?? 0)
+  for (const ids of chunk(toRemove, MAX_IDS_PER_STATEMENT)) {
+    writes.push(db => db.delete(table).where(and(eq(table[junction.leftKey], leftId), inArray(table[junction.rightKey], ids))))
   }
 
-  let addedCount = 0
-  if (toAdd.length > 0) {
-    const values = toAdd.map((rightId, index) => {
-      const baseValue: Record<string, any> = { [junction.leftKey]: leftId, [junction.rightKey]: rightId }
-      if (metadata && metadata[index]) Object.assign(baseValue, metadata[index])
-      return baseValue
-    })
-    const insertResult = await tx.insert(junctionTable).values(values).run()
-    addedCount = adapter ? adapter.getMutationCount(insertResult) : (insertResult.changes ?? insertResult.length ?? toAdd.length)
+  const rows = toAdd.map((rightId, i) => ({ ...(metadata?.[i] ?? {}), [junction.leftKey]: leftId, [junction.rightKey]: rightId }))
+  const rowsPerInsert = Math.max(1, Math.floor(MAX_PARAMS_PER_STATEMENT / Object.keys(getTableColumns(table)).length))
+  for (const values of chunk(rows, rowsPerInsert)) {
+    writes.push(db => db.insert(table).values(values))
   }
+  return writes
+}
 
-  const countResults = await tx
-    .select({ count: sql<number>`count(*)` })
-    .from(junctionTable)
-    .where(eq(junctionTable[junction.leftKey], leftId))
-    .all()
-
-  return { added: addedCount, removed: removedCount, total: Number(countResults[0]?.count) || 0 }
+/** Number of links a row has in the junction table. */
+export async function countRelations(db: any, junction: DetectedJunction, leftId: string | number): Promise<number> {
+  const [row] = await db.select({ count: sql<number>`count(*)` }).from(junction.table).where(eq(junction.table[junction.leftKey], leftId))
+  return Number(row?.count) || 0
 }
 
 /**
- * Core M2M transaction logic - sync version for better-sqlite3 path
- */
-function executeM2MInTx(
-  tx: any,
-  junction: DetectedJunction,
-  leftId: string | number,
-  toAdd: Array<string | number>,
-  toRemove: Array<string | number>,
-  metadata?: Record<string, any>[],
-  adapter?: import('../../../types/database').DatabaseAdapter,
-): M2MBatchResult {
-  const junctionTable = junction.table
-
-  // 1. DELETE removed relations (batch)
-  let removedCount = 0
-  if (toRemove.length > 0) {
-    const deleteResult = tx
-      .delete(junctionTable)
-      .where(
-        and(
-          eq(junctionTable[junction.leftKey], leftId),
-          inArray(junctionTable[junction.rightKey], toRemove),
-        ),
-      )
-      .run()
-
-    removedCount = adapter
-      ? adapter.getMutationCount(deleteResult)
-      : (deleteResult.changes ?? deleteResult.length ?? 0)
-  }
-
-  // 2. INSERT new relations (batch)
-  let addedCount = 0
-  if (toAdd.length > 0) {
-    const values = toAdd.map((rightId, index) => {
-      const baseValue: Record<string, any> = {
-        [junction.leftKey]: leftId,
-        [junction.rightKey]: rightId,
-      }
-      if (metadata && metadata[index]) {
-        Object.assign(baseValue, metadata[index])
-      }
-      return baseValue
-    })
-
-    const insertResult = tx
-      .insert(junctionTable)
-      .values(values)
-      .run()
-
-    addedCount = adapter
-      ? adapter.getMutationCount(insertResult)
-      : (insertResult.changes ?? insertResult.length ?? toAdd.length)
-  }
-
-  // 3. Get total count after operation
-  const countResults = tx
-    .select({ count: sql<number>`count(*)` })
-    .from(junctionTable)
-    .where(eq(junctionTable[junction.leftKey], leftId))
-    .all()
-
-  const totalCount = Number(countResults[0]?.count) || 0
-
-  return {
-    added: addedCount,
-    removed: removedCount,
-    total: totalCount,
-  }
-}
-
-/**
- * Execute batch M2M operations (add/remove in a single transaction)
- *
- * Performance: Reduces N+1 queries to 3 queries total:
- * - 1 SELECT (to get current relations)
- * - 1 DELETE (batch delete)
- * - 1 INSERT (batch insert)
- *
- * Example: Syncing 50 relations
- * - Old approach: 100+ queries (50 DELETE + 50 INSERT)
- * - New approach: 3 queries (1 SELECT + 1 DELETE + 1 INSERT)
- * - Result: 97% query reduction
+ * Apply an M2M diff atomically (one transaction, or one `db.batch()` on D1). `toAdd` / `toRemove` come from
+ * `calculateDiff` against the current links, so they are the counts reported.
  */
 export async function executeBatchM2M(
   db: any,
@@ -136,29 +43,18 @@ export async function executeBatchM2M(
   leftId: string | number,
   operation: M2MBatchOperation,
 ): Promise<M2MBatchResult> {
-  const { toAdd, toRemove, metadata } = operation
+  await atomicWritesFor({ db }, m2mWrites(junction, leftId, operation))
+  return { added: operation.toAdd.length, removed: operation.toRemove.length, total: await countRelations(db, junction, leftId) }
+}
 
-  // Use adapter for engine-agnostic transaction handling
-  let adapter: ReturnType<typeof getDatabaseAdapter> | undefined
-  try {
-    adapter = getDatabaseAdapter()
-  }
-  catch {
-    // Fallback to legacy behavior
-  }
-
-  if (adapter) {
-    return adapter.atomic(async ({ tx }) => {
-      return executeM2MInTxAsync(tx, junction, leftId, toAdd, toRemove, metadata, adapter!)
-    })
-  }
-
-  // Legacy fallback: direct db.transaction (sync, better-sqlite3)
-  const result = db.transaction((tx: any) => {
-    return executeM2MInTx(tx, junction, leftId, toAdd, toRemove, metadata)
-  })
-
-  return result
+/** @deprecated `executeBatchM2M` chunks every statement itself; kept for existing imports. */
+export function executeBatchM2MWithChunking(
+  db: any,
+  junction: DetectedJunction,
+  leftId: string | number,
+  operation: M2MBatchOperation,
+): Promise<M2MBatchResult> {
+  return executeBatchM2M(db, junction, leftId, operation)
 }
 
 /**
@@ -197,111 +93,7 @@ export function calculateDiff(
 
 /**
  * Chunk array into smaller batches
- * Useful for very large operations to avoid hitting query size limits
  */
 export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < array.length; i += chunkSize) {
-    chunks.push(array.slice(i, i + chunkSize))
-  }
-  return chunks
-}
-
-/**
- * Execute batch M2M operations with chunking for large batches
- */
-export async function executeBatchM2MWithChunking(
-  db: any,
-  junction: DetectedJunction,
-  leftId: string | number,
-  operation: M2MBatchOperation,
-  chunkSize = 500,
-): Promise<M2MBatchResult> {
-  const { toAdd, toRemove, metadata } = operation
-
-  // If under chunk size, use regular batch operation
-  if (toAdd.length <= chunkSize && toRemove.length <= chunkSize) {
-    return executeBatchM2M(db, junction, leftId, operation)
-  }
-
-  let adapter: ReturnType<typeof getDatabaseAdapter> | undefined
-  try {
-    adapter = getDatabaseAdapter()
-  }
-  catch {
-    // Fallback to legacy behavior
-  }
-
-  const runChunkedSync = (tx: any) => {
-    const junctionTable = junction.table
-    let totalAdded = 0
-    let totalRemoved = 0
-
-    if (toRemove.length > 0) {
-      const removeChunks = chunkArray(toRemove, chunkSize)
-      for (const chunk of removeChunks) {
-        const deleteResult = tx.delete(junctionTable).where(and(eq(junctionTable[junction.leftKey], leftId), inArray(junctionTable[junction.rightKey], chunk))).run()
-        totalRemoved += deleteResult.changes ?? deleteResult.length ?? 0
-      }
-    }
-
-    if (toAdd.length > 0) {
-      const addChunks = chunkArray(toAdd, chunkSize)
-      let metadataOffset = 0
-      for (const chunk of addChunks) {
-        const values = chunk.map((rightId, index) => {
-          const baseValue: Record<string, any> = { [junction.leftKey]: leftId, [junction.rightKey]: rightId }
-          const meta = metadata?.[metadataOffset + index]
-          if (meta) Object.assign(baseValue, meta)
-          return baseValue
-        })
-        const insertResult = tx.insert(junctionTable).values(values).run()
-        totalAdded += insertResult.changes ?? insertResult.length ?? chunk.length
-        metadataOffset += chunk.length
-      }
-    }
-
-    const countResults = tx.select({ count: sql<number>`count(*)` }).from(junctionTable).where(eq(junctionTable[junction.leftKey], leftId)).all()
-    return { added: totalAdded, removed: totalRemoved, total: Number(countResults[0]?.count) || 0 }
-  }
-
-  const runChunkedAsync = async (tx: any) => {
-    const junctionTable = junction.table
-    let totalAdded = 0
-    let totalRemoved = 0
-
-    if (toRemove.length > 0) {
-      const removeChunks = chunkArray(toRemove, chunkSize)
-      for (const chunk of removeChunks) {
-        const deleteResult = await tx.delete(junctionTable).where(and(eq(junctionTable[junction.leftKey], leftId), inArray(junctionTable[junction.rightKey], chunk))).run()
-        totalRemoved += adapter ? adapter.getMutationCount(deleteResult) : (deleteResult.changes ?? deleteResult.length ?? 0)
-      }
-    }
-
-    if (toAdd.length > 0) {
-      const addChunks = chunkArray(toAdd, chunkSize)
-      let metadataOffset = 0
-      for (const chunk of addChunks) {
-        const values = chunk.map((rightId, index) => {
-          const baseValue: Record<string, any> = { [junction.leftKey]: leftId, [junction.rightKey]: rightId }
-          const meta = metadata?.[metadataOffset + index]
-          if (meta) Object.assign(baseValue, meta)
-          return baseValue
-        })
-        const insertResult = await tx.insert(junctionTable).values(values).run()
-        totalAdded += adapter ? adapter.getMutationCount(insertResult) : (insertResult.changes ?? insertResult.length ?? chunk.length)
-        metadataOffset += chunk.length
-      }
-    }
-
-    const countResults = await tx.select({ count: sql<number>`count(*)` }).from(junctionTable).where(eq(junctionTable[junction.leftKey], leftId)).all()
-    return { added: totalAdded, removed: totalRemoved, total: Number(countResults[0]?.count) || 0 }
-  }
-
-  if (adapter) {
-    return adapter.atomic(async ({ tx }) => runChunkedAsync(tx))
-  }
-
-  // Legacy fallback (sync, better-sqlite3)
-  return db.transaction((tx: any) => runChunkedSync(tx))
+  return chunk(array, chunkSize)
 }

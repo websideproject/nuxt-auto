@@ -20,8 +20,9 @@ export interface DatabaseAdapter {
   /** Drizzle database instance */
   db: any
   /**
-   * Execute operations atomically.
-   * Uses db.transaction() for traditional DBs, db.batch() for D1/Turso.
+   * Run `fn` in a transaction (`db.transaction()`); an `atomic()` inside another joins it. On D1, which has no
+   * interactive transactions, `fn` runs directly — see `supportsTransactions`, and use `atomicWrites()` for
+   * writes that must land together there.
    */
   atomic: <T>(fn: (ctx: AtomicContext) => T | Promise<T>) => Promise<T>
   /**
@@ -35,7 +36,8 @@ export interface DatabaseAdapter {
   supportsNativeBatch: boolean
   /**
    * Whether `atomic()` is a real transaction (rolled back on error). `false` on D1, which has no
-   * interactive transactions: `atomic()` then runs the function directly and earlier writes stay.
+   * interactive transactions: `atomic()` then runs the function directly and earlier writes stay —
+   * `atomicWrites()` (one `db.batch()`) is the all-or-nothing path there.
    */
   supportsTransactions: boolean
 }

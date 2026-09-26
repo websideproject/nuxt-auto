@@ -43,23 +43,35 @@ describe('InMemoryCacheStore', () => {
   })
 })
 
-// Drive the plugin's runtimeSetup with a fake registry ctx that captures the middleware + hooks, then
-// exercise the cache read/write/invalidate cycle against a shared store.
+// Drive the plugin's runtimeSetup with a fake registry ctx that captures the middleware, then run a request the
+// way the pipeline does: pre-execute (cache-read) → handler → context.result → post-execute (write, invalidate).
 function wirePlugin(opts: any = {}) {
-  const middlewares: Record<string, any> = {}
-  const hooks: any[] = []
+  const middlewares: any[] = []
   const ctx = {
-    addMiddleware: (m: any) => { middlewares[m.name] = m },
-    addGlobalHook: (h: any) => { hooks.push(h) },
+    addMiddleware: (m: any) => { middlewares.push(m) },
+    addGlobalHook: () => {},
     logger: { info: vi.fn() },
   }
-  const plugin = createCachePlugin(opts)
-  ;(plugin as any).runtimeSetup(ctx)
-  const callHook = async (name: string, ...args: any[]) => {
-    for (const h of hooks) if (h[name]) await h[name](...args)
+  createCachePlugin(opts).runtimeSetup!(ctx as any)
+  const run = async (stage: string, context: any) => {
+    for (const m of middlewares.filter(m => m.stage === stage && (!m.operations || m.operations.includes(context.operation)))) await m.handler(context)
   }
-  return { plugin, middlewares, callHook }
+  let handlerCalls = 0
+  const request = async (context: any, response: any = { data: [{ id: 1 }], meta: { limit: 20, nextCursor: 'abc' } }) => {
+    await run('pre-execute', context)
+    if (context.shortCircuit) {
+      await run('post-execute', context)
+      return context.shortCircuit.data
+    }
+    handlerCalls++
+    context.result = response
+    await run('post-execute', context)
+    return response
+  }
+  return { request, calls: () => handlerCalls }
 }
+
+const req = (over: any = {}) => ({ resource: 'articles', operation: 'list', query: {}, params: {}, user: { id: 'u1' }, event: { path: '/api/articles', method: 'GET' }, ...over })
 
 describe('createCachePlugin', () => {
   it('is the cache plugin v1.1.0', () => {
@@ -67,49 +79,55 @@ describe('createCachePlugin', () => {
     expect(createCachePlugin().version).toBe('1.1.0')
   })
 
-  it('full cycle: a miss serves nothing, the after-hook caches, a repeat is served from cache', async () => {
-    const { middlewares, callHook } = wirePlugin({ ttlMs: 10000 })
-    const ctx: any = { resource: 'articles', operation: 'get', query: {}, params: { id: '1' }, user: { id: 'u1' } }
-
-    await middlewares['cache-read'].handler(ctx)
-    expect(ctx.shortCircuit, 'first call is a miss').toBeUndefined()
-
-    await callHook('afterGet', { id: 1, title: 'X' }, ctx) // caches the result
-
-    const ctx2: any = { resource: 'articles', operation: 'get', query: {}, params: { id: '1' }, user: { id: 'u1' } }
-    await middlewares['cache-read'].handler(ctx2)
-    expect(ctx2.shortCircuit, 'second identical call is served from cache').toEqual({ data: { data: { id: 1, title: 'X' } } })
+  it('serves a repeat from cache — the whole response, meta (cursor, total) included', async () => {
+    const { request, calls } = wirePlugin({ ttlMs: 10000 })
+    const first = await request(req())
+    const second = await request(req())
+    expect(calls()).toBe(1)
+    expect(second).toEqual(first)
+    expect(second.meta.nextCursor).toBe('abc')
   })
 
-  it('a mutation invalidates the resource’s cached entries', async () => {
-    const { middlewares, callHook } = wirePlugin({ ttlMs: 10000 })
-    const get: any = { resource: 'articles', operation: 'get', query: {}, params: { id: '1' }, user: { id: 'u1' } }
-    await middlewares['cache-read'].handler(get)
-    await callHook('afterGet', { id: 1 }, get) // cached
+  it('a write invalidates the resource — create, update (restore) and M2M writes alike', async () => {
+    for (const write of [
+      { operation: 'create', event: { path: '/api/articles', method: 'POST' } },
+      { operation: 'update', event: { path: '/api/articles/1/restore', method: 'POST' } },
+      { operation: 'm2m', event: { path: '/api/articles/1/relations/tags', method: 'POST' } },
+    ]) {
+      const { request, calls } = wirePlugin({ ttlMs: 10000 })
+      await request(req())
+      await request(req(write), { data: {} })
+      await request(req())
+      expect(calls(), `${write.operation} invalidated`).toBe(3)
+    }
+  })
 
-    await callHook('afterCreate', { id: 2 }, { resource: 'articles' }) // invalidates "articles:"
-
-    const get2: any = { resource: 'articles', operation: 'get', query: {}, params: { id: '1' }, user: { id: 'u1' } }
-    await middlewares['cache-read'].handler(get2)
-    expect(get2.shortCircuit, 'cache was invalidated by the create').toBeUndefined()
+  it('reading M2M links does not invalidate', async () => {
+    const { request, calls } = wirePlugin({ ttlMs: 10000 })
+    await request(req())
+    await request(req({ operation: 'm2m', event: { path: '/api/articles/1/relations/tags', method: 'GET' } }), { ids: [] })
+    await request(req())
+    expect(calls()).toBe(2)
   })
 
   it('respects the `resources` allowlist — non-listed resources are never cached', async () => {
-    const { middlewares, callHook } = wirePlugin({ resources: ['articles'] })
-    const ctx: any = { resource: 'secrets', operation: 'get', query: {}, params: { id: '1' } }
-    await callHook('afterGet', { id: 1 }, ctx) // should NOT cache (not allowlisted)
-    await middlewares['cache-read'].handler(ctx)
-    expect(ctx.shortCircuit, 'non-allowlisted resource is not served from cache').toBeUndefined()
+    const { request, calls } = wirePlugin({ resources: ['articles'] })
+    await request(req({ resource: 'secrets', event: { path: '/api/secrets', method: 'GET' } }))
+    await request(req({ resource: 'secrets', event: { path: '/api/secrets', method: 'GET' } }))
+    expect(calls()).toBe(2)
   })
 
   it('different users get different cache keys (no cross-user leak)', async () => {
-    const { middlewares, callHook } = wirePlugin({ ttlMs: 10000 })
-    const u1: any = { resource: 'articles', operation: 'list', query: {}, user: { id: 'u1' } }
-    await middlewares['cache-read'].handler(u1)
-    await callHook('afterList', [{ id: 1 }], u1)
+    const { request, calls } = wirePlugin({ ttlMs: 10000 })
+    await request(req())
+    await request(req({ user: { id: 'u2' } }))
+    expect(calls()).toBe(2)
+  })
 
-    const u2: any = { resource: 'articles', operation: 'list', query: {}, user: { id: 'u2' } }
-    await middlewares['cache-read'].handler(u2)
-    expect(u2.shortCircuit, 'u2 must not see u1’s cached list').toBeUndefined()
+  it('different routes of one resource do not share an entry (a record vs its /permissions)', async () => {
+    const { request, calls } = wirePlugin({ ttlMs: 10000 })
+    await request(req({ operation: 'get', event: { path: '/api/articles/permissions', method: 'GET' } }))
+    await request(req({ operation: 'get', params: { id: '' }, event: { path: '/api/articles/', method: 'GET' } }))
+    expect(calls()).toBe(2)
   })
 })

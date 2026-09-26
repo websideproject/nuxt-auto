@@ -1,7 +1,7 @@
 import { createError, readBody } from 'h3'
 import type { HandlerContext, M2MOperationResponse } from '../../../types'
 import { validateM2MAddRequest, validateIdsNotEmpty } from '../../utils/m2m/validateM2M'
-import { executeBatchM2MWithChunking, getCurrentRelations } from '../../utils/m2m/batchOperations'
+import { executeBatchM2M, getCurrentRelations } from '../../utils/m2m/batchOperations'
 import { executeHook } from '../../utils/executeHooks'
 import { alignMetadata, authorizeRelatedIds, m2mPrelude, runCustomM2MCheck, validateM2MMetadata } from './shared'
 
@@ -27,9 +27,9 @@ export async function m2mAddHandler(context: HandlerContext): Promise<M2MOperati
   const current = new Set((await getCurrentRelations(context.db, side.junction, side.leftId)).map(String))
   const toAdd = wanted.filter(id => !current.has(String(id)))
   const addMetadata = metadata ? toAdd.map(id => metadata[wanted.findIndex(w => String(w) === String(id))] ?? {}) : undefined
-  const result = await executeBatchM2MWithChunking(context.db, side.junction, side.leftId, { toAdd, toRemove: [], metadata: addMetadata })
+  const result = await executeBatchM2M(context.db, side.junction, side.leftId, { toAdd, toRemove: [], metadata: addMetadata })
 
-  const response: M2MOperationResponse = { success: true, added: result.added, total: current.size + result.added }
+  const response: M2MOperationResponse = { success: true, added: result.added, total: result.total }
   await executeHook('afterM2MAdd', context, side.relation, response, context)
   return response
 }

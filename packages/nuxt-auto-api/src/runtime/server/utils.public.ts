@@ -28,6 +28,9 @@ export { protectedFieldsFor, stripProtectedFields } from './utils/protectedField
 export { buildWhereClause, parseFilterParam } from './utils/buildWhereClause'
 export { parseSort, buildOrderBy } from './utils/buildOrderBy'
 export { insertReturning, updateReturning, supportsReturning } from './utils/returning'
+// All-or-nothing writes on every engine — a transaction, or one db.batch() on D1
+export { atomicWrites, atomicWritesFor } from './utils/atomicWrites'
+export type { Write } from './utils/atomicWrites'
 export { primaryKeyName, primaryKeyColumn } from './utils/table'
 
 // Field-level read/write enforcement. The CRUD handlers apply these already; they are exported so a custom

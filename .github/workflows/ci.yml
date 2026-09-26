@@ -56,13 +56,41 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+  # The engine conformance suite (packages/nuxt-auto-api/test/engines) runs every request against real databases:
+  # SQLite, libsql and D1 (Miniflare) in-process, Postgres and MySQL as services, and PlanetScale through
+  # ps-http-sim — the PlanetScale HTTP API in front of that MySQL.
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: autoapi
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: autoapi
+        ports: ['3306:3306']
+        options: --health-cmd "mysqladmin ping -ptest" --health-interval 5s --health-timeout 5s --health-retries 30
+    env:
+      AUTOAPI_TEST_PG_URL: postgres://postgres:test@127.0.0.1:5432/autoapi
+      AUTOAPI_TEST_MYSQL_URL: mysql://root:test@127.0.0.1:3306/autoapi
+      AUTOAPI_TEST_PLANETSCALE_URL: http://root:test@127.0.0.1:3900
+      AUTOAPI_TEST_REQUIRE_ENGINES: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+      - name: Start the PlanetScale HTTP simulator
+        # It opens a MySQL connection per HTTP session, more than MySQL's default 151.
+        run: |
+          mysql -h127.0.0.1 -uroot -ptest -e 'SET GLOBAL max_connections = 2000'
+          docker run -d --network host ghcr.io/mattrobenolt/ps-http-sim:latest -listen-addr=127.0.0.1 -listen-port=3900 -mysql-addr=127.0.0.1 -mysql-port=3306 -mysql-dbname=autoapi -log-level=error
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Prepare

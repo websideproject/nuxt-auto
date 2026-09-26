@@ -6,6 +6,7 @@ import { getAuthConfig } from './authConfig'
 import { getSoftDeleteColumn } from './softDelete'
 import { tenantCondition } from './tenant'
 import { coerceId, primaryKeyColumn, primaryKeyName } from './table'
+import { selectInChunks } from './atomicWrites'
 
 /**
  * Row visibility — the ONE definition of "which rows of a resource may this caller touch".
@@ -112,9 +113,11 @@ export async function findAuthorizedRows(
   if (!table) return []
   const db = opts.db ?? context.db
 
-  const idCondition = inArray(primaryKeyColumn(table), ids.map(id => coerceId(table, id, resource)))
   const scope = rowScope(context, resource, table, { softDeleted: opts.softDeleted })
-  const rows: any[] = await db.select().from(table).where(scope ? and(idCondition, scope) : idCondition)
+  const rows = await selectInChunks(ids.map(id => coerceId(table, id, resource)), (part) => {
+    const idCondition = inArray(primaryKeyColumn(table), part)
+    return db.select().from(table).where(scope ? and(idCondition, scope) : idCondition)
+  })
 
   const allowed: any[] = []
   for (const row of rows) {

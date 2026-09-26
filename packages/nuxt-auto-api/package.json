@@ -111,16 +111,21 @@
     }
   },
   "devDependencies": {
+    "@libsql/client": "^0.18.0",
     "@nuxt/devtools": "^3.1.1",
     "@nuxt/module-builder": "^1.0.2",
     "@nuxt/schema": "^4.3.0",
     "@nuxt/test-utils": "^3.23.0",
+    "@planetscale/database": "^1.19.0",
     "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^26.2.0",
     "better-sqlite3": "^11.0.0",
     "changelogen": "^0.6.2",
     "drizzle-kit": "^0.31.8",
-    "typescript": "^5.9.3",
-    "nuxt": "^4.3.0"
+    "miniflare": "^4.20260730.0",
+    "mysql2": "^3.24.4",
+    "nuxt": "^4.3.0",
+    "postgres": "^3.4.9",
+    "typescript": "^5.9.3"
   }
 }

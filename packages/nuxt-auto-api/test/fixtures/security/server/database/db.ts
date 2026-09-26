@@ -10,7 +10,7 @@ export function useDB() {
     sqlite.exec(`
       CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, password TEXT, organization_id TEXT);
       CREATE TABLE posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, organization_id TEXT,
-        user_id INTEGER NOT NULL REFERENCES users(id), deleted_at INTEGER);
+        user_id INTEGER NOT NULL REFERENCES users(id), deleted_at INTEGER, cover TEXT);
       CREATE TABLE labels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, organization_id TEXT);
       CREATE TABLE post_labels (post_id INTEGER NOT NULL, label_id INTEGER NOT NULL, PRIMARY KEY (post_id, label_id));
       CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, body TEXT NOT NULL);

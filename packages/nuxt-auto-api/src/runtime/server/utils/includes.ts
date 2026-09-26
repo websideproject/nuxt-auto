@@ -9,6 +9,7 @@ import { contextFor, passesObjectLevel, rowScope } from './rowAccess'
 import { getSoftDeleteColumn } from './softDelete'
 import { getColumns, primaryKeyColumn, primaryKeyName } from './table'
 import { getTenancyConfig, rowInTenant, tenantField } from './tenant'
+import { selectInChunks } from './atomicWrites'
 
 /**
  * `?include=` — relations loaded alongside the resource, authorized like the resource itself.
@@ -322,10 +323,10 @@ async function visibleIds(context: HandlerContext, node: IncludeNode, rows: any[
   const pk = primaryKeyName(node.table)
   const ids = [...new Set(rows.map(r => r?.[pk]).filter(v => v !== undefined && v !== null))]
   if (ids.length === 0) return new Set()
-  const found: any[] = await context.db
+  const found = await selectInChunks(ids, part => context.db
     .select({ id: primaryKeyColumn(node.table) })
     .from(node.table)
-    .where(and(inArray(primaryKeyColumn(node.table), ids), scope))
+    .where(and(inArray(primaryKeyColumn(node.table), part), scope)))
   return new Set(found.map(r => String(r.id)))
 }
 

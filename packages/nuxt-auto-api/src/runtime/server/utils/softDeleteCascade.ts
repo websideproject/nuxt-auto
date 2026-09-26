@@ -1,9 +1,11 @@
-import { eq, getTableName } from 'drizzle-orm'
+import { and, eq, getTableName, isNull } from 'drizzle-orm'
 import { getTableConfig as sqliteTableConfig } from 'drizzle-orm/sqlite-core'
 import { getTableConfig as pgTableConfig } from 'drizzle-orm/pg-core'
 import { getTableConfig as mysqlTableConfig } from 'drizzle-orm/mysql-core'
 import { createError } from 'h3'
 import { getSoftDeleteColumn, buildSoftDeleteUpdates } from './softDelete'
+import { atomicWritesFor, type Write } from './atomicWrites'
+import { primaryKeyName } from './table'
 
 /**
  * Cascade soft-delete (P15.2). When a row is soft-deleted, its FK children must be handled the same
@@ -15,8 +17,9 @@ import { getSoftDeleteColumn, buildSoftDeleteUpdates } from './softDelete'
  *   • restrict / no action → throw 409 if any matching children exist.
  * The same `deletionId` is stamped on every cascaded row so a batch restore/purge acts on the unit.
  *
- * Two passes (the delete handler is not transactional): a recursive **restrict pre-flight** first, so
- * a blocked delete throws *before* any row is mutated — no partial cascade.
+ * Reads first, writes last: a recursive **restrict pre-flight** throws before anything is planned, then the
+ * cascade is collected as statements and applied with the parent's own write in one `atomicWrites` — a
+ * transaction, or one `db.batch()` on D1, which has no interactive transactions.
  */
 
 interface FkEdge {
@@ -96,7 +99,7 @@ async function preflightRestrict(
       if (!childSoftCol) continue
       const rows = await db.select().from(table).where(eq(fkCol, parentId))
       for (const row of rows.filter((r: any) => r[childSoftCol] == null)) {
-        await preflightRestrict(context, resource, row.id, visited)
+        await preflightRestrict(context, resource, row[primaryKeyName(table)], visited)
       }
     }
     else if (onDelete !== 'set null') {
@@ -111,14 +114,18 @@ async function preflightRestrict(
   }
 }
 
-/** Pass 2 — soft-delete cascade children + null set-null FKs. Returns rows soft-deleted. */
-async function applyCascade(
+/**
+ * Pass 2 — the writes: soft-delete cascade children (only live ones — a child already in the trash keeps its
+ * own batch) and null set-null FKs. Reads only; the statements are returned for `atomicWrites`.
+ */
+async function planCascade(
   context: any,
   parentResource: string,
   parentId: string | number,
   deletionId: string,
   reason: string | null,
   visited: Set<string>,
+  writes: Write[],
 ): Promise<number> {
   const schema: Record<string, any> = context.schema ?? {}
   const db = context.db
@@ -135,18 +142,18 @@ async function applyCascade(
     if (onDelete === 'cascade') {
       const childSoftCol = getSoftDeleteColumn(table)
       if (!childSoftCol) continue // non-soft-deletable: DB ON DELETE CASCADE handles it at purge
-      const rows = await db.select().from(table).where(eq(fkCol, parentId))
-      const liveRows = rows.filter((r: any) => r[childSoftCol] == null)
+      const live = and(eq(fkCol, parentId), isNull(table[childSoftCol]))
+      const liveRows = await db.select().from(table).where(live)
       if (liveRows.length === 0) continue
 
-      await db.update(table).set(buildSoftDeleteUpdates(table, { deletionId, reason, userId })).where(eq(fkCol, parentId))
+      writes.push(tx => tx.update(table).set(buildSoftDeleteUpdates(table, { deletionId, reason, userId })).where(live))
       affected += liveRows.length
       for (const row of liveRows) {
-        affected += await applyCascade(context, resource, row.id, deletionId, reason, visited)
+        affected += await planCascade(context, resource, row[primaryKeyName(table)], deletionId, reason, visited, writes)
       }
     }
     else if (onDelete === 'set null') {
-      await db.update(table).set({ [fkColKey(table, fkCol)]: null }).where(eq(fkCol, parentId))
+      writes.push(tx => tx.update(table).set({ [fkColKey(table, fkCol)]: null }).where(eq(fkCol, parentId)))
     }
   }
 
@@ -154,8 +161,26 @@ async function applyCascade(
 }
 
 /**
- * Soft-delete all FK children of (parentResource, parentId), mirroring each FK's onDelete.
- * Restrict pre-flight runs first so nothing is mutated if the delete is blocked.
+ * Plan a cascade soft delete of (parentResource, parentId)'s FK children, mirroring each FK's onDelete: throws
+ * 409 if a restrict child blocks it, otherwise returns the statements to run — together with the parent's own
+ * write — through `atomicWrites`, so the cascade is all-or-nothing on every engine (D1 included).
+ */
+export async function planCascadeSoftDelete(
+  context: any,
+  parentResource: string,
+  parentId: string | number,
+  deletionId: string,
+  opts: { reason?: string | null } = {},
+): Promise<{ writes: Write[], affected: number }> {
+  await preflightRestrict(context, parentResource, parentId, new Set())
+  const writes: Write[] = []
+  const affected = await planCascade(context, parentResource, parentId, deletionId, opts.reason ?? null, new Set(), writes)
+  return { writes, affected }
+}
+
+/**
+ * Soft-delete all FK children of (parentResource, parentId), mirroring each FK's onDelete, atomically.
+ * Restrict pre-flight runs first so nothing is mutated if the delete is blocked. Returns rows soft-deleted.
  */
 export async function cascadeSoftDelete(
   context: any,
@@ -164,6 +189,7 @@ export async function cascadeSoftDelete(
   deletionId: string,
   opts: { reason?: string | null } = {},
 ): Promise<number> {
-  await preflightRestrict(context, parentResource, parentId, new Set())
-  return applyCascade(context, parentResource, parentId, deletionId, opts.reason ?? null, new Set())
+  const { writes, affected } = await planCascadeSoftDelete(context, parentResource, parentId, deletionId, opts)
+  await atomicWritesFor(context, writes)
+  return affected
 }

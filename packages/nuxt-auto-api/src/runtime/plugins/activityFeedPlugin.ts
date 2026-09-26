@@ -1,6 +1,5 @@
-import { desc, eq } from 'drizzle-orm'
-import { defineEventHandler, getQuery, createError } from 'h3'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
+import { registerPluginRoutes } from './pluginRoutes'
 import type { AutoApiPlugin } from '../types/plugin'
 
 export interface ActivityFeedPluginOptions {
@@ -88,50 +87,12 @@ export function createActivityFeedPlugin(options: ActivityFeedPluginOptions = {}
     }
   }
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createActivityFeedPlugin', [options], {
     name: 'activity-feed',
     version: '1.0.0',
     buildSetup(ctx) {
-      ctx.addServerHandler({
-        route: '/api/activities',
-        method: 'get',
-        handler: defineEventHandler(async (event) => {
-          const { registry } = await (import('#nuxt-auto-api-registry') as any)
-          const { getDatabaseAdapter } = await import('../server/database')
-
-          const adapter = getDatabaseAdapter()
-          const db = adapter.db
-          const schema: Record<string, any> = {}
-          for (const [name, config] of Object.entries(registry)) {
-            schema[name] = (config as any).schema
-          }
-
-          const table = schema[activityTable]
-          if (!table) {
-            throw createError({ statusCode: 500, message: 'Activity table not configured' })
-          }
-
-          const query = getQuery(event)
-          const limit = Math.min(Number(query.limit) || 50, 200)
-          const offset = Number(query.offset) || 0
-
-          let queryBuilder = db.select().from(table)
-
-          if (query.resource) {
-            queryBuilder = queryBuilder.where(eq(table.resource, query.resource as string))
-          }
-          if (query.userId) {
-            queryBuilder = queryBuilder.where(eq(table.userId, String(query.userId)))
-          }
-
-          const data = await queryBuilder
-            .orderBy(desc(table.timestamp))
-            .limit(limit)
-            .offset(offset)
-
-          return { data, meta: { limit, offset } }
-        }),
-      })
+      // GET /api/activities — the activity table's list, through its own authorization (handlers/plugins/activities.ts)
+      registerPluginRoutes(ctx, 'activityFeed', { table: activityTable }, [{ path: '/activities', method: 'get', handler: 'activities' }])
     },
     runtimeSetup(ctx) {
       ctx.addGlobalHook({

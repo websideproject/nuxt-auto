@@ -2,9 +2,21 @@ import type { SQL } from 'drizzle-orm'
 import { and, eq, ne, gt, gte, lt, lte, like, inArray, notInArray, isNull, isNotNull } from 'drizzle-orm'
 import { createError } from 'h3'
 import { getColumns } from './table'
+import { getDatabaseAdapter } from '../database'
 
 /** Largest `$in` / `$nin` list accepted — bounds the size of the generated SQL. */
 export const MAX_IN_VALUES = 500
+/** On D1, which binds at most 100 parameters per statement (the rest of the query needs some too). */
+export const MAX_IN_VALUES_D1 = 50
+
+function maxInValues(): number {
+  try {
+    return getDatabaseAdapter().engine === 'd1' ? MAX_IN_VALUES_D1 : MAX_IN_VALUES
+  }
+  catch {
+    return MAX_IN_VALUES
+  }
+}
 
 const OPERATORS = new Set(['$eq', '$ne', '$gt', '$gte', '$lt', '$lte', '$like', '$in', '$nin', '$null'])
 
@@ -15,7 +27,8 @@ function badFilter(message: string): never {
 function toList(value: any, field: string, op: string): any[] {
   const values = Array.isArray(value) ? value : String(value).split(',')
   if (values.length === 0) badFilter(`Filter '${field}.${op}' needs at least one value`)
-  if (values.length > MAX_IN_VALUES) badFilter(`Filter '${field}.${op}' accepts at most ${MAX_IN_VALUES} values`)
+  const max = maxInValues()
+  if (values.length > max) badFilter(`Filter '${field}.${op}' accepts at most ${max} values`)
   return values
 }
 

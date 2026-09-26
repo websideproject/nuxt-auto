@@ -1,4 +1,4 @@
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
 /**
@@ -122,6 +122,7 @@ export function createCachePlugin(options: CachePluginOptions = {}): AutoApiPlug
     const parts = [
       context.resource,
       context.operation,
+      context.event?.path ?? '',
       JSON.stringify(context.query || {}),
       context.params?.id || '',
       context.user?.id || 'anon',
@@ -130,7 +131,7 @@ export function createCachePlugin(options: CachePluginOptions = {}): AutoApiPlug
     return parts.join(':')
   }
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createCachePlugin', [options], {
     name: 'cache',
     version: '1.1.0',
     runtimeSetup(ctx) {
@@ -151,65 +152,29 @@ export function createCachePlugin(options: CachePluginOptions = {}): AutoApiPlug
         },
       })
 
-      // Post-execute middleware: mark request for caching in after hooks
+      // Post-execute: cache the response exactly as the handler returned it (data AND meta — pagination, cursors).
       ctx.addMiddleware({
         name: 'cache-write',
         stage: 'post-execute',
         order: 50,
         operations: operations as any[],
-        handler: (context) => {
-          if (!shouldCache(context.resource)) return
-          // Don't cache if we served from cache (shortCircuit was set)
-          if (context.shortCircuit) return
-          ;(context as any)._cacheKey = generateKey(context)
+        handler: async (context) => {
+          if (!shouldCache(context.resource) || context.shortCircuit || context.result === undefined) return
+          await store.set(generateKey(context), context.result, ttlMs)
         },
       })
 
-      // After hooks: cache the results
-      const cacheableOps = operations
-
-      if (cacheableOps.includes('list')) {
-        ctx.addGlobalHook({
-          async afterList(results, context) {
-            if (!shouldCache(context.resource)) return
-            const key = (context as any)._cacheKey || generateKey(context)
-            await store.set(key, { data: results, meta: {} }, ttlMs)
-          },
-        })
-      }
-
-      if (cacheableOps.includes('get')) {
-        ctx.addGlobalHook({
-          async afterGet(result, context) {
-            if (!shouldCache(context.resource)) return
-            const key = (context as any)._cacheKey || generateKey(context)
-            await store.set(key, { data: result }, ttlMs)
-          },
-        })
-      }
-
-      // Invalidation hooks
-      const invalidationHooks: any = {}
-
-      if (invalidateOn.includes('create')) {
-        invalidationHooks.afterCreate = async (_result: any, context: any) => {
-          await store.deleteByPrefix(context.resource + ':')
-        }
-      }
-      if (invalidateOn.includes('update')) {
-        invalidationHooks.afterUpdate = async (_result: any, context: any) => {
-          await store.deleteByPrefix(context.resource + ':')
-        }
-      }
-      if (invalidateOn.includes('delete')) {
-        invalidationHooks.afterDelete = async (_id: any, context: any) => {
-          await store.deleteByPrefix(context.resource + ':')
-        }
-      }
-
-      if (Object.keys(invalidationHooks).length > 0) {
-        ctx.addGlobalHook(invalidationHooks)
-      }
+      // Post-execute: a successful write drops the resource's cached responses. Middleware, not after-hooks, so
+      // every write route counts — bulk, restore and M2M included.
+      ctx.addMiddleware({
+        name: 'cache-invalidate',
+        stage: 'post-execute',
+        order: 60,
+        handler: async (context) => {
+          const op = context.operation === 'm2m' ? (context.event?.method === 'GET' ? null : 'update') : context.operation
+          if (op && (invalidateOn as string[]).includes(op)) await store.deleteByPrefix(`${context.resource}:`)
+        },
+      })
 
       ctx.logger.info(`Cache enabled: TTL ${ttlMs}ms, max ${maxEntries} entries`)
     },

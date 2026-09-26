@@ -60,6 +60,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@iconify-json/heroicons": "^1.2.3",
     "@nuxt/kit": "^4.3.0",
     "@tailwindcss/vite": "^4.1.18",
     "@vueuse/core": "^14.2.0",

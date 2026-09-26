@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createRateLimitPlugin } from '../../../src/runtime/plugins/rateLimitPlugin'
+import { clientAddress, createRateLimitPlugin } from '../../../src/runtime/plugins/rateLimitPlugin'
 
 // Mock h3
 vi.mock('h3', () => ({
@@ -62,7 +62,7 @@ describe('createRateLimitPlugin', () => {
 
       const mockEvent = {
         node: {
-          req: { headers: { 'x-forwarded-for': '1.2.3.4' }, socket: {} },
+          req: { headers: {}, socket: { remoteAddress: '1.2.3.4' } },
           res: { setHeader: vi.fn() },
         },
       }
@@ -87,7 +87,7 @@ describe('createRateLimitPlugin', () => {
 
       const mockEvent = {
         node: {
-          req: { headers: { 'x-forwarded-for': '5.6.7.8' }, socket: {} },
+          req: { headers: {}, socket: { remoteAddress: '5.6.7.8' } },
           res: { setHeader: vi.fn() },
         },
       }
@@ -155,7 +155,7 @@ describe('createRateLimitPlugin', () => {
       const context = {
         event: {
           node: {
-            req: { headers: { 'x-forwarded-for': '10.0.0.1' }, socket: {} },
+            req: { headers: {}, socket: { remoteAddress: '10.0.0.1' } },
             res: { setHeader },
           },
         },
@@ -180,7 +180,7 @@ describe('createRateLimitPlugin', () => {
       const context = {
         event: {
           node: {
-            req: { headers: { 'x-forwarded-for': '11.0.0.1' }, socket: {} },
+            req: { headers: {}, socket: { remoteAddress: '11.0.0.1' } },
             res: { setHeader: vi.fn() },
           },
         },
@@ -189,6 +189,31 @@ describe('createRateLimitPlugin', () => {
 
       await registeredMiddleware.handler(context)
       await expect(registeredMiddleware.handler(context)).rejects.toThrow('Slow down!')
+    })
+  })
+
+  describe('client address', () => {
+    const ev = (headers: Record<string, string>, extra: Record<string, any> = {}) => ({ node: { req: { headers, socket: { remoteAddress: '9.9.9.9' } } }, ...extra })
+
+    it('ignores client-set X-Forwarded-For and CF-Connecting-IP off Cloudflare', () => {
+      expect(clientAddress(ev({ 'x-forwarded-for': '1.1.1.1', 'cf-connecting-ip': '2.2.2.2' }))).toBe('9.9.9.9')
+    })
+
+    it('trusts CF-Connecting-IP when the request came through Cloudflare', () => {
+      expect(clientAddress(ev({ 'cf-connecting-ip': '2.2.2.2' }, { context: { cloudflare: { env: {} } } }))).toBe('2.2.2.2')
+    })
+
+    it('with trustProxy, takes the entry the outermost trusted proxy saw', () => {
+      const chain = ev({ 'x-forwarded-for': 'spoofed, 3.3.3.3, 10.0.0.2' })
+      expect(clientAddress(chain, true)).toBe('10.0.0.2')
+      expect(clientAddress(chain, 2)).toBe('3.3.3.3')
+    })
+
+    it('a spoofed header does not open a new bucket', async () => {
+      const handlers: any[] = []
+      await createRateLimitPlugin({ max: 1, windowMs: 10000 }).runtimeSetup!({ addMiddleware: (m: any) => handlers.push(m), logger: { info() {}, warn() {} } } as any)
+      await handlers[0].handler({ event: ev({ 'x-forwarded-for': 'a' }), user: null })
+      await expect(handlers[0].handler({ event: ev({ 'x-forwarded-for': 'b' }), user: null })).rejects.toMatchObject({ statusCode: 429 })
     })
   })
 })

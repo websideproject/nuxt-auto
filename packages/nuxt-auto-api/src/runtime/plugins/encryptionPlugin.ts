@@ -1,5 +1,5 @@
 import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
 export interface EncryptionPluginOptions {
@@ -70,7 +70,7 @@ export function createEncryptionPlugin(options: EncryptionPluginOptions): AutoAp
   const { secret, resources } = options
   const key = deriveKey(secret)
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createEncryptionPlugin', [options], {
     name: 'field-encryption',
     version: '1.0.0',
     runtimeSetup(ctx) {

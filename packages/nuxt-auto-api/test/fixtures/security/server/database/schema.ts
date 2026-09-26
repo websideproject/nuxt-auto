@@ -14,6 +14,7 @@ export const posts = sqliteTable('posts', {
   organizationId: text('organization_id'),
   userId: integer('user_id').notNull().references(() => users.id),
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  cover: text('cover'),
 })
 
 export const labels = sqliteTable('labels', {

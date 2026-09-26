@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs'
 import { PUBLIC_SERVER_UTILS } from './runtime/server/publicServerUtils'
 import type { AutoApiOptions, ResourceRegistration, AutoApiPlugin } from './runtime/types'
 import type { PluginBuildContext } from './runtime/types/plugin'
+import { inlinePluginSource, secretLikeOptions } from './utils/inlinePlugins'
 
 export type ModuleOptions = Partial<AutoApiOptions>
 
@@ -116,26 +117,31 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Determine user plugin source
     const userPlugins = options.plugins
-    let userPluginFilePath: string | null = null
-    let inlinePlugins: AutoApiPlugin[] = []
+    const inlinePlugins: AutoApiPlugin[] = []
 
-    if (typeof userPlugins === 'string') {
-      // Resolve ~ and ~~ aliases to absolute paths (they don't work inside virtual .mjs files)
-      // Both ~ and ~~ resolve to rootDir since server files live at project root, not srcDir (app/)
-      let resolved = userPlugins
-      if (resolved.startsWith('~~/') || resolved.startsWith('~~\\')) {
-        resolved = resolved.replace(/^~~/, nuxt.options.rootDir)
-      }
-      else if (resolved.startsWith('~/') || resolved.startsWith('~\\')) {
-        resolved = resolved.replace(/^~/, nuxt.options.rootDir)
-      }
-      userPluginFilePath = resolved
-      logger.debug(`Plugin file: ${userPlugins} → ${userPluginFilePath}`)
+    // `plugins` is a file path, or an array of plugins and file paths (e.g. `['~/server/autoapi-plugins',
+    // createExportPlugin()]`): a file for plugins with instances or imports, inline for plugins that add routes.
+    const resolveAlias = (path: string) => {
+      if (path.startsWith('~~/') || path.startsWith('~~\\')) return path.replace(/^~~/, nuxt.options.rootDir)
+      if (path.startsWith('~/') || path.startsWith('~\\')) return path.replace(/^~/, nuxt.options.rootDir)
+      return path
     }
-    else if (Array.isArray(userPlugins)) {
-      // Inline array (legacy/simple plugins)
-      inlinePlugins = userPlugins
-      logger.warn('Inline plugins in nuxt.config.ts cannot capture variables (they are serialized). Prefer a file: plugins: \'~/server/autoapi-plugins\'')
+    const userPluginFiles: string[] = []
+    for (const entry of typeof userPlugins === 'string' ? [userPlugins] : Array.isArray(userPlugins) ? userPlugins : []) {
+      if (typeof entry === 'string') userPluginFiles.push(resolveAlias(entry))
+      else inlinePlugins.push(entry)
+    }
+    if (inlinePlugins.some(p => p.runtimeSetup && !p.source)) {
+      logger.warn('A hand-written plugin listed in nuxt.config reaches the server as source: its runtimeSetup cannot use variables from nuxt.config. Prefer a file: plugins: \'~/server/autoapi-plugins\'')
+    }
+    // Resolved now, so an option that cannot reach the server fails the build here with a clear message.
+    const factoriesPath = resolver.resolve('./runtime/plugins/index')
+    const inlineSources = inlinePlugins.filter(p => p.runtimeSetup).map(p => inlinePluginSource(p, '_autoApiPluginFactories'))
+    for (const plugin of inlinePlugins) {
+      const secrets = secretLikeOptions(plugin)
+      if (secrets.length) {
+        logger.warn(`Plugin "${plugin.name}" is listed in nuxt.config with ${secrets.join(', ')}: options listed there are written into the server bundle. Register it from a plugins file, which reads process.env when the server runs.`)
+      }
     }
 
     // Run build-time setup for inline plugins
@@ -175,16 +181,17 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // hasPlugins is checked after modules:done populates pluginFilePaths
-    const hasPlugins = !!userPluginFilePath || inlinePlugins.some(p => p.runtimeSetup)
+    const hasPlugins = userPluginFiles.length > 0 || inlinePlugins.some(p => p.runtimeSetup)
 
     // Generate virtual module for plugins
     addTemplate({
       filename: 'nuxt-auto-api-plugins.mjs',
       getContents: () => {
         const content = generatePluginsVirtualModule({
-          userFilePath: userPluginFilePath,
+          userFilePaths: userPluginFiles,
           moduleFilePaths: pluginFilePaths,
-          inlinePlugins: inlinePlugins.filter(p => p.runtimeSetup),
+          inlineSources,
+          factoriesPath,
         })
         logger.debug('Generated plugin virtual module:\n' + content)
         return content
@@ -271,7 +278,15 @@ export {
       // Register handlers for each resource
       const prefix = options.prefix || '/api'
 
+      // Routes plugins add under each resource (export, file upload) — see registerPluginRoutes.
+      const pluginResourceRoutes: Array<{ path: string, method: string, handler: string, resources?: string[] }> = (nuxt as any)._autoApiResourceRoutes ?? []
+
       for (const resource of resources) {
+        for (const route of pluginResourceRoutes) {
+          if (route.resources && !route.resources.includes(resource.name)) continue
+          addServerHandler({ route: `${prefix}/${resource.name}${route.path}`, method: route.method as any, handler: route.handler })
+        }
+
         // Note: File-based routes in server/api/ take precedence over these
         // Users can override any endpoint by creating server/api/{resource}/...
 
@@ -546,24 +561,24 @@ export {}
  * Generate virtual module that exports plugin runtime setup functions.
  *
  * Sources (merged into a single `plugins` export):
- *   1. User file path → `import _user from '~/server/autoapi-plugins'`
+ *   1. User files → `import _userPlugins0 from '~/server/autoapi-plugins'`
  *   2. Community module file paths → `import _mod0 from '...'`
- *   3. Inline plugins (legacy) → serialized via toString() (limited closure support)
+ *   3. Inline plugins → the built-in factory called again with its options (inlinePluginSource)
  */
 function generatePluginsVirtualModule(opts: {
-  userFilePath: string | null
+  userFilePaths: string[]
   moduleFilePaths: string[]
-  inlinePlugins: AutoApiPlugin[]
+  inlineSources: string[]
+  factoriesPath: string
 }): string {
   const imports: string[] = []
   const spreadParts: string[] = []
 
-  // 1. User file path — default export is an array of AutoApiPlugin
-  if (opts.userFilePath) {
-    const resolvedPath = ensureExtension(opts.userFilePath)
-    imports.push(`import _userPlugins from '${resolvedPath}'`)
-    spreadParts.push('..._userPlugins')
-  }
+  // 1. User files — each default-exports an array of AutoApiPlugin (or one plugin)
+  opts.userFilePaths.forEach((filePath, index) => {
+    imports.push(`import _userPlugins${index} from '${ensureExtension(filePath)}'`)
+    spreadParts.push(`...(Array.isArray(_userPlugins${index}) ? _userPlugins${index} : [_userPlugins${index}])`)
+  })
 
   // 2. Community module file paths — each default-exports a single plugin or array
   opts.moduleFilePaths.forEach((filePath, index) => {
@@ -573,17 +588,11 @@ function generatePluginsVirtualModule(opts: {
     spreadParts.push(`...(Array.isArray(${varName}) ? ${varName} : [${varName}])`)
   })
 
-  // 3. Inline plugins (legacy fallback — closure variables will NOT survive serialization)
-  opts.inlinePlugins.forEach((plugin) => {
-    let runtimeSetupStr = plugin.runtimeSetup?.toString() || '() => {}'
-
-    // Fix function serialization: "funcName(args) {}" → "function funcName(args) {}"
-    if (runtimeSetupStr.match(/^[a-z_$][\w$]*\s*\(/i)) {
-      runtimeSetupStr = 'function ' + runtimeSetupStr
-    }
-
-    spreadParts.push(`{ name: ${JSON.stringify(plugin.name)}, runtimeSetup: ${runtimeSetupStr} }`)
-  })
+  // 3. Inline plugins — built-in factories are called again with their options (see inlinePluginSource)
+  if (opts.inlineSources.length) {
+    imports.push(`import * as _autoApiPluginFactories from '${ensureExtension(opts.factoriesPath)}'`)
+    spreadParts.push(...opts.inlineSources)
+  }
 
   const pluginsExpr = spreadParts.length > 0
     ? `[\n  ${spreadParts.join(',\n  ')}\n]`

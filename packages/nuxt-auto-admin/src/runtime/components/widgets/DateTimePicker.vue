@@ -14,7 +14,7 @@
           color="neutral"
           variant="link"
           size="sm"
-          icon="i-lucide-calendar"
+          icon="i-heroicons-calendar"
           aria-label="Open calendar"
           class="px-0"
         />

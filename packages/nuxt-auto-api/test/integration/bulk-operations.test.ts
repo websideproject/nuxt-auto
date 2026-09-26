@@ -334,7 +334,7 @@ describe('Bulk Operations Integration', () => {
       expect(post.title).toBe(posts[0].title) // Original title
     })
 
-    it('says which items stayed written on a database without transactions (D1)', async () => {
+    it('writes nothing when an item fails its checks — on D1 too, which has no transactions', async () => {
       const posts = testData.posts
       const { createD1Adapter } = await import('../../src/runtime/server/database/adapters/d1')
       const context = createMockContext({
@@ -349,10 +349,10 @@ describe('Bulk Operations Integration', () => {
 
       const error: any = await bulkUpdateHandler(context as any).catch(e => e)
       expect(error.statusCode).toBe(400)
-      expect(error.message).not.toContain('rolled back')
-      expect(error.data).toMatchObject({ committed: 1, errors: [{ index: 1 }] })
+      expect(error.message).toContain('nothing was written')
+      expect(error.data).toMatchObject({ errors: [{ index: 1, statusCode: 404 }] })
       const [row] = await db.select().from(baseSchema.posts).where(eq(baseSchema.posts.id, posts[0].id))
-      expect(row.title).toBe('Written')
+      expect(row.title).not.toBe('Written')
     })
   })
 

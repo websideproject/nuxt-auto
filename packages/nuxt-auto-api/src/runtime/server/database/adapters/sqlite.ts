@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import type { DatabaseAdapter } from '../../../types/database'
+import { asyncStorage } from './reentrant'
 
 /**
  * better-sqlite3 adapter.
@@ -14,32 +15,18 @@ import type { DatabaseAdapter } from '../../../types/database'
  */
 export function createSqliteAdapter(db: any): DatabaseAdapter {
   let lock: Promise<unknown> = Promise.resolve()
-  let als: { getStore(): unknown, run<R>(store: unknown, fn: () => R): R } | null | undefined
-
-  async function storage() {
-    if (als === undefined) {
-      try {
-        const { AsyncLocalStorage } = await import('node:async_hooks')
-        als = new AsyncLocalStorage()
-      }
-      catch {
-        als = null
-      }
-    }
-    return als
-  }
 
   return {
     engine: 'better-sqlite3',
     db,
     async atomic<T>(fn: (ctx: { tx: any }) => T | Promise<T>): Promise<T> {
-      const store = await storage()
+      const store = await asyncStorage()
       if (store?.getStore()) return await fn({ tx: db })
 
       const run = async (): Promise<T> => {
         db.run(sql`BEGIN IMMEDIATE`)
         try {
-          const result = store ? await store.run(true, () => fn({ tx: db })) : await fn({ tx: db })
+          const result = store ? await store.run(db, () => fn({ tx: db })) : await fn({ tx: db })
           db.run(sql`COMMIT`)
           return result
         }

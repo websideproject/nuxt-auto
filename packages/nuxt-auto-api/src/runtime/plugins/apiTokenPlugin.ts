@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { createError, defineEventHandler, getHeader } from 'h3'
+import { createError, getHeader } from 'h3'
 import { eq } from 'drizzle-orm'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
+import { registerPluginRoutes } from './pluginRoutes'
 import type { AuthUser, HandlerContext } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -12,8 +13,8 @@ import type { AuthUser, HandlerContext } from '../types'
 export interface ApiTokenResourceConfig {
   /** Column that stores the hashed secret. @default 'key' */
   secretField?: string
-  /** Foreign key linking to the user who owns this token. */
-  userRelation: {
+  /** Foreign key linking to the user who owns this token. @default { field: 'userId', resource: 'users' } */
+  userRelation?: {
     /** FK column name on the token table. @default 'userId' */
     field?: string
     /** User resource/table name. @default 'users' */
@@ -236,12 +237,12 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
     return {
       ...r,
       secretField: r.secretField ?? 'key',
-      userField: r.userRelation.field ?? 'userId',
-      userResource: r.userRelation.resource ?? 'users',
+      userField: r.userRelation?.field ?? 'userId',
+      userResource: r.userRelation?.resource ?? 'users',
     }
   }
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createApiTokenPlugin', [options], {
     name: 'api-token',
     version: '2.0.0',
 
@@ -249,54 +250,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
     // Build-time: register introspection endpoint
     // -------------------------------------------------------------------
     buildSetup(ctx) {
-      ctx.addServerHandler({
-        route: '/api/_token/introspect',
-        method: 'get',
-        handler: defineEventHandler(async (event) => {
-          const { registry } = await (import('#nuxt-auto-api-registry') as any)
-          const { getDatabaseAdapter } = await import('../server/database')
-          const { getContextExtenders } = await import('../server/plugins/pluginRegistry')
-
-          const adapter = getDatabaseAdapter()
-          const db = adapter.db
-          const schema: Record<string, any> = {}
-          for (const [name, config] of Object.entries(registry)) {
-            schema[name] = (config as any).schema
-          }
-
-          // Build minimal context for token auth
-          const user = (event.context as any).user || null
-          const permissions = (event.context as any).permissions || user?.permissions || []
-          const context: any = {
-            db,
-            adapter,
-            schema,
-            user,
-            permissions,
-            params: {},
-            query: {},
-            validated: {},
-            event,
-            resource: '_token',
-            operation: 'get',
-          }
-
-          // Run context extenders (token auth will populate context.user)
-          const extenders = getContextExtenders()
-          for (const extender of extenders) {
-            await extender(context)
-          }
-
-          // Delegate to the runtime handler stored on globalThis
-          const handler = (globalThis as any).__apiTokenIntrospect
-          if (!handler) {
-            throw createError({ statusCode: 500, message: 'API token plugin not initialized' })
-          }
-
-          return await handler(context)
-        }),
-      })
-      ctx.logger.info('Registered GET /api/_token/introspect')
+      registerPluginRoutes(ctx, 'apiToken', {}, [{ path: '/_token/introspect', method: 'get', handler: 'tokenIntrospect' }])
     },
 
     // -------------------------------------------------------------------
@@ -540,17 +494,11 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
             // Stash raw value for afterCreate
             ;(context as any)._rawToken = rawToken
 
-            const result: any = { ...data, [c.secretField]: hashed }
-
-            // Auto-set userId from authenticated user
-            if (context.user && !data[c.userField]) {
-              result[c.userField] = context.user.id
-            }
-
-            // Auto-set orgId from tenant
-            if (c.orgField && context.tenant && !data[c.orgField]) {
-              result[c.orgField] = context.tenant.id
-            }
+            // A token signs in as its owner (and, for team tokens, its organization), so both are always the
+            // caller's — never taken from the body, where they would let anyone mint a key for someone else.
+            if (!context.user) throw createError({ statusCode: 401, message: 'Authentication required to create a token' })
+            const result: any = { ...data, [c.secretField]: hashed, [c.userField]: context.user.id }
+            if (c.orgField) result[c.orgField] = context.tenant?.id ?? null
 
             return result
           },
@@ -582,6 +530,9 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
           // -- beforeUpdate: block secret writes, support rotation ------
           beforeUpdate(_id: string | number, data: any, context: HandlerContext) {
             const updated = { ...data }
+            // Owner and organization are fixed at creation (see beforeCreate).
+            Reflect.deleteProperty(updated, c.userField)
+            if (c.orgField) Reflect.deleteProperty(updated, c.orgField)
 
             // Handle token rotation
             if (updated._rotate === true) {

@@ -4,7 +4,8 @@ import type { HandlerContext } from '../../../src/runtime/types'
 import type { PluginRuntimeContext } from '../../../src/runtime/types/plugin'
 
 // Mock H3 event
-const createMockEvent = (headers: Record<string, string> = {}) => ({
+const createMockEvent = (headers: Record<string, string> = {}, context: Record<string, any> = {}) => ({
+  context,
   node: {
     req: {
       headers,
@@ -47,7 +48,7 @@ describe('requestMetadataPlugin', () => {
       expect(extendContextFn).toHaveBeenCalledWith(expect.any(Function))
     })
 
-    it('should extract Cloudflare headers by default', async () => {
+    it('should extract Cloudflare headers when the request came through Cloudflare', async () => {
       const plugin = createRequestMetadataPlugin()
       const { ctx, extendContextFn } = createMockPluginContext()
 
@@ -66,7 +67,7 @@ describe('requestMetadataPlugin', () => {
           'cf-iplatitude': '37.7749',
           'cf-iplongitude': '-122.4194',
           'user-agent': 'Mozilla/5.0',
-        }),
+        }, { cloudflare: { env: {} } }),
       } as unknown as HandlerContext
 
       await extender(mockContext)
@@ -83,21 +84,27 @@ describe('requestMetadataPlugin', () => {
       })
     })
 
-    it('should fallback to X-Forwarded-For when CF headers missing', async () => {
+    it('ignores client-set CF-* and X-Forwarded-For headers off Cloudflare', async () => {
       const plugin = createRequestMetadataPlugin()
       const { ctx, extendContextFn } = createMockPluginContext()
-
       await plugin.runtimeSetup!(ctx)
-
       const extender = extendContextFn.mock.calls[0]![0]
 
       const mockContext = {
-        event: createMockEvent({
-          'x-forwarded-for': '5.6.7.8, 1.1.1.1',
-          'user-agent': 'Mozilla/5.0',
-        }),
+        event: createMockEvent({ 'x-forwarded-for': '5.6.7.8', 'cf-connecting-ip': '1.2.3.4', 'cf-ipcountry': 'US' }),
       } as unknown as HandlerContext
+      await extender(mockContext)
 
+      expect(mockContext.requestMeta).toMatchObject({ ip: '127.0.0.1', country: undefined })
+    })
+
+    it('reads X-Forwarded-For with trustProxy', async () => {
+      const plugin = createRequestMetadataPlugin({ trustProxy: true })
+      const { ctx, extendContextFn } = createMockPluginContext()
+      await plugin.runtimeSetup!(ctx)
+      const extender = extendContextFn.mock.calls[0]![0]
+
+      const mockContext = { event: createMockEvent({ 'x-forwarded-for': 'spoofed, 5.6.7.8' }) } as unknown as HandlerContext
       await extender(mockContext)
 
       expect(mockContext.requestMeta?.ip).toBe('5.6.7.8')

@@ -1,6 +1,7 @@
 import { vi } from 'vitest'
 import type { H3Event } from 'h3'
 import type { HandlerContext } from '../../src/runtime/types'
+import { testAdapter } from './context'
 
 /**
  * Create mock H3 event
@@ -37,14 +38,7 @@ export function createMockContext(overrides: any = {}): HandlerContext {
     : defaultEvent
 
   const db = overrides.db || null as any
-  const adapter = overrides.adapter || (db
-    ? {
-        atomic: async (cb: any) => {
-          if (db.transaction) return db.transaction((tx: any) => cb({ tx }))
-          return cb({ tx: db })
-        },
-      }
-    : null as any)
+  const adapter = overrides.adapter || testAdapter(db)
 
   return {
     db,
