@@ -57,7 +57,11 @@ export default defineNuxtConfig({
       // 'modal' = Open in modal/drawer overlay (good for quick edits, default)
       // 'page' = Navigate to dedicated page (good for complex forms with M2M relations)
       editMode: 'page',
-      viewMode: 'page'
+      viewMode: 'modal'
+    },
+    // Import is off by default; on here so the demo (and its screenshots) show it
+    features: {
+      import: true
     },
     resources: {
       users: {

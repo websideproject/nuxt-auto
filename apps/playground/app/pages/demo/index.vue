@@ -59,7 +59,7 @@
               Anonymous user (read-only access)
             </p>
             <UBadge
-              color="gray"
+              color="neutral"
               variant="subtle"
               class="mt-1"
             >
@@ -70,7 +70,7 @@
 
         <UAlert
           icon="i-heroicons-information-circle"
-          color="blue"
+          color="info"
           variant="subtle"
           title="Quick Role Switching"
           description="Use the role switcher in the top-right corner to instantly switch between different user roles and see how permissions change."
@@ -155,7 +155,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Posts Demo -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -173,7 +173,7 @@
                 </p>
                 <UButton
                   to="/demo/posts"
-                  color="blue"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -186,7 +186,7 @@
 
         <!-- Articles Demo -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -204,7 +204,7 @@
                 </p>
                 <UButton
                   to="/demo/articles"
-                  color="green"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -217,7 +217,7 @@
 
         <!-- Users Demo -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -235,7 +235,7 @@
                 </p>
                 <UButton
                   to="/demo/users"
-                  color="purple"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -248,7 +248,7 @@
 
         <!-- Documentation -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -266,7 +266,7 @@
                 </p>
                 <UButton
                   to="/demo/docs"
-                  color="orange"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -279,7 +279,7 @@
 
         <!-- Hidden Fields -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -297,7 +297,7 @@
                 </p>
                 <UButton
                   to="/demo/hidden-fields"
-                  color="error"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -310,7 +310,7 @@
 
         <!-- Nested Relations -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -328,7 +328,7 @@
                 </p>
                 <UButton
                   to="/demo/nested-relations"
-                  color="cyan"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -341,7 +341,7 @@
 
         <!-- Bulk Operations -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -359,7 +359,7 @@
                 </p>
                 <UButton
                   to="/demo/bulk-operations"
-                  color="indigo"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -372,7 +372,7 @@
 
         <!-- Aggregations -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -390,7 +390,7 @@
                 </p>
                 <UButton
                   to="/demo/aggregations"
-                  color="teal"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -403,7 +403,7 @@
 
         <!-- Lifecycle Hooks -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -421,7 +421,7 @@
                 </p>
                 <UButton
                   to="/demo/hooks"
-                  color="yellow"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -434,7 +434,7 @@
 
         <!-- Relation Errors -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -452,7 +452,7 @@
                 </p>
                 <UButton
                   to="/demo/relation-errors"
-                  color="pink"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -465,7 +465,7 @@
 
         <!-- API Tokens -->
         <UCard
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="space-y-4">
             <div class="flex items-start gap-3">
@@ -483,7 +483,7 @@
                 </p>
                 <UButton
                   to="/demo/api-tokens"
-                  color="amber"
+                  color="neutral"
                   variant="outline"
                   trailing-icon="i-heroicons-arrow-right"
                 >
@@ -506,13 +506,13 @@ const resources = ['posts', 'articles', 'users', 'categories']
 const roleBadgeColor = computed(() => {
   switch (role.value) {
     case 'admin':
-      return 'red'
+      return 'error'
     case 'editor':
-      return 'blue'
+      return 'info'
     case 'user':
-      return 'green'
+      return 'success'
     default:
-      return 'gray'
+      return 'neutral'
   }
 })
 </script>

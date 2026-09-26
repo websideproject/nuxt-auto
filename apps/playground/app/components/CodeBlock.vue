@@ -4,7 +4,7 @@
       <UButton
         :icon="copied ? 'i-heroicons-check' : 'i-heroicons-clipboard-document'"
         size="xs"
-        color="gray"
+        color="neutral"
         variant="solid"
         @click="copyCode"
       />

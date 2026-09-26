@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -41,7 +41,7 @@
                 icon="i-heroicons-trash"
                 size="xs"
                 variant="ghost"
-                color="gray"
+                color="neutral"
                 @click="clearActivity"
               >
                 Clear
@@ -76,7 +76,7 @@
             <UButton
               :loading="createMutation.isPending.value"
               icon="i-heroicons-plus"
-              color="green"
+              color="success"
               @click="handleCreate"
             >
               Create Post
@@ -145,7 +145,7 @@
                 v-if="selectedPostId"
                 :loading="updateMutation.isPending.value"
                 icon="i-heroicons-pencil"
-                color="green"
+                color="success"
                 class="mt-3"
                 @click="handleUpdate"
               >
@@ -218,7 +218,7 @@
             <UButton
               :loading="postsLoading"
               icon="i-heroicons-list-bullet"
-              color="green"
+              color="success"
               @click="handleList"
             >
               Fetch Posts

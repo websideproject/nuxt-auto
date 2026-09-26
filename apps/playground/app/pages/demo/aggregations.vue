@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -51,7 +51,7 @@
           <UCard>
             <div class="text-center">
               <p class="text-4xl font-bold text-green-600">
-                {{ totalCount?._count || 0 }}
+                {{ totalCount?.data[0]?.count ?? 0 }}
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Total Posts
@@ -63,7 +63,7 @@
           <UCard>
             <div class="text-center">
               <p class="text-4xl font-bold text-blue-600">
-                {{ publishedCount?._count || 0 }}
+                {{ publishedCount?.data[0]?.count ?? 0 }}
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Published Posts
@@ -75,7 +75,7 @@
           <UCard>
             <div class="text-center">
               <p class="text-4xl font-bold text-orange-600">
-                {{ draftCount?._count || 0 }}
+                {{ draftCount?.data[0]?.count ?? 0 }}
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Draft Posts
@@ -184,7 +184,7 @@
                 v-for="func in ['count', 'sum', 'avg', 'min', 'max']"
                 :key="func"
                 :variant="builderAggregate === func ? 'solid' : 'outline'"
-                :color="builderAggregate === func ? 'green' : 'gray'"
+                :color="builderAggregate === func ? 'success' : 'neutral'"
                 size="sm"
                 @click="builderAggregate = func"
               >
@@ -200,7 +200,7 @@
                 v-for="field in ['id', 'userId']"
                 :key="field"
                 :variant="builderField === field ? 'solid' : 'outline'"
-                :color="builderField === field ? 'blue' : 'gray'"
+                :color="builderField === field ? 'info' : 'neutral'"
                 size="sm"
                 @click="builderField = field"
               >
@@ -214,7 +214,7 @@
             <div class="flex gap-2">
               <UButton
                 :variant="builderGroupBy === 'published' ? 'solid' : 'outline'"
-                :color="builderGroupBy === 'published' ? 'green' : 'gray'"
+                :color="builderGroupBy === 'published' ? 'success' : 'neutral'"
                 size="sm"
                 @click="builderGroupBy = builderGroupBy === 'published' ? null : 'published'"
               >
@@ -222,7 +222,7 @@
               </UButton>
               <UButton
                 :variant="builderGroupBy === 'userId' ? 'solid' : 'outline'"
-                :color="builderGroupBy === 'userId' ? 'green' : 'gray'"
+                :color="builderGroupBy === 'userId' ? 'success' : 'neutral'"
                 size="sm"
                 @click="builderGroupBy = builderGroupBy === 'userId' ? null : 'userId'"
               >
@@ -241,7 +241,7 @@
           <UButton
             :loading="builderLoading"
             icon="i-heroicons-play"
-            color="green"
+            color="success"
             @click="executeBuilderQuery"
           >
             Execute Query
@@ -253,7 +253,7 @@
             </p>
 
             <AggregationChart
-              v-if="builderGroupBy && Array.isArray(builderResult)"
+              v-if="builderGroupBy"
               :data="formatBuilderChartData"
               class="mb-4"
             />
@@ -267,6 +267,8 @@
 </template>
 
 <script setup lang="ts">
+import type { AggregateResponse } from '@websideproject/nuxt-auto-api/composables'
+
 // Simple aggregations
 const { data: totalCount, isLoading: totalCountLoading } = useAutoApiAggregate('posts', {
   aggregate: 'count'
@@ -293,11 +295,10 @@ const {
 })
 
 const groupByChartData = computed(() => {
-  if (!groupByData.value || !Array.isArray(groupByData.value)) return []
-
-  return (groupByData.value as Record<string, unknown>[]).map(item => ({
-    label: item.published ? 'Published' : 'Draft',
-    value: item._count
+  // One row per group: `{ group: { published }, count }`
+  return (groupByData.value?.data ?? []).map(row => ({
+    label: row.group?.published ? 'Published' : 'Draft',
+    value: Number(row.count)
   }))
 })
 
@@ -312,11 +313,9 @@ const {
 })
 
 const userGroupChartData = computed(() => {
-  if (!userGroupData.value || !Array.isArray(userGroupData.value)) return []
-
-  return (userGroupData.value as Record<string, unknown>[]).map(item => ({
-    label: `User ${item.userId}`,
-    value: item._count
+  return (userGroupData.value?.data ?? []).map(row => ({
+    label: `User ${row.group?.userId}`,
+    value: Number(row.count)
   }))
 })
 
@@ -324,7 +323,7 @@ const userGroupChartData = computed(() => {
 const builderAggregate = ref('count')
 const builderField = ref<string | null>('id')
 const builderGroupBy = ref<string | null>(null)
-const builderResult = ref<unknown>(null)
+const builderResult = ref<AggregateResponse | null>(null)
 const builderLoading = ref(false)
 
 const builderQuery = computed(() => {
@@ -343,31 +342,18 @@ const builderQuery = computed(() => {
 })
 
 const formatBuilderChartData = computed(() => {
-  if (!builderResult.value || !Array.isArray(builderResult.value)) return []
-
-  return (builderResult.value as Record<string, unknown>[]).map((item) => {
+  return (builderResult.value?.data ?? []).map((item) => {
     let label = 'Result'
 
     if (builderGroupBy.value === 'published') {
-      label = item.group?.published !== undefined ? (item.group.published ? 'Published' : 'Draft') : 'Unknown'
+      label = item.group?.published ? 'Published' : 'Draft'
     } else if (builderGroupBy.value === 'userId') {
-      label = `User ${item.group?.userId || item.userId || '?'}`
+      label = `User ${item.group?.userId}`
     }
 
-    // Handle different aggregate result keys
-    let value = 0
-    if (builderAggregate.value === 'count') {
-      value = item.count || item._count || 0
-    } else if (builderField.value) {
-      // For sum/avg/min/max, look for keys like sum_id, avg_userId, etc.
-      const key = `${builderAggregate.value}_${builderField.value}`
-      value = item[key] || 0
-    }
-
-    return {
-      label,
-      value
-    }
+    // `count`, or `<fn>_<field>` (sum_id, avg_userId…); sums and averages arrive as strings on SQLite
+    const key = builderAggregate.value === 'count' ? 'count' : `${builderAggregate.value}_${builderField.value}`
+    return { label, value: Number(item[key] ?? 0) }
   })
 })
 
@@ -388,7 +374,7 @@ const executeBuilderQuery = async () => {
     }
 
     const urlParams = new URLSearchParams(params)
-    const result = await $fetch(`/api/posts/aggregate?${urlParams.toString()}`)
+    const result = await $fetch<AggregateResponse>(`/api/posts/aggregate?${urlParams.toString()}`)
     builderResult.value = result
   } catch (err) {
     console.error('Failed to execute query:', err)

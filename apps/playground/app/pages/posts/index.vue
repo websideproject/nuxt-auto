@@ -86,7 +86,7 @@
         <UCard
           v-for="post in data.data"
           :key="post.id"
-          :ui="{ body: { padding: 'p-6' } }"
+          :ui="{ body: 'p-6' }"
         >
           <div class="flex justify-between items-start">
             <div class="flex-1">
@@ -100,7 +100,7 @@
                   </NuxtLink>
                 </h3>
                 <UBadge
-                  :color="post.published ? 'green' : 'gray'"
+                  :color="post.published ? 'success' : 'neutral'"
                   variant="subtle"
                   size="xs"
                 >

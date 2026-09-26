@@ -47,13 +47,13 @@ const _roleLabel = computed(() => {
 const _badgeColor = computed(() => {
   switch (role.value) {
     case 'admin':
-      return 'red'
+      return 'error'
     case 'editor':
-      return 'blue'
+      return 'info'
     case 'user':
-      return 'green'
+      return 'success'
     default:
-      return 'gray'
+      return 'neutral'
   }
 })
 
