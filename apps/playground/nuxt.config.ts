@@ -31,6 +31,14 @@ export default defineNuxtConfig({
     }
   },
 
+  vite: {
+    define: {
+      // Report every hydration mismatch in production builds too (attributes and classes are otherwise not
+      // checked): the screenshot suite fails on them, since a mismatched page renders differently run to run.
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true'
+    }
+  },
+
   autoAdmin: {
     prefix: '/admin',
     branding: {

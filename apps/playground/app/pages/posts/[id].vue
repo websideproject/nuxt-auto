@@ -240,9 +240,11 @@ const toast = useToast()
 const postId = computed(() => route.params.id as string)
 
 // TanStack Query composable for fetching single post
-const { data, isLoading, error, refetch } = useAutoApiGet('posts', postId, computed(() => ({
+const { data, isLoading, error, refetch, suspense } = useAutoApiGet('posts', postId, computed(() => ({
   include: 'author,comments.author'
 })))
+// Render the post on the server (see "Server-side rendering" in the composables docs)
+await suspense()
 
 // TanStack Mutation for delete
 const { mutate: deletePost, isPending: isDeleting } = useAutoApiDelete('posts', {

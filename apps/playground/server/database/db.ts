@@ -8,7 +8,8 @@ let _db: ReturnType<typeof drizzle> | null = null
 
 export function useDB() {
   if (!_db) {
-    const sqlite = new Database('.data/db.sqlite')
+    // PLAYGROUND_DB points the app at another file; the screenshot suite uses .data/visual.sqlite
+    const sqlite = new Database(process.env.PLAYGROUND_DB || '.data/db.sqlite')
     // Merge schemas from base and blog module
     _db = drizzle(sqlite, {
       schema: {

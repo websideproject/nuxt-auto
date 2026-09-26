@@ -243,7 +243,7 @@ const recentActivity = [
   {
     id: 1,
     title: 'New user registered',
-    description: 'john@example.com joined the platform',
+    description: 'john@playground.test joined the platform',
     time: '5 minutes ago',
     icon: 'i-heroicons-user-plus',
     colorClass: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'

@@ -39,7 +39,9 @@ onMounted(() => {
           <AppLogo class="w-auto h-6 shrink-0" />
         </NuxtLink>
 
-        <TemplateMenu />
+        <div class="hidden sm:block">
+          <TemplateMenu />
+        </div>
       </template>
 
       <template #right>
@@ -48,12 +50,13 @@ onMounted(() => {
         <UColorModeButton />
 
         <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
+          to="https://github.com/websideproject/nuxt-auto"
           target="_blank"
           icon="i-simple-icons-github"
           aria-label="GitHub"
           color="neutral"
           variant="ghost"
+          class="hidden sm:inline-flex"
         />
       </template>
     </UHeader>
@@ -75,7 +78,7 @@ onMounted(() => {
 
       <template #right>
         <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
+          to="https://github.com/websideproject/nuxt-auto"
           target="_blank"
           icon="i-simple-icons-github"
           aria-label="GitHub"

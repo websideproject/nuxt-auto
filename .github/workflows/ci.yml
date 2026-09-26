@@ -98,6 +98,39 @@ jobs:
       - name: Test
         run: bun run test
 
+  # Screenshot suite (apps/playground/test/visual.spec.ts): builds and serves the playground on its seeded database
+  # and compares every page with the images in apps/docs/public/screenshots, which the docs show. It runs in the
+  # container the images were taken in; fonts render differently anywhere else.
+  visual:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.60.0-jammy
+    steps:
+      - uses: actions/checkout@v4
+      # setup-bun unpacks bun with unzip, which the Playwright image does not have.
+      - name: Install unzip
+        run: apt-get update && apt-get install -y --no-install-recommends unzip
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Prepare
+        run: bun run dev:prepare
+      - name: Build the playground and its database
+        working-directory: apps/playground
+        run: bun run build:visual && bun run db:visual
+      # Playwright starts the preview itself (webServer in playwright.config.ts).
+      - name: Compare screenshots
+        working-directory: apps/playground
+        run: bun run test:visual
+      - name: Upload the expected, actual and diff images
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff
+          path: apps/playground/test-results
+          retention-days: 14
+
   # Nuxt 5 is not released yet: run the API suite (including the e2e builds in test/*.test.ts) against the
   # nightly so breakage shows up early. Informational — it does not block the pipeline.
   test-nuxt-5:

@@ -4,6 +4,15 @@ import { users, posts, comments } from './schema'
 import { articles, categories, tags, articleCategories, articleTags } from '../../modules/blog/schema'
 import { apiKeys } from '../../modules/api-tokens/schema'
 
+// Every timestamp is fixed, so the seeded rows render the same on every run — the screenshot suite
+// (test/visual.spec.ts) depends on it. Row N of a table is N hours after SEEDED_AT; tables without an
+// `updatedAt` column ignore that key.
+const SEEDED_AT = Date.parse('2026-01-15T09:00:00Z')
+const stamp = <T>(rows: T[], dayOffset = 0) => rows.map((row, i) => {
+  const at = new Date(SEEDED_AT + dayOffset * 86_400_000 + i * 3_600_000)
+  return { ...row, createdAt: at, updatedAt: at }
+})
+
 export async function seed() {
   const db = useDB()
 
@@ -23,10 +32,10 @@ export async function seed() {
   // Create users with specific IDs matching demo auth
   const insertedUsers = await db
     .insert(users)
-    .values([
+    .values(stamp<typeof users.$inferInsert>([
       {
         id: 1,
-        email: 'admin@example.com',
+        email: 'admin@playground.test',
         name: 'Admin User',
         role: 'admin',
         password: '$2a$10$hashed_password_admin_123',
@@ -34,7 +43,7 @@ export async function seed() {
       },
       {
         id: 2,
-        email: 'editor@example.com',
+        email: 'editor@playground.test',
         name: 'Editor User',
         role: 'editor',
         password: '$2a$10$hashed_password_editor_456',
@@ -42,13 +51,13 @@ export async function seed() {
       },
       {
         id: 3,
-        email: 'user@example.com',
+        email: 'user@playground.test',
         name: 'Regular User',
         role: 'user',
         password: '$2a$10$hashed_password_user_789',
         apiKey: 'sk_live_user_ghi789rst345'
       }
-    ])
+    ]))
     .returning()
 
   console.log(`Created ${insertedUsers.length} users`)
@@ -56,7 +65,7 @@ export async function seed() {
   // Create posts with different ownership for demo
   const insertedPosts = await db
     .insert(posts)
-    .values([
+    .values(stamp<typeof posts.$inferInsert>([
       {
         title: 'My First Post',
         content: 'This is a post by the regular user (ID 3). They should be able to edit this.',
@@ -108,7 +117,7 @@ export async function seed() {
       { title: 'Post 18', content: 'Content for aggregation test', published: true, userId: 2 },
       { title: 'Post 19', content: 'Content for aggregation test', published: true, userId: 3 },
       { title: 'Post 20', content: 'Content for aggregation test', published: false, userId: 3 }
-    ])
+    ], 1))
     .returning()
 
   console.log(`Created ${insertedPosts.length} posts`)
@@ -116,7 +125,7 @@ export async function seed() {
   // Create comments
   const insertedComments = await db
     .insert(comments)
-    .values([
+    .values(stamp<typeof comments.$inferInsert>([
       {
         content: 'Great post!',
         postId: insertedPosts[0].id,
@@ -132,7 +141,7 @@ export async function seed() {
         postId: insertedPosts[2].id,
         userId: 3 // Regular user commenting
       }
-    ])
+    ], 3))
     .returning()
 
   console.log(`Created ${insertedComments.length} comments`)
@@ -140,7 +149,7 @@ export async function seed() {
   // Create categories
   const insertedCategories = await db
     .insert(categories)
-    .values([
+    .values(stamp<typeof categories.$inferInsert>([
       {
         name: 'Technology',
         slug: 'technology',
@@ -156,7 +165,7 @@ export async function seed() {
         slug: 'business',
         description: 'Business insights and strategies'
       }
-    ])
+    ]))
     .returning()
 
   console.log(`Created ${insertedCategories.length} categories`)
@@ -164,14 +173,14 @@ export async function seed() {
   // Create tags
   const insertedTags = await db
     .insert(tags)
-    .values([
+    .values(stamp<typeof tags.$inferInsert>([
       { name: 'JavaScript', slug: 'javascript' },
       { name: 'TypeScript', slug: 'typescript' },
       { name: 'Vue', slug: 'vue' },
       { name: 'Nuxt', slug: 'nuxt' },
       { name: 'Design Systems', slug: 'design-systems' },
       { name: 'Startup', slug: 'startup' }
-    ])
+    ]))
     .returning()
 
   console.log(`Created ${insertedTags.length} tags`)
@@ -179,7 +188,7 @@ export async function seed() {
   // Create articles - published ones readable by all, drafts only by editors/admins
   const insertedArticles = await db
     .insert(articles)
-    .values([
+    .values(stamp<typeof articles.$inferInsert>([
       {
         title: 'Getting Started with Nuxt 4',
         content: 'Nuxt 4 brings exciting new features including better performance, improved DX, and more. In this article, we explore the key changes and how to migrate your existing apps.',
@@ -215,7 +224,7 @@ export async function seed() {
         published: false,
         authorId: 1 // Admin
       }
-    ])
+    ], 2))
     .returning()
 
   console.log(`Created ${insertedArticles.length} articles`)
@@ -252,7 +261,7 @@ export async function seed() {
 
   const insertedApiKeys = await db
     .insert(apiKeys)
-    .values([
+    .values(stamp<typeof apiKeys.$inferInsert>([
       {
         name: 'Admin Unrestricted Key',
         key: hash('sk_test_admin_unrestricted'),
@@ -271,7 +280,7 @@ export async function seed() {
         userId: 3,
         scopes: ['articles:read', 'posts:read', 'categories:read', 'tags:read']
       }
-    ])
+    ], 4))
     .returning()
 
   console.log(`Created ${insertedApiKeys.length} API keys`)

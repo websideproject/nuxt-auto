@@ -46,7 +46,7 @@
             <UInput
               v-model="settings.contactEmail"
               type="email"
-              placeholder="admin@example.com"
+              placeholder="admin@playground.test"
             />
           </div>
 
@@ -176,7 +176,7 @@ definePageMeta({
 
 const settings = ref({
   appName: 'Auto Admin Demo',
-  contactEmail: 'admin@example.com',
+  contactEmail: 'admin@playground.test',
   timezone: 'UTC',
   darkMode: false,
   compactMode: false,
@@ -214,7 +214,7 @@ async function saveSettings() {
 function resetSettings() {
   settings.value = {
     appName: 'Auto Admin Demo',
-    contactEmail: 'admin@example.com',
+    contactEmail: 'admin@playground.test',
     timezone: 'UTC',
     darkMode: false,
     compactMode: false,
