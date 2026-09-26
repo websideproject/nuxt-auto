@@ -717,9 +717,10 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
         },
         () =>
           h(UButton, {
-            icon: 'i-heroicons-ellipsis-horizontal',
-            variant: 'ghost',
-            color: 'neutral',
+            'icon': 'i-heroicons-ellipsis-horizontal',
+            'variant': 'ghost',
+            'color': 'neutral',
+            'aria-label': 'Row actions',
           }),
       )
     },

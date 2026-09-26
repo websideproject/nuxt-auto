@@ -156,10 +156,12 @@ bun run test
 
 ### Screenshots
 
-`apps/playground/test/visual.spec.ts` photographs the playground (the admin dashboard, a list, a record, an edit
-form with its many-to-many cards, the app pages built on the composables, and an object-level permission state)
-at 1440 px, and CI compares every page against the committed images. The images are the docs' own
-(`apps/docs/public/screenshots/`), so a page that changes fails CI until its pictures are refreshed.
+`apps/playground/test/visual.spec.ts` photographs the playground at 1440 px: the admin's pages, and its menus and
+dialogs opened the way a user opens them (search, filters, export, the row menu, view, delete and bulk delete, import,
+the list as a regular user), and the demo pages of the API (permissions per role, row and field, includes,
+aggregations, bulk operations, hooks, scoped tokens). CI compares every picture against the committed images. The
+images are the docs' own (`apps/docs/public/screenshots/`), so a page that changes fails CI until its pictures are
+refreshed. A shot's `act` steps are written as a user's clicks, so they also script a demo recording.
 
 The pictures are taken in the Playwright Linux container CI uses (macOS renders fonts differently), so Docker must
 be running. From `apps/playground`:

@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -85,7 +85,7 @@
           <UButton
             :loading="customQueryLoading"
             icon="i-heroicons-play"
-            color="green"
+            color="success"
             @click="executeQuery"
           >
             Run Query

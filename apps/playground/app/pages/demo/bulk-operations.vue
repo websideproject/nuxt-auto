@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -97,8 +97,9 @@
               class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
             >
               <UCheckbox
-                v-model="selectedForUpdate"
-                :value="post.id"
+                :model-value="selectedForUpdate.includes(post.id)"
+                :aria-label="`Select for update: ${post.title}`"
+                @update:model-value="toggle(selectedForUpdate, post.id, $event === true)"
               />
               <UInput
                 v-model="updateTitles[post.id]"
@@ -112,7 +113,7 @@
             :loading="bulkUpdateMutation.isPending.value"
             :disabled="selectedForUpdate.length === 0"
             icon="i-heroicons-pencil"
-            color="green"
+            color="success"
             @click="handleBulkUpdate"
           >
             Update Selected ({{ selectedForUpdate.length }})
@@ -167,8 +168,9 @@
               class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
             >
               <UCheckbox
-                v-model="selectedForDelete"
-                :value="post.id"
+                :model-value="selectedForDelete.includes(post.id)"
+                :aria-label="`Select for delete: ${post.title}`"
+                @update:model-value="toggle(selectedForDelete, post.id, $event === true)"
               />
               <div class="flex-1 min-w-0">
                 <p class="font-medium text-sm">
@@ -230,6 +232,13 @@
 </template>
 
 <script setup lang="ts">
+// UCheckbox holds a boolean (Nuxt UI v4), so the id lists are kept here
+function toggle(list: number[], id: number, on: boolean) {
+  const i = list.indexOf(id)
+  if (on && i === -1) list.push(id)
+  else if (!on && i !== -1) list.splice(i, 1)
+}
+
 // Fetch posts
 const { data: posts, isLoading: postsLoading, error: postsError, refetch } = useAutoApiList('posts', {})
 

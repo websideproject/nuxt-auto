@@ -13,7 +13,7 @@ export default defineNuxtPlugin(() => {
       toast.add({
         title,
         description,
-        color: 'green',
+        color: 'success',
         icon: 'i-heroicons-check-circle'
       })
     },
@@ -22,7 +22,7 @@ export default defineNuxtPlugin(() => {
       toast.add({
         title,
         description,
-        color: 'red',
+        color: 'error',
         icon: 'i-heroicons-exclamation-circle',
         timeout: 5000
       })
@@ -32,7 +32,7 @@ export default defineNuxtPlugin(() => {
       toast.add({
         title,
         description,
-        color: 'yellow',
+        color: 'warning',
         icon: 'i-heroicons-exclamation-triangle'
       })
     },
@@ -41,7 +41,7 @@ export default defineNuxtPlugin(() => {
       toast.add({
         title,
         description,
-        color: 'blue',
+        color: 'info',
         icon: 'i-heroicons-information-circle'
       })
     }

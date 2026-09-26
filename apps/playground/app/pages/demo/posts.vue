@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -71,7 +71,7 @@
       <UCard
         v-for="post in posts.data"
         :key="post.id"
-        :ui="{ body: { padding: 'p-6' } }"
+        :ui="{ body: 'p-6' }"
       >
         <div class="space-y-3">
           <div class="flex items-start justify-between gap-4">
@@ -82,21 +82,21 @@
                 </h3>
                 <UBadge
                   v-if="isOwnPost(post)"
-                  color="green"
+                  color="success"
                   variant="subtle"
                 >
                   Your Post
                 </UBadge>
                 <UBadge
                   v-if="post.published"
-                  color="blue"
+                  color="info"
                   variant="subtle"
                 >
                   Published
                 </UBadge>
                 <UBadge
                   v-else
-                  color="gray"
+                  color="neutral"
                   variant="subtle"
                 >
                   Draft
@@ -143,7 +143,7 @@
           <UAlert
             v-if="!canEditPost(post)"
             icon="i-heroicons-lock-closed"
-            color="amber"
+            color="warning"
             variant="subtle"
             :description="getObjectLevelMessage(post)"
           />
@@ -153,7 +153,7 @@
       <div v-if="posts.data.length === 0">
         <UAlert
           icon="i-heroicons-information-circle"
-          color="gray"
+          color="neutral"
           variant="subtle"
           title="No posts found"
           description="Create your first post to get started!"

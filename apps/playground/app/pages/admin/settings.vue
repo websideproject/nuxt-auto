@@ -207,7 +207,7 @@ async function saveSettings() {
   toast.add({
     title: 'Settings saved',
     description: 'Your settings have been saved successfully',
-    color: 'green'
+    color: 'success'
   })
 }
 

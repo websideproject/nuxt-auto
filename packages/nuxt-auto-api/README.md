@@ -103,6 +103,26 @@ const { mutate: createPost } = useAutoApiCreate('posts')
 | `?include=` | Needs `read` on the related resource and applies its row visibility and field rules |
 | Tenancy | Resolved on the server only (`event.context.tenantId`, `ctx.user.organizationId`, or an extender); fails closed |
 
+## In the playground
+
+The repo's playground runs these on a seeded database; the pictures are its CI screenshots.
+
+**Roles, rows and fields.** A regular user's [permissions](https://websideproject.com/docs/nuxt-auto/auto-api/authentication-authorization), from `GET /api/permissions`:
+
+![A permission matrix for a regular user: posts allows create, read, update and delete; articles, users and categories allow read only](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/api-permission-matrix-1440.png)
+
+**[Nested includes](https://websideproject.com/docs/nuxt-auto/auto-api/nested-relationships)** with field selection and a limit:
+
+![The include builder: author fields id and name, limit 2, the query /api/posts?include=author[id,name]&limit=2 and its response](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/api-nested-relations-1440.png)
+
+**[Aggregations](https://websideproject.com/docs/nuxt-auto/auto-api/aggregations)** grouped by a column:
+
+![The aggregation builder: sum of id grouped by published, a bar per group and the JSON response](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/api-aggregations-1440.png)
+
+**[Scoped API tokens](https://websideproject.com/docs/nuxt-auto/auto-api/plugin-catalog)**: an editor token may read articles and nothing it holds no scope for:
+
+![Scope tests with the editor token: GET /api/articles allowed; GET /api/posts, GET /api/users and DELETE /api/articles/1 denied](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/api-token-scopes-1440.png)
+
 ## Documentation
 
 Full documentation: [websideproject.com/docs/nuxt-auto](https://websideproject.com/docs/nuxt-auto/getting-started/introduction)

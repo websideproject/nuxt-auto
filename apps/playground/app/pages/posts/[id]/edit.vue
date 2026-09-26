@@ -27,7 +27,7 @@
         <UButton
           to="/posts"
           size="xs"
-          color="gray"
+          color="neutral"
           variant="subtle"
         >
           Back to Posts
@@ -73,7 +73,7 @@ const { mutate: updatePost, isPending: isUpdating } = useAutoApiUpdate('posts', 
     toast.add({
       title: 'Post updated',
       description: 'Your changes have been saved',
-      color: 'green'
+      color: 'success'
     })
     router.push(`/posts/${response.data.id}`)
   },
@@ -81,7 +81,7 @@ const { mutate: updatePost, isPending: isUpdating } = useAutoApiUpdate('posts', 
     toast.add({
       title: 'Update failed',
       description: err.message,
-      color: 'red'
+      color: 'error'
     })
   }
 })

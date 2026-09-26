@@ -10,6 +10,9 @@
 </template>
 
 <script setup lang="ts">
+// $attrs are bound explicitly below; left to fall through too, a caller's `variant` would override the disabled one
+defineOptions({ inheritAttrs: false })
+
 type Action = 'create' | 'read' | 'update' | 'delete'
 type ButtonVariant = 'solid' | 'outline' | 'soft' | 'ghost' | 'link'
 
