@@ -54,6 +54,16 @@ describe('security (e2e)', async () => {
       expect(payload).toContain('a-green')
     })
 
+    it('ships only the queries the page awaited — never one that finished after its component rendered', async () => {
+      const html = await page('alice')
+      // DocsProbe did not await its list; it rendered "loading", and its data arrived while LabelsProbe's await held
+      // the render open. Shipping it would make the client hydrate a "loaded" state against "loading" HTML.
+      expect(html).toMatch(/<p id="docs-state">\s*loading/)
+      const payload = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)?.[1] ?? ''
+      expect(payload).toContain('a-green')
+      expect(payload).not.toContain('public doc')
+    })
+
     it('an anonymous SSR render gets the API\'s 401, not someone\'s data', async () => {
       const html = await page()
       expect(html).not.toContain('a-red')

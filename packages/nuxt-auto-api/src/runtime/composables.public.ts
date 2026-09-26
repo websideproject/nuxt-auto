@@ -9,7 +9,7 @@ export { useAutoApiList, useAutoApiGet, useAutoApiInfinite } from './composables
 export { useAutoApiCreate, useAutoApiUpdate, useAutoApiDelete, useAutoApiOptimisticUpdate, useAutoApiMutation } from './composables/useAutoApiMutation'
 export { useAutoApiAggregate } from './composables/useAutoApiAggregate'
 export { useAutoApiBulkCreate, useAutoApiBulkUpdate, useAutoApiBulkDelete } from './composables/useAutoApiBulk'
-export { usePermissions, useAllPermissions } from './composables/usePermissions'
+export { usePermissions, useAllPermissions, useRecordPermissions } from './composables/usePermissions'
 export { useM2MRelation } from './composables/useM2MRelation'
 export { useM2MAdd } from './composables/useM2MAdd'
 export { useM2MRemove } from './composables/useM2MRemove'
