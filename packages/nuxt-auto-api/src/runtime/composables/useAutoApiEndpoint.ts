@@ -1,5 +1,6 @@
 import { computed, unref } from 'vue'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useTrackedQuery } from './ssrQuery'
 import type { UseQueryOptions, QueryKey } from '@tanstack/vue-query'
 import { withAutoApiHandlers } from './mutationHandlers'
 import type { AutoApiMutationOptions } from './mutationHandlers'
@@ -83,7 +84,7 @@ export function useAutoApiEndpointQuery<TData = any>(
 
   const { queryKey: _, toast: toastOptions, unwrap, ...queryOptions } = options ?? {}
 
-  return useQuery<TData, Error>({
+  return useTrackedQuery<TData, Error>({
     queryKey: queryKeyRef,
     queryFn: async () => {
       const query = paramsRef.value

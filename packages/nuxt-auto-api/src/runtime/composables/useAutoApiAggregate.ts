@@ -1,5 +1,5 @@
 import { computed, unref } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useTrackedQuery } from './ssrQuery'
 import type { UseQueryOptions, UseQueryReturnType } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
 import { prerenderSafeEnabled } from './prerenderEnabled'
@@ -31,7 +31,7 @@ export function useAutoApiAggregate<T = AggregateResponse>(
   const resourceRef = computed(() => unref(resource))
   const optionsRef = computed(() => unref(aggregateOptions))
 
-  return useQuery({
+  return useTrackedQuery({
     queryKey: computed(() => [
       'autoapi',
       resourceRef.value,

@@ -1,5 +1,5 @@
 import { computed, unref } from 'vue'
-import { useQuery, useInfiniteQuery } from '@tanstack/vue-query'
+import { useTrackedQuery, useTrackedInfiniteQuery } from './ssrQuery'
 import type { InfiniteData, UseInfiniteQueryOptions, UseInfiniteQueryReturnType, UseQueryOptions, UseQueryReturnType } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
 import { prerenderSafeEnabled } from './prerenderEnabled'
@@ -73,7 +73,7 @@ export function useAutoApiList<T = any>(
     return result
   })
 
-  return useQuery({
+  return useTrackedQuery({
     queryKey: computed(() => ['autoapi', resourceRef.value, 'list', paramsRef.value]),
     queryFn: async () => {
       const response = await fetcher<ListResponse<T>>(path(resourceRef.value), {
@@ -106,7 +106,7 @@ export function useAutoApiGet<T = any>(
   const idRef = computed(() => unref(id))
   const paramsRef = computed(() => unref(params) || {})
 
-  return useQuery({
+  return useTrackedQuery({
     queryKey: computed(() => ['autoapi', resourceRef.value, 'get', idRef.value, paramsRef.value]),
     queryFn: async () => {
       const response = await fetcher<GetResponse<T>>(
@@ -139,7 +139,7 @@ export function useAutoApiInfinite<T = any>(
   const resourceRef = computed(() => unref(resource))
   const paramsRef = computed(() => unref(params) || {})
 
-  return useInfiniteQuery({
+  return useTrackedInfiniteQuery({
     queryKey: computed(() => ['autoapi', resourceRef.value, 'infinite', paramsRef.value]),
     queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       const params = paramsRef.value

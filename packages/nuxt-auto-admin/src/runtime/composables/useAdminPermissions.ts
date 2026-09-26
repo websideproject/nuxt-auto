@@ -1,5 +1,5 @@
 import { computed, unref, type MaybeRef } from 'vue'
-import { usePermissions } from '@websideproject/nuxt-auto-api/composables'
+import { usePermissions, useRecordPermissions } from '@websideproject/nuxt-auto-api/composables'
 
 /**
  * Composable for checking permissions in admin UI
@@ -37,5 +37,19 @@ export function useAdminPermissions(resource: MaybeRef<string>) {
     hasAnyPermission,
     isLoading,
     getPermissionDeniedMessage,
+  }
+}
+
+/**
+ * Edit / Delete for specific rows: the resource permission AND the row's own rules (its visibility and the
+ * resource's `objectLevel`). The resource-level `canUpdate` alone offers Edit on rows the API then refuses.
+ * `false` until the API answers.
+ */
+export function useAdminRecordPermissions(resource: MaybeRef<string>, ids: () => Array<string | number>) {
+  const { can, isLoading } = useRecordPermissions(resource, ids)
+  return {
+    canUpdateRow: (id: string | number) => can(id, 'update'),
+    canDeleteRow: (id: string | number) => can(id, 'delete'),
+    isLoading,
   }
 }

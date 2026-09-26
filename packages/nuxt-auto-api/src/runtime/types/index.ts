@@ -686,9 +686,18 @@ export interface PermissionCheckResult {
 /**
  * Response from permission query endpoint
  */
+/** What the caller may do on one row (see `GET /api/{resource}/permissions?ids=`). */
+export interface RecordPermissions {
+  canRead: boolean
+  canUpdate: boolean
+  canDelete: boolean
+}
+
 export interface PermissionQueryResponse extends PermissionCheckResult {
   resource: string
   user: AuthUser | null
+  /** Per-row answers, keyed by id as requested — only with `?ids=`. */
+  records?: Record<string, RecordPermissions>
 }
 
 /**

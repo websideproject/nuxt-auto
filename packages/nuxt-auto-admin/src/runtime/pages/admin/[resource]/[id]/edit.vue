@@ -101,7 +101,7 @@ import { useM2MDetection } from '../../../../composables/useM2MDetection'
 import type { M2MFieldConfig } from '../../../../composables/useM2MDetection'
 import { useAdminResource } from '../../../../composables/useAdminResource'
 import { useAdminActions } from '../../../../composables/useAdminActions'
-import { useAdminPermissions } from '../../../../composables/useAdminPermissions'
+import { useAdminPermissions, useAdminRecordPermissions } from '../../../../composables/useAdminPermissions'
 import { useAdminConfig } from '../../../../composables/useAdminConfig'
 
 defineOptions({ name: 'AdminResourceEditPage' })
@@ -112,11 +112,11 @@ const id = computed(() => route.params.id as string)
 
 const { resource } = useAdminResource(resourceName.value)
 const { goToDetail } = useAdminActions(resourceName.value)
-const {
-  canUpdate,
-  isLoading: isLoadingPermissions,
-  getPermissionDeniedMessage,
-} = useAdminPermissions(resourceName.value)
+const { isLoading: isLoadingResourcePermissions, getPermissionDeniedMessage } = useAdminPermissions(resourceName.value)
+// This row's own answer: the resource may allow edits that this row's objectLevel rule refuses.
+const { canUpdateRow, isLoading: isLoadingRowPermissions } = useAdminRecordPermissions(resourceName.value, () => [id.value])
+const canUpdate = computed(() => canUpdateRow(id.value))
+const isLoadingPermissions = computed(() => isLoadingResourcePermissions.value || isLoadingRowPermissions.value)
 
 const { permissions: permissionConfig } = useAdminConfig()
 const showButtonBehavior = computed(() => permissionConfig.unauthorizedButtons || 'disable')

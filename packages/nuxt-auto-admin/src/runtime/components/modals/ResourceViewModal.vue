@@ -163,7 +163,7 @@ import ResourceAuditLog from '../ResourceAuditLog.vue'
 import { useM2MDetection } from '../../composables/useM2MDetection'
 import type { M2MFieldConfig } from '../../composables/useM2MDetection'
 import { useAdminResource } from '../../composables/useAdminResource'
-import { useAdminPermissions } from '../../composables/useAdminPermissions'
+import { useAdminRecordPermissions } from '../../composables/useAdminPermissions'
 import { useAdminConfig } from '../../composables/useAdminConfig'
 import { useAutoApiGet } from '@websideproject/nuxt-auto-api/composables'
 
@@ -183,7 +183,10 @@ const emit = defineEmits<{
 
 const { resource } = useAdminResource(props.resourceName)
 const { data: response, isLoading, error } = useAutoApiGet(props.resourceName, computed(() => props.id))
-const { canUpdate, canDelete } = useAdminPermissions(props.resourceName)
+// This row's own answer: the resource may allow edits that this row's objectLevel rule refuses.
+const { canUpdateRow, canDeleteRow } = useAdminRecordPermissions(props.resourceName, () => [props.id])
+const canUpdate = computed(() => canUpdateRow(props.id))
+const canDelete = computed(() => canDeleteRow(props.id))
 const { permissions: permissionConfig, features, api } = useAdminConfig()
 // History needs the flag and createAuditLogPlugin's route.
 const showAuditLog = features.auditLog === true && api.auditLog

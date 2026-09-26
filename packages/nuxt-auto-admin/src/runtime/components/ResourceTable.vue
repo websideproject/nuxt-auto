@@ -305,7 +305,7 @@ import PermissionDeniedPage from './PermissionDeniedPage.vue'
 import ResourceFilters from './ResourceFilters.vue'
 import ResourceImportModal from './ResourceImportModal.vue'
 import { useAdminResource } from '../composables/useAdminResource'
-import { useAdminPermissions } from '../composables/useAdminPermissions'
+import { useAdminPermissions, useAdminRecordPermissions } from '../composables/useAdminPermissions'
 import { useAdminConfig } from '../composables/useAdminConfig'
 import { useAutoApiList, useAutoApiBulkDelete, useAutoApiPath } from '@websideproject/nuxt-auto-api/composables'
 import type { BulkOperationResponse } from '@websideproject/nuxt-auto-api/composables'
@@ -342,7 +342,7 @@ const apiPath = useAutoApiPath()
 
 const { resource } = useAdminResource(resourceNameValue.value)
 // False until /permissions answers: the UI never offers an action before the API says it is allowed.
-const { permissions, canCreate, canRead, canUpdate, canDelete, isLoading: permissionsLoading } = useAdminPermissions(resourceNameValue.value)
+const { permissions, canCreate, canRead, canDelete, isLoading: permissionsLoading } = useAdminPermissions(resourceNameValue.value)
 const { features, api, permissions: permissionConfig } = useAdminConfig()
 
 const resourceLabel = computed(() => resource.value?.displayName?.toLowerCase() || resourceNameValue.value)
@@ -411,6 +411,9 @@ const { data: response, isLoading: listLoading, isFetching, error, refetch } = u
 const isLoading = computed(() => !ready.value || listLoading.value)
 
 const data = computed(() => response.value?.data || [])
+// Per-row Edit / Delete: one request for the page's rows (the row's objectLevel rule may refuse what the
+// resource allows).
+const { canUpdateRow, canDeleteRow } = useAdminRecordPermissions(resourceNameValue.value, () => data.value.map(row => row[pk.value] as string | number))
 const meta = computed(() => response.value?.meta)
 
 interface ApiError {
@@ -452,7 +455,9 @@ const rowId = (row: Record<string, unknown>) => String(row[pk.value])
 watch([page, listFilter], () => {
   rowSelection.value = {}
 })
-const selectedIds = computed(() => data.value.filter(row => rowSelection.value[rowId(row)]).map(row => row[pk.value] as string | number))
+const selectedIds = computed(() => data.value
+  .filter(row => rowSelection.value[rowId(row)] && canDeleteRow(row[pk.value] as string | number))
+  .map(row => row[pk.value] as string | number))
 const showBulkDelete = computed(() => bulkEnabled.value && (canDelete.value ? selectedIds.value.length > 0 : showUnauthorized.value))
 
 const { mutateAsync: bulkDelete, isPending: isBulkDeleting } = useAutoApiBulkDelete(resourceNameValue.value)
@@ -579,7 +584,8 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
         'aria-label': 'Select all',
       }),
       cell: ({ row }: CellContext<Record<string, unknown>, unknown>) => h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        'modelValue': row.getIsSelected() && canDeleteRow(row.original[pk.value] as string | number),
+        'disabled': !canDeleteRow(row.original[pk.value] as string | number),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
         'aria-label': 'Select row',
       }),
@@ -664,13 +670,13 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
           {
             label: 'Edit',
             icon: 'i-heroicons-pencil',
-            disabled: !canUpdate.value,
+            disabled: !canUpdateRow(row.original[pk.value] as string | number),
             onSelect: () => handleEdit(row.original),
           },
           {
             label: 'Delete',
             icon: 'i-heroicons-trash',
-            disabled: !canDelete.value,
+            disabled: !canDeleteRow(row.original[pk.value] as string | number),
             onSelect: () => openDeleteModal(row.original),
           },
         ],

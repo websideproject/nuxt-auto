@@ -345,6 +345,24 @@ for (const spec of ENGINES) {
       expect(revs.map((r: any) => [r.version, r.data.name])).toEqual([[3, 'v3'], [4, 'v4']])
     })
 
+    it('per-record permissions: resource permission AND row visibility AND objectLevel, per operation', async () => {
+      const [open, locked, hidden] = await tagsNamed('open', 'locked', 'hidden')
+      const auth = {
+        tags: {
+          permissions: { read: true, update: true },
+          listFilter: (table: any) => sql`${table.name} <> 'hidden'`,
+          objectLevel: (row: any, c: any) => c.operation === 'get' || row.name !== 'locked',
+        },
+      }
+      const ids = [open.id, locked.id, hidden.id, 999999].join(',')
+      const res: any = await permissionsHandler(ctx('tags', { operation: 'get', auth, query: { ids } }))
+      expect(res.records[String(open.id)]).toEqual({ canRead: true, canUpdate: true, canDelete: false })
+      expect(res.records[String(locked.id)]).toEqual({ canRead: true, canUpdate: false, canDelete: false })
+      // invisible and missing rows answer the same way
+      expect(res.records[String(hidden.id)]).toEqual(res.records['999999'])
+      expect(res.records['999999']).toEqual({ canRead: false, canUpdate: false, canDelete: false })
+    })
+
     it('reports the engine and whether atomic() is a transaction', () => {
       expect(adapter.engine).toBe(spec.engine)
       expect(adapter.supportsTransactions).toBe(spec.engine !== 'd1')

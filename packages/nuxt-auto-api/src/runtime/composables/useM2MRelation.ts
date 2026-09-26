@@ -1,5 +1,5 @@
 import { computed, unref } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useTrackedQuery } from './ssrQuery'
 import type { UseQueryOptions, UseQueryReturnType } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
 import type { M2MListResponse, M2MListQuery } from '../types'
@@ -68,7 +68,7 @@ export function useM2MRelation<T = any>(
     return result
   })
 
-  return useQuery({
+  return useTrackedQuery({
     queryKey: computed(() =>
       autoApiKeys.m2mRelation(resourceRef.value, idRef.value, relationRef.value, paramsRef.value),
     ),

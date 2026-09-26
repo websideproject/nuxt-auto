@@ -197,7 +197,7 @@ import { useRoute } from '#app'
 import { formatFieldLabel, formatDisplayValue } from '../../../utils/fieldTypeMapping'
 import ResourceAuditLog from '../../../components/ResourceAuditLog.vue'
 import { useAdminResource } from '../../../composables/useAdminResource'
-import { useAdminPermissions } from '../../../composables/useAdminPermissions'
+import { useAdminPermissions, useAdminRecordPermissions } from '../../../composables/useAdminPermissions'
 import { useAdminActions } from '../../../composables/useAdminActions'
 import { useAdminConfig } from '../../../composables/useAdminConfig'
 import { useAutoApiGet } from '@websideproject/nuxt-auto-api/composables'
@@ -212,11 +212,13 @@ const { resource } = useAdminResource(resourceName.value)
 const { data: response, isLoading, error } = useAutoApiGet(resourceName.value, id)
 const {
   canRead,
-  canUpdate,
-  canDelete,
   isLoading: isLoadingPermissions,
   getPermissionDeniedMessage,
 } = useAdminPermissions(resourceName.value)
+// This row's own answer: the resource may allow edits that this row's objectLevel rule refuses.
+const { canUpdateRow, canDeleteRow } = useAdminRecordPermissions(resourceName.value, () => [id.value])
+const canUpdate = computed(() => canUpdateRow(id.value))
+const canDelete = computed(() => canDeleteRow(id.value))
 const { goToList, goToEdit, handleDelete, isDeleting } = useAdminActions(resourceName.value)
 
 const { permissions: permissionConfig, features, api } = useAdminConfig()
