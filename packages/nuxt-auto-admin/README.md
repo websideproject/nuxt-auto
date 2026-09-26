@@ -60,11 +60,13 @@ pages show "permission denied" until you declare who may do what.
 
 ## Documentation
 
-- [Getting started](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/1.getting-started.md)
-- [Configuration & theming](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/2.configuration-theming.md) · [Resource configuration](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/3.resource-configuration.md) · [Form fields & widgets](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/4.form-fields-widgets.md)
-- [Permissions](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/5.permissions.md) · [M2M relationships](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/7.m2m-relationships.md)
-- [Custom pages](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/6.custom-pages.md) · [Custom actions](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/8.custom-actions.md) · [Composables](https://github.com/websideproject/nuxt-auto/blob/main/apps/docs/content/3.auto-admin/9.composables.md)
-- The API it builds on: [@websideproject/nuxt-auto-api](https://github.com/websideproject/nuxt-auto/tree/main/packages/nuxt-auto-api#readme)
+Full documentation: [websideproject.com/docs/nuxt-auto](https://websideproject.com/docs/nuxt-auto/getting-started/introduction)
+
+- [Getting started](https://websideproject.com/docs/nuxt-auto/auto-admin/getting-started)
+- [Configuration & theming](https://websideproject.com/docs/nuxt-auto/auto-admin/configuration-theming) · [Resource configuration](https://websideproject.com/docs/nuxt-auto/auto-admin/resource-configuration) · [Form fields & widgets](https://websideproject.com/docs/nuxt-auto/auto-admin/form-fields-widgets)
+- [Permissions](https://websideproject.com/docs/nuxt-auto/auto-admin/permissions) · [M2M relationships](https://websideproject.com/docs/nuxt-auto/auto-admin/m2m-relationships)
+- [Custom pages](https://websideproject.com/docs/nuxt-auto/auto-admin/custom-pages) · [Custom actions](https://websideproject.com/docs/nuxt-auto/auto-admin/custom-actions) · [Composables](https://websideproject.com/docs/nuxt-auto/auto-admin/composables)
+- The API it builds on: [@websideproject/nuxt-auto-api](https://websideproject.com/docs/nuxt-auto/auto-api/getting-started)
 
 ## Links
 

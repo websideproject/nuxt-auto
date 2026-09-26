@@ -83,7 +83,7 @@ bun add -D @websideproject/nuxt-auto-api @websideproject/nuxt-auto-admin
 
 ## 📖 Documentation
 
-📖 **[Full Documentation →](https://github.com/websideproject/nuxt-auto)**
+📖 **[Full Documentation →](https://websideproject.com/docs/nuxt-auto/getting-started/introduction)**
 
 ## 🤖 Claude Code Skills
 
