@@ -1,6 +1,7 @@
 # @websideproject/nuxt-auto-api
 
 [![npm version](https://img.shields.io/npm/v/@websideproject/nuxt-auto-api?color=black)](https://npmjs.com/package/@websideproject/nuxt-auto-api)
+[![npm downloads](https://img.shields.io/npm/dm/@websideproject/nuxt-auto-api?color=black)](https://npm.chart.dev/@websideproject/nuxt-auto-api)
 [![license](https://img.shields.io/github/license/websideproject/nuxt-auto?color=black)](https://github.com/websideproject/nuxt-auto/blob/main/LICENSE)
 
 Schema-driven REST APIs for Nuxt. Register a Drizzle table, declare who may do what, and get list / get /
@@ -104,9 +105,25 @@ const { mutate: createPost } = useAutoApiCreate('posts')
 
 ## Documentation
 
-Full guides: [docs](https://github.com/websideproject/nuxt-auto/tree/main/apps/docs/content/2.auto-api) — authorization,
-multi-tenancy, soft deletes, relations, bulk, aggregations, M2M, hooks, plugins, database adapters, testing.
+Full documentation: [websideproject.com/docs/nuxt-auto](https://websideproject.com/docs/nuxt-auto/getting-started/introduction)
+
+- [Getting started](https://websideproject.com/docs/nuxt-auto/auto-api/getting-started)
+- [Authentication & authorization](https://websideproject.com/docs/nuxt-auto/auto-api/authentication-authorization) · [Permissions cookbook](https://websideproject.com/docs/nuxt-auto/auto-api/permissions-cookbook) · [better-auth](https://websideproject.com/docs/nuxt-auto/auto-api/better-auth)
+- [Multi-tenancy](https://websideproject.com/docs/nuxt-auto/auto-api/multi-tenancy) · [Soft deletes](https://websideproject.com/docs/nuxt-auto/auto-api/soft-deletes) · [Validation](https://websideproject.com/docs/nuxt-auto/auto-api/validation)
+- [Pagination](https://websideproject.com/docs/nuxt-auto/auto-api/pagination) · [Nested relationships](https://websideproject.com/docs/nuxt-auto/auto-api/nested-relationships) · [Bulk operations](https://websideproject.com/docs/nuxt-auto/auto-api/bulk-operations) · [Aggregations](https://websideproject.com/docs/nuxt-auto/auto-api/aggregations) · [M2M](https://websideproject.com/docs/nuxt-auto/auto-api/m2m-relationships)
+- [Frontend composables](https://websideproject.com/docs/nuxt-auto/auto-api/frontend-composables) · [Custom endpoints](https://websideproject.com/docs/nuxt-auto/auto-api/custom-endpoints) · [Lifecycle hooks](https://websideproject.com/docs/nuxt-auto/auto-api/lifecycle-hooks)
+- [Plugin system](https://websideproject.com/docs/nuxt-auto/auto-api/plugin-system) · [Plugin catalog](https://websideproject.com/docs/nuxt-auto/auto-api/plugin-catalog) · [Rate limiting](https://websideproject.com/docs/nuxt-auto/auto-api/rate-limiting)
+- [Database adapters](https://websideproject.com/docs/nuxt-auto/auto-api/database-adapters) · [Cloudflare D1](https://websideproject.com/docs/nuxt-auto/auto-api/cloudflare-d1) · [Testing](https://websideproject.com/docs/nuxt-auto/auto-api/testing)
+- [Configuration](https://websideproject.com/docs/nuxt-auto/auto-api/configuration) · [Upgrading](https://websideproject.com/docs/nuxt-auto/auto-api/upgrading)
+
+An admin panel for these resources: [@websideproject/nuxt-auto-admin](https://npmjs.com/package/@websideproject/nuxt-auto-admin).
+
+## Links
+
+- [GitHub](https://github.com/websideproject/nuxt-auto)
+- [Issues](https://github.com/websideproject/nuxt-auto/issues) · [Discussions](https://github.com/websideproject/nuxt-auto/discussions)
+- [Releases](https://github.com/websideproject/nuxt-auto/releases)
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](https://github.com/websideproject/nuxt-auto/blob/main/LICENSE)
