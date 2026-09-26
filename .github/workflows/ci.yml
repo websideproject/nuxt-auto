@@ -114,6 +114,8 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Prepare
+        run: bun run dev:prepare
       - name: Build the playground and its database
         working-directory: apps/playground
         run: bun run build:visual && bun run db:visual
