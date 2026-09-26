@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
 export interface WebhookEndpoint {
@@ -88,7 +88,11 @@ export function createWebhookPlugin(options: WebhookPluginOptions): AutoApiPlugi
   const backoffMs = retry.backoffMs ?? 1000
   const signingAlgorithm = signing?.algorithm ?? 'sha256'
 
-  function fireWebhooks(event: string, data: any, context: any) {
+  async function fireWebhooks(event: string, record: any, context: any) {
+    // After-hooks see the stored row; a webhook must not carry the resource's hidden fields (password hashes,
+    // tokens) to a third party. (Loaded here: this file is also imported by nuxt.config.)
+    const { filterHiddenFields } = await import('../server/utils/filterHiddenFields')
+    const data = filterHiddenFields(record, context)
     const payload = JSON.stringify({
       event,
       resource: context.resource,
@@ -115,19 +119,19 @@ export function createWebhookPlugin(options: WebhookPluginOptions): AutoApiPlugi
     }
   }
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createWebhookPlugin', [options], {
     name: 'webhook',
     version: '1.0.0',
     runtimeSetup(ctx) {
       ctx.addGlobalHook({
         afterCreate(result, context) {
-          fireWebhooks(`${context.resource}.create`, result, context)
+          void fireWebhooks(`${context.resource}.create`, result, context)
         },
         afterUpdate(result, context) {
-          fireWebhooks(`${context.resource}.update`, result, context)
+          void fireWebhooks(`${context.resource}.update`, result, context)
         },
         afterDelete(id, context) {
-          fireWebhooks(`${context.resource}.delete`, { id }, context)
+          void fireWebhooks(`${context.resource}.delete`, { id }, context)
         },
       })
 

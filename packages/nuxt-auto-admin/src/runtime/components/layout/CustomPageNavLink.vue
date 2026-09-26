@@ -21,11 +21,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { NuxtLink } from '#components'
+import { useAllPermissions } from '@websideproject/nuxt-auto-api/composables'
 import type { CustomPageConfig } from '../../types'
 import { useAdminConfig } from '../../composables/useAdminConfig'
+import { grantsAll } from '../../utils/customPageAccess'
 
 const props = defineProps<{
   page: CustomPageConfig
@@ -33,30 +35,13 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
-const hasAccess = ref(true)
-const isCheckingAccess = ref(false)
-
 const { permissions: permissionConfig } = useAdminConfig()
 const sidebarBehavior = computed(() => permissionConfig.unauthorizedSidebarItems || 'hide')
 
-// Check custom page permissions
-onMounted(async () => {
-  if (props.page.canAccess) {
-    isCheckingAccess.value = true
-    try {
-      // TODO: Get actual user from auth context
-      hasAccess.value = await props.page.canAccess(null)
-    }
-    catch (error) {
-      console.error('Error checking custom page access:', error)
-      hasAccess.value = false
-    }
-    finally {
-      isCheckingAccess.value = false
-    }
-  }
-  // TODO: Implement props.page.permissions string/array checking
-})
+// `permissions: ['users:update', …]` — checked against the caller's API permissions (all required).
+const requiresPermissions = computed(() => props.page.permissions !== undefined)
+const { data: allPermissions, isLoading: isCheckingAccess } = useAllPermissions({ enabled: requiresPermissions })
+const hasAccess = computed(() => !requiresPermissions.value || grantsAll(allPermissions.value?.permissions, props.page.permissions))
 
 // Build full path (support both relative and absolute paths)
 const fullPath = computed(() => {

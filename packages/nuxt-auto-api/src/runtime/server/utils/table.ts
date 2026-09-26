@@ -30,6 +30,19 @@ export function primaryKeyColumn(table: any): any {
 }
 
 /**
+ * Whether the database generates the primary key: auto-increment (MySQL, SQLite `autoIncrement`), serial and
+ * identity (Postgres), or SQLite's integer rowid key.
+ */
+export function isGeneratedPrimaryKey(table: any): boolean {
+  const column = primaryKeyColumn(table)
+  if (!column) return false
+  return column.autoIncrement === true
+    || /Serial/.test(String(column.columnType))
+    || !!column.generatedIdentity
+    || (column.columnType === 'SQLiteInteger' && column.primary === true)
+}
+
+/**
  * Coerce a route id to the primary key's type. A non-numeric id for a numeric key can never match a row,
  * so it is a 404 rather than a database error.
  */

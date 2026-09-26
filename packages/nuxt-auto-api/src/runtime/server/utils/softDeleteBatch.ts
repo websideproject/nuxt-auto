@@ -5,6 +5,7 @@ import { assertResourcePermission } from './permissions'
 import { recordRevisionIfPresent } from './revisionRecord'
 import { passesObjectLevel, rowScope } from './rowAccess'
 import { hasColumn, primaryKeyName } from './table'
+import { atomicWritesFor, selectInChunks } from './atomicWrites'
 
 /**
  * Batch restore / purge: every trashed row that shares one `deletionId` (a cascade soft delete stamps the
@@ -49,7 +50,7 @@ async function assertBatchAuthorized(context: any, groups: BatchGroup[], operati
     const scope = rowScope(context, resource, table, { softDeleted: 'only' })
     let visible = rows
     if (scope) {
-      const found = await context.db.select().from(table).where(and(scope, inArray(table[pk], rows.map(r => r[pk]))))
+      const found = await selectInChunks(rows.map(r => r[pk]), part => context.db.select().from(table).where(and(scope, inArray(table[pk], part))))
       const ids = new Set(found.map((r: any) => String(r[pk])))
       visible = rows.filter(r => ids.has(String(r[pk])))
     }
@@ -68,10 +69,11 @@ export async function restoreSoftDeletedBatch(context: any, deletionId: string):
   const groups = await findBatch(context, deletionId)
   await assertBatchAuthorized(context, groups, 'restore')
 
+  await atomicWritesFor(context, groups.map(({ table, deletionCol }) => (tx: any) => tx.update(table).set(buildRestoreUpdates(table)).where(eq(table[deletionCol], deletionId))))
+
   const counts: Record<string, number> = {}
   let total = 0
-  for (const { resource, table, deletionCol, rows } of groups) {
-    await context.db.update(table).set(buildRestoreUpdates(table)).where(eq(table[deletionCol], deletionId))
+  for (const { resource, table, rows } of groups) {
     counts[resource] = rows.length
     total += rows.length
     const softCol = getSoftDeleteColumn(table)!
@@ -86,10 +88,11 @@ export async function purgeSoftDeletedBatch(context: any, deletionId: string): P
   const groups = await findBatch(context, deletionId)
   await assertBatchAuthorized(context, groups, 'purge')
 
+  await atomicWritesFor(context, groups.map(({ table, deletionCol }) => (tx: any) => tx.delete(table).where(eq(table[deletionCol], deletionId))))
+
   const counts: Record<string, number> = {}
   let total = 0
-  for (const { resource, table, deletionCol, rows } of groups) {
-    await context.db.delete(table).where(eq(table[deletionCol], deletionId))
+  for (const { resource, rows } of groups) {
     counts[resource] = rows.length
     total += rows.length
   }

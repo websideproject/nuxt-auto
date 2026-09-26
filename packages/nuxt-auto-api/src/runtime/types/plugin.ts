@@ -102,6 +102,12 @@ export interface AutoApiPlugin {
   buildSetup?: (context: PluginBuildContext) => void | Promise<void>
   /** Runtime setup (runs when server starts via Nitro plugin) */
   runtimeSetup?: (context: PluginRuntimeContext) => void | Promise<void>
+  /**
+   * Set by the built-in factories (`createRateLimitPlugin(…)` etc.): how to recreate this plugin on the server.
+   * A plugin listed inline in nuxt.config reaches the server as generated code — its functions' variables do
+   * not come along — so the module emits a call to the factory with these arguments instead.
+   */
+  source?: { factory: string, args: unknown[] }
 }
 
 /**
@@ -109,4 +115,9 @@ export interface AutoApiPlugin {
  */
 export function defineAutoApiPlugin(plugin: AutoApiPlugin): AutoApiPlugin {
   return plugin
+}
+
+/** `defineAutoApiPlugin` for a built-in factory: records the factory and its arguments (see `source`). */
+export function pluginFromFactory(factory: string, args: unknown[], plugin: AutoApiPlugin): AutoApiPlugin {
+  return { ...plugin, source: { factory, args } }
 }

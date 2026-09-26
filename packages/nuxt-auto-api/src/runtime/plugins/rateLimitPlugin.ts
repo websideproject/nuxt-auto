@@ -1,5 +1,5 @@
 import { createError } from 'h3'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
 /**
@@ -47,8 +47,20 @@ export interface RateLimitPluginOptions {
   windowMs?: number
   /** Maximum requests per window. @default 100 */
   max?: number
-  /** Rate limit by IP address. @default true */
+  /**
+   * Rate limit by the client's IP address. @default true
+   *
+   * The address is the connection's, or `CF-Connecting-IP` when the request came through Cloudflare's runtime
+   * (Cloudflare sets that header itself). `X-Forwarded-For` is only read with `trustProxy` — without a proxy
+   * in front, a client sets it to anything and gets a fresh bucket on every request.
+   */
   byIp?: boolean
+  /**
+   * Behind your own reverse proxy / load balancer: how many proxies append to `X-Forwarded-For` (`true` = 1).
+   * The client address is the entry that many hops from the right — the one your outermost proxy saw.
+   * @default false
+   */
+  trustProxy?: boolean | number
   /** Rate limit by user ID. @default false */
   byUser?: boolean
   /** Custom key generator */
@@ -75,6 +87,30 @@ export interface RateLimitPluginOptions {
    * instead of erroring. @default true. Set `false` on sensitive routes to fail closed.
    */
   failOpen?: boolean
+}
+
+function header(event: any, name: string): string | undefined {
+  const value = event?.node?.req?.headers?.[name] ?? event?.headers?.get?.(name)
+  return (Array.isArray(value) ? value[0] : value) || undefined
+}
+
+/**
+ * The client address a limit is keyed on. Only headers that cannot be forged are used: `CF-Connecting-IP` when
+ * the request came through Cloudflare's runtime (Nitro's Cloudflare presets set `event.context.cloudflare`), and
+ * `X-Forwarded-For` only when the app says how many proxies of its own write it.
+ */
+export function clientAddress(event: any, trustProxy: boolean | number = false): string {
+  if (event?.context?.cloudflare) {
+    const ip = header(event, 'cf-connecting-ip')
+    if (ip) return ip
+  }
+  const hops = trustProxy === true ? 1 : Number(trustProxy) || 0
+  if (hops > 0) {
+    const chain = String(header(event, 'x-forwarded-for') ?? '').split(',').map(s => s.trim()).filter(Boolean)
+    const ip = chain[chain.length - hops]
+    if (ip) return ip
+  }
+  return event?.node?.req?.socket?.remoteAddress || 'unknown'
 }
 
 interface RateLimitEntry {
@@ -138,6 +174,7 @@ export function createRateLimitPlugin(options: RateLimitPluginOptions = {}): Aut
     max = 100,
     byIp = true,
     byUser = false,
+    trustProxy = false,
     keyGenerator,
     skip,
     message = 'Too many requests, please try again later',
@@ -150,7 +187,7 @@ export function createRateLimitPlugin(options: RateLimitPluginOptions = {}): Aut
     ? limiter
     : () => limiter
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createRateLimitPlugin', [options], {
     name: 'rate-limit',
     version: '1.1.0',
     runtimeSetup(ctx) {
@@ -169,15 +206,7 @@ export function createRateLimitPlugin(options: RateLimitPluginOptions = {}): Aut
           }
           else {
             const parts: string[] = []
-            if (byIp) {
-              const event = context.event
-              // Prefer CF-Connecting-IP (trustworthy on Cloudflare); fall back to XFF/socket.
-              const ip = event.node?.req?.headers?.['cf-connecting-ip']
-                || event.node?.req?.headers?.['x-forwarded-for']
-                || event.node?.req?.socket?.remoteAddress
-                || 'unknown'
-              parts.push(`ip:${Array.isArray(ip) ? ip[0] : ip}`)
-            }
+            if (byIp) parts.push(`ip:${clientAddress(context.event, trustProxy)}`)
             if (byUser && context.user?.id) {
               parts.push(`user:${context.user.id}`)
             }

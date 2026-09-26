@@ -1,4 +1,4 @@
-export { createRateLimitPlugin, InMemoryRateLimitStore } from './rateLimitPlugin'
+export { createRateLimitPlugin, InMemoryRateLimitStore, clientAddress } from './rateLimitPlugin'
 export type { RateLimitPluginOptions, RateLimitStore, RateLimitLimiter } from './rateLimitPlugin'
 export { createBetterAuthPlugin } from './betterAuthPlugin'
 export type { BetterAuthPluginOptions } from './betterAuthPlugin'

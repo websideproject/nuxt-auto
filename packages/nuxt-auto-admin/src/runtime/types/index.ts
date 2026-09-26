@@ -11,10 +11,17 @@ export interface ModuleOptions {
   prefix?: string
 
   /**
-   * Access control function - determines who can access admin panel
-   * @default undefined (no access control)
+   * Named route middleware run on every admin page — where "who may open the admin" is decided, e.g. `'auth'`
+   * (your app's `middleware/auth.ts`). The admin itself only shows what the API allows the caller; data access
+   * is always enforced by nuxt-auto-api.
    */
-  access?: (user: unknown) => boolean | Promise<boolean>
+  middleware?: string | string[]
+
+  /**
+   * @deprecated Never applied: a function in `nuxt.config` cannot reach the running app. Setting it fails the
+   * build — use `middleware`.
+   */
+  access?: never
 
   /**
    * Branding configuration
@@ -133,15 +140,17 @@ export interface CustomPageConfig {
    */
   order?: number
   /**
-   * Required permissions to access this page
-   * Can be a single permission string or an array of permissions
-   * If array, user needs ALL permissions (AND logic)
+   * API permissions the caller needs to see and open this page, as `'<resource>:<action>'` with action one of
+   * `create`, `read`, `update`, `delete`, `restore`, `purge` — e.g. `'users:update'`. Checked against
+   * `GET /api/permissions`; with several, ALL are required. For other logic, give the page itself a route
+   * middleware.
    */
   permissions?: string | string[]
   /**
-   * Permission check function for more complex logic
+   * @deprecated Never applied: a function in `nuxt.config` cannot reach the running app. Setting it fails the
+   * build — use `permissions`, or a route middleware on the page.
    */
-  canAccess?: (user: unknown) => boolean | Promise<boolean>
+  canAccess?: never
 }
 
 /**

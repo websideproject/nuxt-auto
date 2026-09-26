@@ -41,22 +41,19 @@ export interface AutoApiOptions {
   multiTenancy?: MultiTenancyConfig
 
   /**
-   * Plugins for extending the auto-api.
+   * Plugins for extending the auto-api — a server file, plugins listed here, or both:
    *
-   * **File path (recommended):**
-   * Point to a server file that exports an array of plugins.
-   * Full closure support, imports work naturally.
    * ```ts
-   * plugins: '~/server/autoapi-plugins'
+   * plugins: ['~/server/autoapi-plugins', createExportPlugin({ formats: ['csv'] })]
    * ```
    *
-   * **Inline array (limited):**
-   * Only works for plugins with no closure variables in runtimeSetup.
-   * ```ts
-   * plugins: [mySimplePlugin]
-   * ```
+   * - **A file** (default-exports an array of plugins): anything goes — imports, instances (a KV store),
+   *   closures. It runs on the server only, so plugins that add ROUTES do not work from it.
+   * - **Listed here**: plugins that add routes (export, file upload, audit-log / activity feeds, token
+   *   introspection) must be. A built-in factory is recreated on the server from its options, so they must be
+   *   data or self-contained functions; an instance fails the build with a pointer to the file.
    */
-  plugins?: string | AutoApiPlugin[]
+  plugins?: string | Array<AutoApiPlugin | string>
 
   /**
    * Nested relations configuration
@@ -421,6 +418,9 @@ export interface HandlerContext {
    * the entry handler skips the main handler and returns this data directly.
    */
   shortCircuit?: { data: any, status?: number }
+
+  /** The handler's response, set before `post-execute` middleware runs (not on a short-circuited request). */
+  result?: unknown
 
   /**
    * How the current request was authenticated (e.g. 'session', 'api-token').

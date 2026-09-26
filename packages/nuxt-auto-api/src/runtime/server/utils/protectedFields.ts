@@ -1,6 +1,6 @@
 import type { HandlerContext } from '../../types'
 import { getSoftDeleteColumn, getSoftDeleteCompanions } from './softDelete'
-import { getColumns, primaryKeyName } from './table'
+import { getColumns, isGeneratedPrimaryKey, primaryKeyName } from './table'
 import { getTenancyConfig, isTenantScoped, tenantField } from './tenant'
 
 const AUDIT_COLUMNS = ['createdBy', 'created_by', 'updatedBy', 'updated_by']
@@ -11,7 +11,11 @@ const CREATED_AT_COLUMNS = ['createdAt', 'created_at']
  *
  *  - create + update: the tenant column (scoped resources), the soft-delete marker and its companions
  *    (`deletedBy`, `deletionId`, `deletedReason`), and audit stamps (`createdBy`, `updatedBy`)
- *  - update only: the primary key and `createdAt`
+ *  - update: the primary key and `createdAt`
+ *  - create: the primary key when the database generates it (auto-increment, serial, identity, SQLite's
+ *    integer rowid). A client-chosen key there could be the largest integer the column holds, after which
+ *    the next generated key overflows and every insert into the table fails. A text / UUID key the database
+ *    does not generate stays writable, so clients can create rows with ids they made (optimistic UI).
  *  - plus the registration's own `protectedFields`
  *
  * They are **dropped** from the body, not refused: clients routinely send a whole row back on PATCH
@@ -47,6 +51,9 @@ export function protectedFieldsFor(
   if (operation === 'update') {
     add(primaryKeyName(table))
     CREATED_AT_COLUMNS.forEach(add)
+  }
+  else if (isGeneratedPrimaryKey(table)) {
+    add(primaryKeyName(table))
   }
 
   const declared = context.registry?.[resource]?.protectedFields

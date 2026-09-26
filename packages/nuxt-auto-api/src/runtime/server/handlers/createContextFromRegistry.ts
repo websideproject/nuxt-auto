@@ -18,7 +18,7 @@ type Operation = HandlerContext['operation']
  * `/{resource}/{bulk|aggregate|permissions}`, `/{resource}/:id/restore` and
  * `/{resource}/:id/relations/...` — so the resource is the segment right after the prefix.
  */
-function resourceFromPath(event: H3Event, prefix: string): string | undefined {
+export function resourceFromPath(event: H3Event, prefix: string): string | undefined {
   const path = event.path.split('?')[0] || ''
   const base = prefix.replace(/\/+$/, '')
   if (!path.startsWith(`${base}/`)) return undefined

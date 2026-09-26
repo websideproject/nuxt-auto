@@ -10,7 +10,7 @@ composables for the client.
 - **Secure by default** — every operation is denied until you declare who may perform it
 - **Row visibility everywhere** — tenant scoping, `listFilter`, soft delete and `objectLevel` apply to every
   route: list, get, update, delete, restore, bulk, aggregate, M2M and `?include=`
-- **Server-owned columns** — tenant, soft-delete and audit columns (and the primary key on update) can never be written by a request body
+- **Server-owned columns** — tenant, soft-delete and audit columns (and the primary key on update, or on create when the database generates it) can never be written by a request body
 - **Filtering, sorting, keyset pagination, nested includes, aggregations** — restricted to columns the caller may read
 - **Soft delete, cascade and restore**, field-level permissions, lifecycle hooks, a plugin system
 - **SQLite, D1, Turso, Postgres, MySQL, PlanetScale**
@@ -97,7 +97,7 @@ const { mutate: createPost } = useAutoApiCreate('posts')
 | Undeclared operation | **Denied** (401 anonymous / 403 signed in). `true` = public, `false` = nobody — not even `*` |
 | `*` permission | Super-admin: passes everything except an explicit `false` |
 | Row visibility | Tenant + `listFilter` + soft delete on every route; `objectLevel` per row |
-| Request bodies | Tenant, soft-delete and audit columns are dropped (the primary key on update too); field-level `write` rules refuse with 403 |
+| Request bodies | Tenant, soft-delete and audit columns are dropped (the primary key on update too, and on create when the database generates it); field-level `write` rules refuse with 403 |
 | Queries | `filter` / `sort` / `groupBy` / aggregates / include filters may only name readable columns — unknown fields and operators are 400s |
 | `?include=` | Needs `read` on the related resource and applies its row visibility and field rules |
 | Tenancy | Resolved on the server only (`event.context.tenantId`, `ctx.user.organizationId`, or an extender); fails closed |

@@ -1,4 +1,4 @@
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
 /**
@@ -17,7 +17,7 @@ export function createAuditStampPlugin(): AutoApiPlugin {
     return ctx.user?.id != null ? String(ctx.user.id) : null
   }
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createAuditStampPlugin', [], {
     name: 'audit-stamp',
     version: '1.0.0',
     runtimeSetup(ctx) {

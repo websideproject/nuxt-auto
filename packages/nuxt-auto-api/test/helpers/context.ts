@@ -1,5 +1,24 @@
 import type { HandlerContext, ResourceAuthConfig, ResourceRegistration } from '../../src/runtime/types'
 import { getAuthConfig } from '../../src/runtime/server/utils/authConfig'
+import { createSqliteAdapter } from '../../src/runtime/server/database/adapters/sqlite'
+
+/**
+ * The adapter a test context gets: the real better-sqlite3 one for a real database (its `atomic()` is a real
+ * transaction), unless the test swapped `db.transaction` for its own; a pass-through for a stub db.
+ */
+export function testAdapter(db: any): any {
+  if (!db) return null
+  if (db.$client && !Object.prototype.hasOwnProperty.call(db, 'transaction')) return createSqliteAdapter(db)
+  return {
+    engine: 'better-sqlite3',
+    db,
+    atomic: async (cb: any) => db.transaction ? db.transaction((tx: any) => cb({ tx })) : cb({ tx: db }),
+    getMutationCount: (r: any) => r?.changes ?? 0,
+    supportsReturning: true,
+    supportsTransactions: !!db.transaction,
+    supportsNativeBatch: false,
+  }
+}
 
 /** Every operation allowed — for tests about something other than authorization. */
 export const OPEN: ResourceAuthConfig = {
@@ -54,9 +73,7 @@ export function makeContext(opts: {
 
   const context: HandlerContext = {
     db: opts.db,
-    adapter: {
-      atomic: async (cb: any) => opts.db.transaction ? opts.db.transaction((tx: any) => cb({ tx })) : cb({ tx: opts.db }),
-    } as any,
+    adapter: testAdapter(opts.db),
     schema,
     fullSchema: opts.db?._?.schema,
     user: opts.user ?? null,

@@ -181,14 +181,8 @@ export default defineNuxtConfig({
         path: 'settings',
         icon: 'i-heroicons-cog-6-tooth',
         order: 999,
-        // Example permission check - can be string, array, or function
-        // permissions: 'admin',  // Single permission string
-        // permissions: ['admin', 'settings.manage'],  // Array - user needs ALL
-        canAccess: async (_user: unknown) => {
-          // Custom logic - for demo, always return true
-          // In real app, check user.role, user.permissions, etc.
-          return true
-        }
+        // Shown and opened only for callers the API lets update users ('<resource>:<action>'; an array needs ALL)
+        permissions: 'users:update'
       }
     ]
   },

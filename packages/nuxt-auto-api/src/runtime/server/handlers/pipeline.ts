@@ -8,7 +8,8 @@ import { createContextFromRegistry } from './createContextFromRegistry'
  *
  *   context (extenders, tenant) → pre-auth → authorize → post-auth → validate → pre-execute → handler → post-execute
  *
- * A `pre-execute` middleware may set `context.shortCircuit` (e.g. a cache hit) to skip the handler.
+ * A `pre-execute` middleware may set `context.shortCircuit` (e.g. a cache hit) to skip the handler; a
+ * `post-execute` middleware finds the handler's response on `context.result`.
  */
 export async function runResourcePipeline<T>(
   event: H3Event,
@@ -36,6 +37,7 @@ export async function runResourcePipeline<T>(
   }
 
   const result = await execute(context)
+  context.result = result
   await runMiddleware('post-execute')
   return result
 }

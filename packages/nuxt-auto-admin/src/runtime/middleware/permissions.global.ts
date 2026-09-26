@@ -1,6 +1,8 @@
 import { defineNuxtRouteMiddleware, useRuntimeConfig, abortNavigation } from '#app'
 import { useAdminRegistry } from '../composables/useAdminRegistry'
 import { useAdminPermissions } from '../composables/useAdminPermissions'
+import { useAllPermissions } from '@websideproject/nuxt-auto-api/composables'
+import { grantsAll } from '../utils/customPageAccess'
 
 /**
  * Global middleware to check permissions for admin routes
@@ -50,28 +52,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
   }
   else {
-    // Check if it's a custom page
-    const customPages = config.public.autoAdmin?.customPages || []
-    const customPage = customPages.find((p: { path: string, canAccess?: (user: unknown) => boolean | Promise<boolean>, label?: string, permissions?: string | string[] }) => {
+    // Check if it's a custom page with `permissions: ['<resource>:<action>', …]`
+    const customPages = (config.public.autoAdmin?.customPages || []) as Array<{ path: string, label?: string, permissions?: string | string[] }>
+    const customPage = customPages.find((p) => {
       const pagePath = p.path.startsWith('/') ? p.path : `${adminPrefix}/${p.path}`
       return to.path === pagePath || to.path.startsWith(`${pagePath}/`)
     })
 
-    if (customPage) {
-      // Check custom page permissions
-      if (customPage.canAccess) {
-        // TODO: Get current user and pass to canAccess
-        const hasAccess = await customPage.canAccess(null)
-        if (!hasAccess) {
-          return abortNavigation({
-            statusCode: 403,
-            statusMessage: `You don't have permission to access ${customPage.label}`,
-          })
-        }
+    if (customPage?.permissions !== undefined) {
+      const { data, isLoading } = useAllPermissions()
+      while (isLoading.value) {
+        await new Promise(resolve => setTimeout(resolve, 50))
       }
-      else if (customPage.permissions) {
-        // TODO: Implement permission string/array checking
-        // For now, allow access
+      if (!grantsAll(data.value?.permissions, customPage.permissions)) {
+        return abortNavigation({
+          statusCode: 403,
+          statusMessage: `You don't have permission to access ${customPage.label || customPage.path}`,
+        })
       }
     }
   }

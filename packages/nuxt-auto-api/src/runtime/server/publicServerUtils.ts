@@ -33,6 +33,8 @@ export const PUBLIC_SERVER_UTILS = [
   'insertReturning',
   'updateReturning',
   'supportsReturning',
+  'atomicWrites',
+  'atomicWritesFor',
   'primaryKeyName',
   'primaryKeyColumn',
   'assertWritableFields',

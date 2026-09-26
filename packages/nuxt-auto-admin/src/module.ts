@@ -1,10 +1,10 @@
 import {
   defineNuxtModule,
-  addPlugin,
   createResolver,
   addImportsDir,
   addTemplate,
   addLayout,
+  addRouteMiddleware,
 } from '@nuxt/kit'
 import type { ModuleOptions } from './runtime/types'
 import type { BuildTimeRegistry, ResourceRegistration } from '@websideproject/nuxt-auto-api'
@@ -36,6 +36,9 @@ export default defineNuxtModule<ModuleOptions>({
   },
   async setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
+
+    assertNoAccessFunctions(options)
+    const middleware = options.middleware === undefined ? undefined : [options.middleware].flat()
 
     // Add tailwindcss support
     nuxt.options.css.unshift(resolver.resolve('./runtime/assets/css/main.css'))
@@ -110,8 +113,13 @@ export default defineNuxtModule<ModuleOptions>({
       console.log('[nuxt-auto-admin] ✓ Generated admin registry')
     })
 
-    // Add runtime plugin
-    addPlugin(resolver.resolve('./runtime/plugin'))
+    // Route guard for admin pages: a resource page needs some permission on the resource, a custom page its
+    // `permissions`. (A module's `*.global.ts` is not picked up by Nuxt on its own — it must be registered.)
+    addRouteMiddleware({
+      name: 'auto-admin-permissions',
+      path: resolver.resolve('./runtime/middleware/permissions.global'),
+      global: true,
+    })
 
     // Add composables
     addImportsDir(resolver.resolve('./runtime/composables'))
@@ -134,48 +142,44 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.hook('pages:extend', (pages) => {
       const adminPrefix = options.prefix || '/admin'
 
+      // `autoAdmin.middleware` runs on every admin page (the app's own named middleware, e.g. 'auth').
+      const meta = { layout: 'admin', ...(middleware ? { middleware } : {}) }
       const adminPages = [
         {
           name: 'admin',
           path: adminPrefix,
           file: resolver.resolve('./runtime/pages/admin/index.vue'),
-          meta: { layout: 'admin' },
+          meta,
         },
         {
           name: 'admin-resource-create',
           path: `${adminPrefix}/:resource/new`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/new.vue'),
-          meta: { layout: 'admin' },
+          meta,
         },
         {
           name: 'admin-resource-edit',
           path: `${adminPrefix}/:resource/:id/edit`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/[id]/edit.vue'),
-          meta: { layout: 'admin' },
+          meta,
         },
         {
           name: 'admin-resource-detail',
           path: `${adminPrefix}/:resource/:id`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/[id].vue'),
-          meta: { layout: 'admin' },
+          meta,
         },
         {
           name: 'admin-resource-list',
           path: `${adminPrefix}/:resource`,
           file: resolver.resolve('./runtime/pages/admin/[resource]/index.vue'),
-          meta: { layout: 'admin' },
+          meta,
         },
       ]
 
       pages.push(...adminPages)
 
       console.log(`[nuxt-auto-admin] ✓ Registered ${adminPages.length} admin pages`)
-    })
-
-    // Add middleware directory for route middleware
-    // The admin-auth middleware can be used in pages via definePageMeta
-    nuxt.hook('imports:dirs', (dirs) => {
-      dirs.push(resolver.resolve('./runtime/middleware'))
     })
 
     // (The deprecated POST /api/admin/m2m/sync route was removed: it wrote arbitrary junction rows into any
@@ -185,6 +189,21 @@ export default defineNuxtModule<ModuleOptions>({
     console.log('[nuxt-auto-admin] ✓ Module setup complete')
   },
 })
+
+/**
+ * Functions in module options cannot reach the running app (runtime config is JSON). `access` and a custom page's
+ * `canAccess` used to be dropped silently, leaving pages their author believed were guarded open to everyone.
+ */
+export function assertNoAccessFunctions(options: ModuleOptions): void {
+  if (typeof (options as { access?: unknown }).access === 'function') {
+    throw new TypeError('[nuxt-auto-admin] `autoAdmin.access` was never applied — a function in nuxt.config cannot reach the running app. Guard the admin with a named route middleware: `autoAdmin.middleware: \'auth\'`.')
+  }
+  for (const page of options.customPages ?? []) {
+    if (typeof (page as { canAccess?: unknown }).canAccess === 'function') {
+      throw new TypeError(`[nuxt-auto-admin] customPages "${page.name}": \`canAccess\` was never applied — a function in nuxt.config cannot reach the running app. Use \`permissions: ['<resource>:<action>']\`, or a route middleware on the page itself.`)
+    }
+  }
+}
 
 type BuildTimeResource = ResourceRegistration
 

@@ -1,5 +1,5 @@
 import { createError } from 'h3'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
 /** Any object implementing the Standard Schema .safeParse() interface (Zod, Valibot, etc.) */
@@ -35,7 +35,7 @@ export interface SchemaValidationPluginOptions {
 export function createSchemaValidationPlugin(options: SchemaValidationPluginOptions): AutoApiPlugin {
   const { resources } = options
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createSchemaValidationPlugin', [options], {
     name: 'schema-validation',
     version: '1.0.0',
     runtimeSetup(ctx) {

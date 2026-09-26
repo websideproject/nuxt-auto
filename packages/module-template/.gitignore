@@ -1,0 +1,3 @@
+# Emitted next to the TypeScript sources by tooling — never source files.
+src/**/*.js
+src/**/*.d.ts

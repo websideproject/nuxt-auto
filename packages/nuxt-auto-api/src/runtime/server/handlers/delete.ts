@@ -3,7 +3,8 @@ import { createError } from 'h3'
 import type { HandlerContext } from '../../types'
 import { findAuthorizedRow } from '../utils/rowAccess'
 import { getSoftDeleteColumn, buildSoftDeleteUpdates } from '../utils/softDelete'
-import { cascadeSoftDelete } from '../utils/softDeleteCascade'
+import { planCascadeSoftDelete } from '../utils/softDeleteCascade'
+import { atomicWritesFor } from '../utils/atomicWrites'
 import { executeBeforeHook, executeAfterHook } from '../utils/executeHooks'
 import { assertResourcePermission } from '../utils/permissions'
 import { getAuthConfig } from '../utils/authConfig'
@@ -40,12 +41,12 @@ export async function deleteHandler(context: HandlerContext): Promise<{ success:
     ;(context as any)._deletionId = deletionId
 
     await executeBeforeHook('delete', context, undefined, id)
-    // Cascade first, so a `restrict` child blocks before the parent is stamped.
+    // A `restrict` child throws here, before anything is written; the cascade and the row itself are then
+    // written together (a transaction, or one batch on D1).
     const cascade = getAuthConfig(context, resource)?.softDelete?.cascade
-    if (cascade !== 'off') await cascadeSoftDelete(context, resource, id, deletionId, { reason })
-    await db.update(table)
-      .set(buildSoftDeleteUpdates(table, { deletionId, reason, userId: context.user?.id != null ? String(context.user.id) : null }))
-      .where(pkWhere)
+    const { writes } = cascade !== 'off' ? await planCascadeSoftDelete(context, resource, id, deletionId, { reason }) : { writes: [] }
+    const stamp = buildSoftDeleteUpdates(table, { deletionId, reason, userId: context.user?.id != null ? String(context.user.id) : null })
+    await atomicWritesFor(context, [...writes, tx => tx.update(table).set(stamp).where(pkWhere)])
     await executeAfterHook('delete', context, undefined, id)
     return { success: true, softDeleted: true, deletionId }
   }

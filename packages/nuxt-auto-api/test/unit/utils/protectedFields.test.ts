@@ -21,9 +21,14 @@ const ctx = (over: Partial<HandlerContext> = {}): HandlerContext => ({
 }) as HandlerContext
 
 describe('protected fields', () => {
-  it('create: soft-delete and audit columns (not the primary key or createdAt)', () => {
+  it('create: soft-delete and audit columns, and a primary key the database generates (not createdAt)', () => {
     expect([...protectedFieldsFor(ctx(), 'posts', posts, 'create')].sort())
-      .toEqual(['createdBy', 'deletedAt', 'deletedBy', 'deletionId', 'updatedBy'])
+      .toEqual(['createdBy', 'deletedAt', 'deletedBy', 'deletionId', 'id', 'updatedBy'])
+  })
+
+  it('create: a text primary key the database does not generate stays writable (client-made ids)', () => {
+    const docs = sqliteTable('docs', { id: text('id').primaryKey(), title: text('title') })
+    expect(protectedFieldsFor(ctx(), 'docs', docs, 'create').has('id')).toBe(false)
   })
 
   it('update: also the primary key and createdAt', () => {

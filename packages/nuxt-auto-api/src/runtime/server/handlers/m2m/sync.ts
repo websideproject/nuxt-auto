@@ -1,7 +1,7 @@
 import { createError, readBody } from 'h3'
 import type { HandlerContext, M2MOperationResponse } from '../../../types'
 import { validateM2MSyncRequest } from '../../utils/m2m/validateM2M'
-import { executeBatchM2MWithChunking, getCurrentRelations, calculateDiff } from '../../utils/m2m/batchOperations'
+import { executeBatchM2M, getCurrentRelations, calculateDiff } from '../../utils/m2m/batchOperations'
 import { executeHook } from '../../utils/executeHooks'
 import { alignMetadata, authorizeRelatedIds, m2mPrelude, runCustomM2MCheck, validateM2MMetadata } from './shared'
 
@@ -25,7 +25,7 @@ export async function m2mSyncHandler(context: HandlerContext): Promise<M2MOperat
   const current = await getCurrentRelations(context.db, side.junction, side.leftId)
   const { toAdd, toRemove } = calculateDiff(current, desired)
   const addMetadata = metadata ? toAdd.map(id => metadata[desired.findIndex(d => String(d) === String(id))] ?? {}) : undefined
-  const result = await executeBatchM2MWithChunking(context.db, side.junction, side.leftId, { toAdd, toRemove, metadata: addMetadata })
+  const result = await executeBatchM2M(context.db, side.junction, side.leftId, { toAdd, toRemove, metadata: addMetadata })
 
   const response: M2MOperationResponse = { success: true, added: result.added, removed: result.removed, total: desired.length }
   await executeHook('afterM2MSync', context, side.relation, response, context)

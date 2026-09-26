@@ -1,7 +1,7 @@
 import { createError, readBody } from 'h3'
 import type { HandlerContext, M2MOperationResponse } from '../../../types'
 import { validateM2MRemoveRequest, validateIdsNotEmpty, validateBatchSize, sanitizeIds } from '../../utils/m2m/validateM2M'
-import { executeBatchM2MWithChunking } from '../../utils/m2m/batchOperations'
+import { executeBatchM2M, getCurrentRelations } from '../../utils/m2m/batchOperations'
 import { executeHook } from '../../utils/executeHooks'
 import { m2mPrelude, runCustomM2MCheck } from './shared'
 
@@ -20,9 +20,11 @@ export async function m2mRemoveHandler(context: HandlerContext): Promise<M2MOper
   await runCustomM2MCheck(context, side, 'remove', ids, [])
 
   await executeHook('beforeM2MRemove', context, side.relation, ids, context)
-  const result = await executeBatchM2MWithChunking(context.db, side.junction, side.leftId, { toAdd: [], toRemove: ids })
+  const current = new Set((await getCurrentRelations(context.db, side.junction, side.leftId)).map(String))
+  const toRemove = ids.filter(id => current.has(String(id)))
+  const result = await executeBatchM2M(context.db, side.junction, side.leftId, { toAdd: [], toRemove })
 
-  const response: M2MOperationResponse = { success: true, removed: result.removed, total: result.removed }
+  const response: M2MOperationResponse = { success: true, removed: result.removed, total: result.total }
   await executeHook('afterM2MRemove', context, side.relation, response, context)
   return response
 }

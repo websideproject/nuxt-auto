@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { defineAutoApiPlugin } from '../types/plugin'
+import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 
 export interface SlugPluginOptions {
@@ -72,7 +72,7 @@ async function ensureUnique(
 export function createSlugPlugin(options: SlugPluginOptions): AutoApiPlugin {
   const { resources, separator = '-', maxLength = 80 } = options
 
-  return defineAutoApiPlugin({
+  return pluginFromFactory('createSlugPlugin', [options], {
     name: 'slug',
     version: '1.0.0',
     runtimeSetup(ctx) {
