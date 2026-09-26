@@ -6,19 +6,23 @@ All components are auto-imported when `@websideproject/nuxt-auto-admin` is regis
 
 ## `<ResourceTable>` — Paginated list view
 
-Auto-generates a searchable, sortable, paginated table for a resource using its introspected schema.
+Auto-generates a paginated table for a resource using its introspected schema.
 
 ```vue
 <ResourceTable
   resource-name="posts"
-  :limit="25"
-  :show-actions="true"
-  edit-mode="modal"    <!-- 'modal' | 'page' -->
-  view-mode="modal"
+  @create="…"
+  @view="id => …"
+  @edit="id => …"
 />
 ```
 
-Features: search bar, column sorting, row-level edit/delete/view buttons, bulk selection, bulk actions, export button (if `features.export: true`), permission-aware button visibility.
+Features (each behind its `features` flag, gated on `/api/permissions`, honouring `unauthorizedButtons`):
+search box (`$or` of `$like` over the listed text columns), per-column filters, row selection + bulk delete
+(`DELETE /api/{resource}/bulk`, `canDelete`), CSV/JSON export of the filtered list (`createExportPlugin`'s route
+when registered, else cursor paging; `canRead`), CSV import in `bulk.maxBatchSize` batches (`POST
+/api/{resource}/bulk`, `canCreate`), row-level view/edit/delete. Search, filters and page are kept in the URL.
+No column sorting.
 
 ---
 

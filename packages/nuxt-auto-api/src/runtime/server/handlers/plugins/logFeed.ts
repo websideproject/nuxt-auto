@@ -2,7 +2,7 @@ import { createError, getQuery } from 'h3'
 import type { H3Event } from 'h3'
 import { authorizedContext } from '../../utils/pluginRoutes'
 import { parseFilterParam } from '../../utils/buildWhereClause'
-import { hasColumn } from '../../utils/table'
+import { hasColumn, primaryKeyName } from '../../utils/table'
 import { listHandler } from '../list'
 
 /**
@@ -18,7 +18,11 @@ export async function logFeed(event: H3Event, table: string | undefined) {
   for (const key of ['resource', 'recordId', 'userId']) if (q[key] !== undefined) shorthand[key] = String(q[key])
   const base = (context.validated.query ?? context.query) as Record<string, any>
   const filter = parseFilterParam(base.filter) ?? {}
-  const newestFirst = hasColumn(context.schema[table], 'timestamp') ? { sort: '-timestamp' } : {}
+  // Newest first. The key breaks ties: timestamps are often whole seconds, and a create and the update right
+  // after it would otherwise come back in either order.
+  const logTable = context.schema[table]
+  const pk = primaryKeyName(logTable)
+  const newestFirst = hasColumn(logTable, 'timestamp') ? { sort: hasColumn(logTable, pk) ? `-timestamp,-${pk}` : '-timestamp' } : {}
   context.validated = { ...context.validated, query: { ...newestFirst, ...base, filter: { ...filter, ...shorthand } } }
   return listHandler(context)
 }

@@ -112,6 +112,22 @@ export interface ModuleOptions {
 }
 
 /**
+ * What nuxt-auto-api offers the admin UI, detected at build time (`runtimeConfig.public.autoAdmin.api`).
+ */
+export interface AdminApiInfo {
+  /** `autoApi.pagination.maxLimit`: the largest page a list returns. */
+  maxLimit: number
+  /** `/api/{resource}/bulk` is registered (`autoApi.bulk.enabled` is not `false`). */
+  bulk: boolean
+  /** `autoApi.bulk.maxBatchSize`: the most items one bulk request takes. */
+  maxBatchSize: number
+  /** `createExportPlugin` is registered: `GET /api/{resource}/export` for `resources` (all when absent). */
+  export: { formats: Array<'csv' | 'json'>, maxRows: number, resources?: string[] } | null
+  /** `createAuditLogPlugin` is registered: `GET /api/audit-logs`. */
+  auditLog: boolean
+}
+
+/**
  * Custom page configuration for sidebar navigation
  */
 export interface CustomPageConfig {

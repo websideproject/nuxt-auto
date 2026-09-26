@@ -23,7 +23,20 @@ export function useDB() {
         content TEXT,
         published INTEGER NOT NULL DEFAULT 0,
         user_id INTEGER NOT NULL REFERENCES users(id),
+        created_at INTEGER,
         deleted_at INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        resource TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        record_id TEXT NOT NULL,
+        user_id TEXT,
+        before TEXT,
+        after TEXT,
+        ip TEXT,
+        timestamp INTEGER NOT NULL
       );
     `)
 

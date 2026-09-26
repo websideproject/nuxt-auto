@@ -16,3 +16,10 @@ export const postsAuth = {
     delete: () => true,
   },
 }
+
+// The audit log is read-only through the API: the plugin writes it on the server.
+export const auditLogsAuth = {
+  permissions: {
+    read: () => true,
+  },
+}

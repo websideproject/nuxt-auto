@@ -33,8 +33,9 @@ export function createExportPlugin(options: ExportPluginOptions = {}): AutoApiPl
     name: 'export',
     version: '1.1.0',
     buildSetup(ctx) {
-      // GET /api/{resource}/export — authorized like the resource's list (runtime/server/handlers/plugins/export.ts)
-      registerPluginRoutes(ctx, 'export', { formats, maxRows }, [], [{ path: '/export', method: 'get', handler: 'export', resources }])
+      // GET /api/{resource}/export — authorized like the resource's list (runtime/server/handlers/plugins/export.ts).
+      // `resources` travels with the config so nuxt-auto-admin knows which lists have the route.
+      registerPluginRoutes(ctx, 'export', { formats, maxRows, resources }, [], [{ path: '/export', method: 'get', handler: 'export', resources }])
     },
     runtimeSetup(ctx) {
       ctx.logger.info(`Export enabled (${formats.join(', ')}) for: ${resources?.join(', ') || 'all resources'}`)

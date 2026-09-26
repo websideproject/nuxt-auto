@@ -26,12 +26,12 @@ autoAdmin: {
   customPages?: CustomPageConfig[]
 
   features?: {
-    bulkActions?: boolean              // default: true
-    search?: boolean                   // default: true
-    filters?: boolean                  // default: true
-    export?: boolean                   // default: true
-    import?: boolean                   // default: false
-    auditLog?: boolean                 // default: false
+    bulkActions?: boolean              // default: true  — row selection + bulk delete (canDelete)
+    search?: boolean                   // default: true  — search box over the listed text columns
+    filters?: boolean                  // default: true  — per-column filters
+    export?: boolean                   // default: true  — CSV/JSON of the filtered list (canRead)
+    import?: boolean                   // default: false — CSV → POST /bulk in batches (canCreate)
+    auditLog?: boolean                 // default: false — History panel (needs createAuditLogPlugin)
   }
 
   permissions?: {

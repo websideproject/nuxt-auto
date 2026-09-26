@@ -297,6 +297,18 @@ for (const spec of ENGINES) {
       }
     })
 
+    it('$or and a date range filter', async () => {
+      await tagsNamed('alpha', 'beta', 'gamma')
+      const res: any = await listHandler(ctx('tags', { query: { filter: { $or: [{ name: { $like: 'alp' } }, { name: { $like: 'gam' } }] }, sort: 'name' } }))
+      expect(res.data.map((r: any) => r.name)).toEqual(['alpha', 'gamma'])
+
+      const p = await project()
+      await updateHandler(ctx('projects', { operation: 'update', params: { id: String(p.id) }, body: { name: 'stamped' } }))
+      const since = (ms: number) => listHandler(ctx('projects', { query: { filter: { updatedAt: { $gte: new Date(Date.now() + ms).toISOString() } } } }))
+      expect(((await since(-60_000)) as any).data.map((r: any) => r.name)).toEqual(['stamped'])
+      expect(((await since(60_000)) as any).data).toEqual([])
+    })
+
     it('restore / purge / trash are reported only for soft-deletable tables', async () => {
       const soft = await permissionsHandler(ctx('projects', { operation: 'permissions' as any }))
       const hard = await permissionsHandler(ctx('tags', { operation: 'permissions' as any }))

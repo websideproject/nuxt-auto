@@ -1,5 +1,69 @@
 <template>
   <div class="space-y-4">
+    <!-- Toolbar: stays mounted while the list reloads, so typing a search never loses focus -->
+    <div
+      v-if="showToolbar"
+      class="flex flex-wrap items-center gap-2"
+    >
+      <UInput
+        v-if="searchEnabled"
+        v-model="search"
+        icon="i-heroicons-magnifying-glass"
+        placeholder="Search…"
+        aria-label="Search"
+        class="w-64 max-w-full"
+        data-testid="admin-search"
+      />
+      <ResourceFilters
+        v-if="filtersEnabled"
+        v-model="filters"
+        :columns="filterColumns"
+      />
+
+      <div class="flex-1" />
+
+      <UButton
+        v-if="showBulkDelete"
+        color="error"
+        variant="soft"
+        icon="i-heroicons-trash"
+        :disabled="!canDelete"
+        data-testid="admin-bulk-delete"
+        @click="openBulkDelete"
+      >
+        Delete selected{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
+      </UButton>
+
+      <UDropdownMenu
+        v-if="showExport"
+        :items="exportItems"
+        :disabled="!canRead || isExporting"
+      >
+        <UButton
+          icon="i-heroicons-arrow-down-tray"
+          color="neutral"
+          variant="outline"
+          :loading="isExporting"
+          :disabled="!canRead"
+          data-testid="admin-export"
+        >
+          Export
+        </UButton>
+      </UDropdownMenu>
+
+      <UButton
+        v-if="showImport"
+        icon="i-heroicons-arrow-up-tray"
+        color="neutral"
+        variant="outline"
+        :disabled="!canCreate"
+        data-testid="admin-import"
+        @click="importOpen = true"
+      >
+        Import
+      </UButton>
+    </div>
+
     <!-- Loading state -->
     <div
       v-if="isLoading"
@@ -18,7 +82,7 @@
       :message="permissionErrorMessage"
     />
 
-    <!-- Error state -->
+    <!-- Error state (a filter the API refuses is a 400 with its reason) -->
     <div
       v-else-if="error"
       class="p-6"
@@ -33,17 +97,27 @@
             Error Loading Data
           </h3>
           <p class="text-sm text-red-700 dark:text-red-300 mt-1">
-            {{ error }}
+            {{ apiErrorMessage(error) }}
           </p>
-          <UButton
-            variant="soft"
-            color="error"
-            size="sm"
-            class="mt-3"
-            @click="refetch"
-          >
-            Try Again
-          </UButton>
+          <div class="flex gap-2 mt-3">
+            <UButton
+              variant="soft"
+              color="error"
+              size="sm"
+              @click="refetch"
+            >
+              Try Again
+            </UButton>
+            <UButton
+              v-if="isFiltered"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              @click="clearQuery"
+            >
+              Clear search and filters
+            </UButton>
+          </div>
         </div>
       </div>
     </div>
@@ -51,13 +125,33 @@
     <!-- Table -->
     <UTable
       v-else
+      v-model:row-selection="rowSelection"
       :data="data || []"
       :columns="columns"
-      :loading="isLoading"
+      :loading="isFetching"
+      :get-row-id="rowId"
     >
       <!-- Empty state -->
       <template #empty>
-        <div class="text-center py-12 px-4">
+        <div
+          v-if="isFiltered"
+          class="text-center py-12 px-4"
+        >
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No matching records
+          </h3>
+          <UButton
+            variant="soft"
+            color="neutral"
+            @click="clearQuery"
+          >
+            Clear search and filters
+          </UButton>
+        </div>
+        <div
+          v-else
+          class="text-center py-12 px-4"
+        >
           <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
             <UIcon
               name="i-heroicons-inbox"
@@ -95,10 +189,10 @@
 
       <UPagination
         v-if="meta.total && meta.limit"
-        :model-value="meta.page || 1"
+        :page="meta.page || 1"
         :total="meta.total"
-        :page-size="meta.limit"
-        @update:model-value="handlePageChange"
+        :items-per-page="meta.limit"
+        @update:page="handlePageChange"
       />
     </div>
 
@@ -133,22 +227,100 @@
         </div>
       </template>
     </UModal>
+
+    <!-- Bulk delete confirmation modal -->
+    <UModal
+      v-model:open="bulkModal.open"
+      :title="`Delete ${bulkModal.ids.length} ${resourceLabel}?`"
+      description="This action cannot be undone."
+    >
+      <template #body>
+        <div
+          v-if="bulkModal.errors.length"
+          class="space-y-1 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300"
+          data-testid="admin-bulk-errors"
+        >
+          <p class="font-medium">
+            {{ bulkModal.message }}
+          </p>
+          <p
+            v-for="(line, i) in bulkModal.errors"
+            :key="i"
+          >
+            {{ line }}
+          </p>
+        </div>
+        <p
+          v-else
+          class="text-sm text-gray-600 dark:text-gray-400"
+        >
+          The selected records on this page will be deleted.
+        </p>
+      </template>
+
+      <template #footer="{ close }">
+        <div class="flex justify-end gap-2 w-full">
+          <UButton
+            variant="ghost"
+            @click="close"
+          >
+            {{ bulkModal.errors.length ? 'Close' : 'Cancel' }}
+          </UButton>
+          <UButton
+            v-if="!bulkModal.errors.length"
+            color="error"
+            :loading="isBulkDeleting"
+            data-testid="admin-bulk-delete-confirm"
+            @click="confirmBulkDelete"
+          >
+            Delete {{ bulkModal.ids.length }}
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <ResourceImportModal
+      v-if="showImport"
+      v-model:open="importOpen"
+      :resource-name="resourceNameValue"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { h, computed, reactive, resolveComponent, unref } from 'vue'
+import { h, computed, reactive, ref, resolveComponent, unref, watch } from 'vue'
 import type { MaybeRef } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
-import type { CellContext } from '@tanstack/vue-table'
+import type { CellContext, HeaderContext } from '@tanstack/vue-table'
+import { refDebounced } from '@vueuse/core'
 import { formatDisplayValue, formatFieldLabel } from '../utils/fieldTypeMapping'
+import { buildListFilter, filterableColumns, parseFilterState, searchFieldsOf, serializeFilterState } from '../utils/listQuery'
+import type { FilterState } from '../utils/listQuery'
+import { apiErrorMessage, bulkItemErrors, describeItemError } from '../utils/apiErrors'
+import type { BulkItemError } from '../utils/apiErrors'
+import { collectRows } from '../utils/exportRows'
+import type { ListPage } from '../utils/exportRows'
+import { downloadFile, parseCsv, toCsv } from '../utils/csv'
 import PermissionDeniedPage from './PermissionDeniedPage.vue'
+import ResourceFilters from './ResourceFilters.vue'
+import ResourceImportModal from './ResourceImportModal.vue'
 import { useAdminResource } from '../composables/useAdminResource'
-import { usePermissions, useAutoApiList } from '@websideproject/nuxt-auto-api/composables'
+import { useAdminPermissions } from '../composables/useAdminPermissions'
+import { useAdminConfig } from '../composables/useAdminConfig'
+import { useAutoApiList, useAutoApiBulkDelete, useAutoApiPath } from '@websideproject/nuxt-auto-api/composables'
+import type { BulkOperationResponse } from '@websideproject/nuxt-auto-api/composables'
 import { useAdminActions } from '../composables/useAdminActions'
+// Explicit: Nuxt does not auto-import into files inside node_modules, which is where this module runs from.
+import { useRoute, useRouter } from '#app'
+import { useToast } from '#imports'
 
 const UButton = resolveComponent('UButton')
+const UCheckbox = resolveComponent('UCheckbox')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
+
+/** Client-side export stops here — the same default cap as nuxt-auto-api's export route. */
+const EXPORT_MAX_ROWS = 10000
+const PAGE_SIZE = 20
 
 const props = defineProps<{
   resourceName: MaybeRef<string>
@@ -163,23 +335,80 @@ const emit = defineEmits<{
 // Unwrap the resource name in case it's a ref
 const resourceNameValue = computed(() => unref(props.resourceName))
 
+const route = useRoute()
+const router = useRouter()
+const toast = useToast()
+const apiPath = useAutoApiPath()
+
 const { resource } = useAdminResource(resourceNameValue.value)
-const { permissions } = usePermissions(resourceNameValue.value)
+// False until /permissions answers: the UI never offers an action before the API says it is allowed.
+const { permissions, canCreate, canRead, canUpdate, canDelete, isLoading: permissionsLoading } = useAdminPermissions(resourceNameValue.value)
+const { features, api, permissions: permissionConfig } = useAdminConfig()
 
-const canCreate = computed(() => permissions.value?.canCreate ?? true)
-const canUpdate = computed(() => permissions.value?.canUpdate ?? true)
-const canDelete = computed(() => permissions.value?.canDelete ?? true)
+const resourceLabel = computed(() => resource.value?.displayName?.toLowerCase() || resourceNameValue.value)
+const pk = computed(() => resource.value?.primaryKey || 'id')
 
-// List data
-const queryParams = reactive({
-  page: 1,
-  limit: 20,
+// ─── Search & filters ──────────────────────────────────────────────────────
+// Only the columns the list shows and the caller may read: the API refuses any other field with a 400.
+const filterColumns = computed(() => resource.value ? filterableColumns(resource.value, permissions.value?.fields) : [])
+const searchFields = computed(() => searchFieldsOf(filterColumns.value))
+const searchEnabled = computed(() => features.search !== false && searchFields.value.length > 0)
+const filtersEnabled = computed(() => features.filters !== false && filterColumns.value.length > 0)
+
+// Search, filters and page live in the query string, so a filtered list can be reloaded and shared.
+const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
+const filters = ref<FilterState>(parseFilterState(route.query.filters))
+const page = ref(Number(route.query.page) || 1)
+
+// Typing waits for a pause before the list is queried.
+const debouncedSearch = refDebounced(search, 300)
+const debouncedFilters = refDebounced(filters, 300)
+const listFilter = computed(() => buildListFilter({
+  columns: filtersEnabled.value ? filterColumns.value : [],
+  filters: debouncedFilters.value,
+  search: searchEnabled.value ? debouncedSearch.value : '',
+  searchFields: searchFields.value,
+}))
+const isFiltered = computed(() => !!listFilter.value)
+
+// A new search or filter starts at the first page.
+watch([debouncedSearch, debouncedFilters], () => {
+  page.value = 1
 })
 
-const { data: response, isLoading, error, refetch } = useAutoApiList(
+watch([search, filters, page], () => {
+  const { q: _q, filters: _f, page: _p, ...rest } = route.query
+  router.replace({
+    query: {
+      ...rest,
+      ...(search.value ? { q: search.value } : {}),
+      ...(serializeFilterState(filters.value) ? { filters: serializeFilterState(filters.value) } : {}),
+      ...(page.value > 1 ? { page: String(page.value) } : {}),
+    },
+  })
+}, { deep: true })
+
+function clearQuery() {
+  search.value = ''
+  filters.value = {}
+}
+
+// ─── List data ─────────────────────────────────────────────────────────────
+const queryParams = computed(() => ({
+  page: page.value,
+  limit: PAGE_SIZE,
+  ...(listFilter.value ? { filter: listFilter.value } : {}),
+}))
+
+// The filter needs the registry and the caller's readable fields: query once both are known.
+const ready = computed(() => !!resource.value && !permissionsLoading.value)
+const { data: response, isLoading: listLoading, isFetching, error, refetch } = useAutoApiList(
   resourceNameValue.value,
   queryParams,
+  // Keep showing the previous page while the next one loads, instead of a spinner on every keystroke.
+  { enabled: ready, placeholderData: (previous: any) => previous },
 )
+const isLoading = computed(() => !ready.value || listLoading.value)
 
 const data = computed(() => response.value?.data || [])
 const meta = computed(() => response.value?.meta)
@@ -208,7 +437,126 @@ const permissionErrorMessage = computed(() => {
   return errorObj?.message || `You don't have permission to access ${resourceNameValue.value}`
 })
 
-// Actions
+// ─── Toolbar visibility ────────────────────────────────────────────────────
+// A button the caller may not use is hidden or shown disabled, per `permissions.unauthorizedButtons`.
+const showUnauthorized = computed(() => (permissionConfig.unauthorizedButtons || 'disable') === 'disable')
+const bulkEnabled = computed(() => features.bulkActions !== false && api.bulk)
+const selectable = computed(() => bulkEnabled.value && canDelete.value)
+const showExport = computed(() => features.export !== false && (canRead.value || showUnauthorized.value))
+const showImport = computed(() => features.import === true && api.bulk && (canCreate.value || showUnauthorized.value))
+
+// ─── Selection & bulk delete ───────────────────────────────────────────────
+const rowSelection = ref<Record<string, boolean>>({})
+const rowId = (row: Record<string, unknown>) => String(row[pk.value])
+// Selection is per page: nothing off-screen is ever deleted.
+watch([page, listFilter], () => {
+  rowSelection.value = {}
+})
+const selectedIds = computed(() => data.value.filter(row => rowSelection.value[rowId(row)]).map(row => row[pk.value] as string | number))
+const showBulkDelete = computed(() => bulkEnabled.value && (canDelete.value ? selectedIds.value.length > 0 : showUnauthorized.value))
+
+const { mutateAsync: bulkDelete, isPending: isBulkDeleting } = useAutoApiBulkDelete(resourceNameValue.value)
+const bulkModal = reactive({
+  open: false,
+  ids: [] as Array<string | number>,
+  message: '',
+  errors: [] as string[],
+})
+
+function openBulkDelete() {
+  Object.assign(bulkModal, { open: true, ids: selectedIds.value, message: '', errors: [] })
+}
+
+async function confirmBulkDelete() {
+  const ids = bulkModal.ids
+  let result: BulkOperationResponse
+  try {
+    result = await bulkDelete(ids)
+  }
+  catch (err) {
+    // Transactional mode (the default): nothing was deleted; the API names the item that failed.
+    const items = bulkItemErrors(err)
+    bulkModal.message = items.length ? 'Nothing was deleted.' : apiErrorMessage(err)
+    bulkModal.errors = items.length ? items.map(item => describeItemError(item)) : [apiErrorMessage(err)]
+    return
+  }
+  rowSelection.value = {}
+  const failed: BulkItemError[] = result.meta?.errors ?? []
+  if (failed.length) {
+    // `bulk.transactional: false`: the others were deleted.
+    bulkModal.message = `${result.meta.successful} deleted, ${failed.length} failed.`
+    bulkModal.errors = failed.map(item => describeItemError(item))
+    return
+  }
+  bulkModal.open = false
+  toast.add({ title: `${result.meta?.successful ?? ids.length} ${resourceLabel.value} deleted`, icon: 'i-heroicons-check-circle', color: 'success' })
+}
+
+// ─── Export ────────────────────────────────────────────────────────────────
+// `createExportPlugin`'s route when the app registered it for this resource; otherwise the list, page by page.
+const exportRoute = computed(() => {
+  const route = api.export
+  return route && (!route.resources || route.resources.includes(resourceNameValue.value)) ? route : null
+})
+const exportItems = computed(() => (exportRoute.value?.formats ?? ['csv', 'json']).map(format => ({
+  label: format === 'csv' ? 'CSV' : 'JSON',
+  icon: format === 'csv' ? 'i-heroicons-table-cells' : 'i-heroicons-code-bracket',
+  onSelect: () => exportAs(format),
+})))
+const isExporting = ref(false)
+
+async function exportAs(format: 'csv' | 'json') {
+  isExporting.value = true
+  // The list as it is filtered now (the same `filter` the table was loaded with).
+  const query = listFilter.value ? { filter: JSON.stringify(listFilter.value) } : {}
+  try {
+    let content: string
+    let count: number
+    let cap: number
+    if (exportRoute.value) {
+      cap = exportRoute.value.maxRows
+      const url = apiPath(resourceNameValue.value, 'export')
+      if (format === 'csv') {
+        content = await $fetch<string>(url, { query: { ...query, format }, responseType: 'text' })
+        count = Math.max(0, parseCsv(content).length - 1)
+      }
+      else {
+        const res = await $fetch<{ data: unknown[] }>(url, { query: { ...query, format } })
+        content = JSON.stringify(res.data, null, 2)
+        count = res.data.length
+      }
+    }
+    else {
+      cap = EXPORT_MAX_ROWS
+      const { rows } = await collectRows<Record<string, unknown>>(
+        (cursor, limit) => $fetch<ListPage<Record<string, unknown>>>(apiPath(resourceNameValue.value), { query: { ...query, cursor, limit } }),
+        api.maxLimit,
+        cap,
+      )
+      content = format === 'csv' ? toCsv(rows) : JSON.stringify(rows, null, 2)
+      count = rows.length
+    }
+    downloadFile(content, `${resourceNameValue.value}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json')
+    toast.add({
+      title: `Exported ${count} ${resourceLabel.value}`,
+      ...(count >= cap ? { description: `Exports stop at ${cap} rows — narrow the list with filters to export the rest.`, color: 'warning' as const } : { color: 'success' as const }),
+      icon: 'i-heroicons-arrow-down-tray',
+    })
+  }
+  catch (err) {
+    toast.add({ title: 'Export failed', description: apiErrorMessage(err), icon: 'i-heroicons-exclamation-circle', color: 'error' })
+  }
+  finally {
+    isExporting.value = false
+  }
+}
+
+// ─── Import ────────────────────────────────────────────────────────────────
+const importOpen = ref(false)
+
+const showToolbar = computed(() => searchEnabled.value || filtersEnabled.value || showBulkDelete.value || showExport.value || showImport.value)
+
+// ─── Row actions ───────────────────────────────────────────────────────────
 const { handleDelete: deleteResource, isDeleting } = useAdminActions(resourceNameValue.value)
 
 const deleteModal = reactive({
@@ -221,6 +569,22 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
   if (!resource.value) return []
 
   const cols: TableColumn<Record<string, unknown>>[] = []
+
+  if (selectable.value) {
+    cols.push({
+      id: 'select',
+      header: ({ table }: HeaderContext<Record<string, unknown>, unknown>) => h(UCheckbox, {
+        'modelValue': table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected(),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(!!value),
+        'aria-label': 'Select all',
+      }),
+      cell: ({ row }: CellContext<Record<string, unknown>, unknown>) => h(UCheckbox, {
+        'modelValue': row.getIsSelected(),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+        'aria-label': 'Select row',
+      }),
+    })
+  }
 
   // Add data columns based on listFields
   resource.value.listFields.forEach((fieldName) => {
@@ -331,7 +695,7 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
 })
 
 function handlePageChange(newPage: number) {
-  queryParams.page = newPage
+  page.value = newPage
 }
 
 function handleCreate() {
@@ -339,18 +703,15 @@ function handleCreate() {
 }
 
 function handleView(item: Record<string, unknown>) {
-  const idField = resource.value?.primaryKey || 'id'
-  emit('view', item[idField] as string | number)
+  emit('view', item[pk.value] as string | number)
 }
 
 function handleEdit(item: Record<string, unknown>) {
-  const idField = resource.value?.primaryKey || 'id'
-  emit('edit', item[idField] as string | number)
+  emit('edit', item[pk.value] as string | number)
 }
 
 function openDeleteModal(item: Record<string, unknown>) {
-  const idField = resource.value?.primaryKey || 'id'
-  deleteModal.itemId = item[idField] as string | number
+  deleteModal.itemId = item[pk.value] as string | number
   deleteModal.open = true
 }
 
