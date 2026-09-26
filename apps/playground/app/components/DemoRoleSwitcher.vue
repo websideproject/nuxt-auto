@@ -6,7 +6,7 @@
     placeholder="Select role..."
     :loading="isLoading"
     size="md"
-    class="w-[220px]"
+    class="w-36 sm:w-[220px]"
     :ui="{
       width: 'w-[220px]',
       option: {

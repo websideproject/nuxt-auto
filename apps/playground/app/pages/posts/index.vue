@@ -209,13 +209,15 @@ const filters = computed(() => {
 })
 
 // TanStack Query composable for list fetching
-const { data, isLoading, error, refetch } = useAutoApiList('posts', computed(() => ({
+const { data, isLoading, error, refetch, suspense } = useAutoApiList('posts', computed(() => ({
   include: 'author',
   filter: filters.value,
   sort: selectedSort.value,
   page: currentPage.value,
   limit: pageSize.value
 })))
+// Render the list on the server (see "Server-side rendering" in the composables docs)
+await suspense()
 
 // Options
 const statusOptions = [

@@ -15,7 +15,12 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
-    "db:seed": "node --import tsx server/database/seed.ts"
+    "db:seed": "node --import tsx server/database/seed.ts",
+    "db:visual": "node --import tsx scripts/visual-db.ts",
+    "build:visual": "bun --cwd ../../packages/nuxt-auto-api run build && bun --cwd ../../packages/nuxt-auto-admin run build && nuxi build",
+    "preview:visual": "PLAYGROUND_DB=.data/visual.sqlite TZ=UTC PORT=3100 node .output/server/index.mjs",
+    "test:visual": "playwright test",
+    "visual:baseline": "bash scripts/visual-baseline.sh"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.87",
@@ -36,6 +41,7 @@
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.3",
     "@nuxt/eslint": "^1.13.0",
+    "@playwright/test": "1.60.0",
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.2",
     "tsx": "^4.21.0",

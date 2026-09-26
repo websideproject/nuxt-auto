@@ -154,6 +154,25 @@ AUTOAPI_TEST_PLANETSCALE_URL=http://root:test@localhost:3900 \
 bun run test
 ```
 
+### Screenshots
+
+`apps/playground/test/visual.spec.ts` photographs the playground (the admin dashboard, a list, a record, an edit
+form with its many-to-many cards, the app pages built on the composables, and an object-level permission state)
+at 1440 and 375 px, and CI compares every page against the committed images. The images are the docs' own
+(`apps/docs/public/screenshots/`), so a page that changes fails CI until its pictures are refreshed.
+
+The pictures are taken in the Playwright Linux container CI uses (macOS renders fonts differently), so Docker must
+be running. From `apps/playground`:
+
+```bash
+bun run visual:baseline            # rebuild the demo database, build, serve and refresh every image
+bun run visual:baseline admin      # only the images whose name matches, e.g. after changing the admin
+bun run visual:baseline --check    # compare without writing, as CI does
+```
+
+Look at the changed images before committing them. On a CI failure, the `visual-diff` artifact holds the
+expected, actual and diff image of each failing page.
+
 <!-- /automd -->
 
 ## ❓ Questions & Support

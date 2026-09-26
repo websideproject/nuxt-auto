@@ -22,6 +22,10 @@ logs
 # Turbo
 .turbo
 
+# Playwright
+test-results
+playwright-report
+
 # Local env files
 .env
 .env.*

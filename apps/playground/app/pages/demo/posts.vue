@@ -264,9 +264,12 @@ interface Post {
 
 const { user, isAdmin } = useAuth()
 
-const { data: posts, isLoading, error, refetch } = useAutoApiList<Post>('posts', {
+const { data: posts, isLoading, error, refetch, suspense } = useAutoApiList<Post>('posts', {
   sort: '-createdAt'
 })
+// Render the list, and the permission-dependent buttons, on the server (see "Server-side rendering" in the
+// composables docs); unawaited, they render as loading and may not match what the client hydrates
+await Promise.all([suspense(), useAllPermissions().suspense()])
 
 const _toast = useToast()
 
