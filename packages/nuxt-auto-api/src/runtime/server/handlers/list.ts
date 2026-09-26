@@ -86,13 +86,18 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
   }
 
   const pageSize = pagination.limit
-  const fetchLimit = useCursor ? pageSize + 1 : pageSize
-  const firstOffset = useCursor ? undefined : pagination.offset
-  let data = await fetchBatch(fetchLimit, firstOffset)
+  // One row past the page says whether another follows: for cursor pages, and for offset pages under objectLevel,
+  // which have no total to page by.
+  const fetchLimit = useCursor || objectLevel ? pageSize + 1 : pageSize
+  // objectLevel drops rows after the query, so a SQL offset would count rows the caller never saw and page 2 would
+  // start inside page 1. Under objectLevel an offset page scans from the first row and skips that many KEPT rows.
+  const skip = !useCursor && objectLevel ? (pagination.offset || 0) : 0
+  const firstOffset = useCursor || objectLevel ? undefined : pagination.offset
+  let data = await fetchBatch(skip + fetchLimit, firstOffset)
 
   // objectLevel is a per-row function: keep fetching until the page is full or the data runs out.
   if (objectLevel) {
-    const target = fetchLimit
+    const target = skip + fetchLimit
     const kept: any[] = []
     let batch = data
     let offset = (firstOffset || 0) + batch.length
@@ -106,15 +111,15 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
       if (batch.length === 0) break
       offset += batch.length
     }
-    data = kept
+    data = kept.slice(skip)
   }
 
   let hasMore = false
   let nextCursor: string | undefined
-  if (useCursor) {
+  if (useCursor || objectLevel) {
     hasMore = data.length > pageSize
     if (hasMore) data = data.slice(0, pageSize)
-    if (hasMore && data.length) nextCursor = encodeCursor(data[data.length - 1], order)
+    if (useCursor && hasMore && data.length) nextCursor = encodeCursor(data[data.length - 1], order)
   }
 
   // Total (offset pagination). With an objectLevel check the SQL count cannot know which rows the
@@ -154,6 +159,7 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
   else if (q.page !== undefined) {
     response.meta.page = Number(q.page)
     if (total !== undefined) response.meta.total = total
+    else response.meta.hasMore = hasMore
   }
   return response
 }

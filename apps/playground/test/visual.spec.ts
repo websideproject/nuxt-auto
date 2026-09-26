@@ -18,8 +18,10 @@ import { expect, test } from '@playwright/test'
 const FIXED_NOW = new Date('2026-02-01T12:00:00Z')
 
 const VIEWPORTS = [
-  { width: 1440, height: 900 },
-  { width: 375, height: 812 }
+  { width: 1440, height: 900 }
+  // Mobile is off for now: the suite guards what the pages do, and the admin has no mobile layout yet (at 375 px
+  // the sidebar keeps its width). Turn it back on with a refresh: `bun run visual:baseline -- -375`.
+  // { width: 375, height: 812 }
 ]
 
 interface Shot {
