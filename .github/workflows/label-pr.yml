@@ -57,6 +57,9 @@ jobs:
 
   area:
     name: Area labels from the changed paths
+    # After the type job: with sync-labels the labeler replaces the PR's label set with what it read when it started,
+    # so running both at once can remove the type label the other job has just added.
+    needs: type
     runs-on: ubuntu-latest
     permissions:
       contents: read
