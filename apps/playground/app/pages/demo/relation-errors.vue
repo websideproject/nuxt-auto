@@ -234,7 +234,7 @@
 
           <div>
             <h3 class="font-medium mb-2">
-              Step 2: Configure it in nuxt.config.ts
+              Step 2: Give Drizzle the schema, relations included
             </h3>
             <CodeBlock
               :code="fixStep2"
@@ -345,17 +345,15 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   comments: many(comments),
 }))`
 
-const fixStep2 = `// nuxt.config.ts
-export default defineNuxtConfig({
-  autoApi: {
-    resources: {
-      posts: {
-        table: posts,
-        relations: postsRelations, // Make sure to pass relations
-        // ...
-      }
-    }
-  }
+const fixStep2 = `// server/plugins/database.ts
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { initializeDatabase } from '@websideproject/nuxt-auto-api/database'
+import * as schema from '../database/schema' // exports posts AND postsRelations
+
+export default defineNitroPlugin(() => {
+  // include= runs on Drizzle's relational queries: they only know the relations in this schema
+  initializeDatabase(drizzle(new Database('sqlite.db'), { schema }), 'better-sqlite3')
 })`
 
 const fixStep3 = `// Now you can use it!

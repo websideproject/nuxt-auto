@@ -124,6 +124,15 @@ const ADMIN_SHOTS: Shot[] = [
     name: 'admin-list-user', path: '/admin/articles', role: 'user', says: 'Building Type-Safe APIs with Drizzle', fullPage: false,
     act: page => openRowMenu(page)
   },
+  // posts has an objectLevel rule, so the list has no total: it pages by hasMore, with Previous / Next
+  {
+    name: 'admin-list-page-2', path: '/admin/posts', role: 'admin', says: 'Post 20',
+    act: async (page) => {
+      await page.getByRole('button', { name: 'Next' }).click()
+      await expect(page.getByText('Post 25')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+    }
+  },
   { name: 'admin-detail', path: '/admin/articles/1', role: 'admin', says: 'getting-started-nuxt-4' },
   { name: 'admin-create', path: '/admin/articles/new', role: 'admin', says: 'Author Id' },
   { name: 'admin-edit', path: '/admin/articles/1/edit', role: 'admin', says: 'TypeScript, Nuxt' }
