@@ -23,7 +23,7 @@ const { mutate: createPost, isPending: isCreating } = useAutoApiCreate('posts', 
     toast.add({
       title: 'Post created',
       description: 'Your post has been successfully created',
-      color: 'green'
+      color: 'success'
     })
     router.push(`/posts/${response.data.id}`)
   },
@@ -31,7 +31,7 @@ const { mutate: createPost, isPending: isCreating } = useAutoApiCreate('posts', 
     toast.add({
       title: 'Create failed',
       description: err.message,
-      color: 'red'
+      color: 'error'
     })
   }
 })

@@ -31,7 +31,7 @@
         <UButton
           to="/posts"
           size="xs"
-          color="gray"
+          color="neutral"
           variant="subtle"
         >
           Back to Posts
@@ -58,7 +58,7 @@
               Back
             </UButton>
             <UBadge
-              :color="data.data.published ? 'green' : 'gray'"
+              :color="data.data.published ? 'success' : 'neutral'"
               variant="subtle"
             >
               {{ data.data.published ? 'Published' : 'Draft' }}
@@ -252,7 +252,7 @@ const { mutate: deletePost, isPending: isDeleting } = useAutoApiDelete('posts', 
     toast.add({
       title: 'Post deleted',
       description: 'The post has been successfully deleted',
-      color: 'green'
+      color: 'success'
     })
     router.push('/posts')
   },
@@ -260,7 +260,7 @@ const { mutate: deletePost, isPending: isDeleting } = useAutoApiDelete('posts', 
     toast.add({
       title: 'Delete failed',
       description: err.message,
-      color: 'red'
+      color: 'error'
     })
   }
 })

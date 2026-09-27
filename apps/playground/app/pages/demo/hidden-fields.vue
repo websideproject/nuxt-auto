@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -161,7 +161,7 @@
 
           <UAlert
             icon="i-heroicons-information-circle"
-            color="blue"
+            color="info"
             variant="subtle"
             title="Best Practice"
             description="Use module registration for type-safe configuration. Use runtime config for global fields like 'password' that should be hidden from all resources."
@@ -188,13 +188,17 @@ const {
   include: 'author'
 })
 
+// The server bundle rewrites the text `import` + `.meta` wherever it appears, strings included, so the sample
+// would differ between server and client (a hydration mismatch). Joined at runtime, the bundler never sees it.
+const IMPORT_META_URL = ['import', 'meta', 'url'].join('.')
+
 const moduleRegistrationExample = `// modules/base/index.ts
 import { defineNuxtModule, createResolver } from '@nuxt/kit'
-import { createModuleImport } from 'nuxt-auto-api/module'
+import { createModuleImport } from '@websideproject/nuxt-auto-api'
 
 export default defineNuxtModule({
   setup(_options, nuxt) {
-    const resolver = createResolver(import.meta.url)
+    const resolver = createResolver(${IMPORT_META_URL})
 
     nuxt.hook('autoApi:registerSchema', (registry) => {
       registry.register('users', {
@@ -208,7 +212,7 @@ export default defineNuxtModule({
 
 const runtimeConfigExample = `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['nuxt-auto-api'],
+  modules: ['@websideproject/nuxt-auto-api'],
 
   autoApi: {
     // Global hidden fields - apply to ALL resources

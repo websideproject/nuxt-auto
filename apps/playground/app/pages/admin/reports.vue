@@ -325,7 +325,7 @@ const recentReports = [
     id: 1,
     name: 'User Activity - November 2024',
     type: 'User Activity',
-    typeColor: 'blue',
+    typeColor: 'info',
     status: 'completed',
     statusIcon: 'i-heroicons-check-circle',
     statusColor: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
@@ -336,7 +336,7 @@ const recentReports = [
     id: 2,
     name: 'Content Performance - Q4 2024',
     type: 'Content',
-    typeColor: 'purple',
+    typeColor: 'neutral',
     status: 'processing',
     statusIcon: 'i-heroicons-arrow-path',
     statusColor: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
@@ -347,7 +347,7 @@ const recentReports = [
     id: 3,
     name: 'System Health - Weekly',
     type: 'System',
-    typeColor: 'green',
+    typeColor: 'success',
     status: 'completed',
     statusIcon: 'i-heroicons-check-circle',
     statusColor: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
@@ -375,7 +375,7 @@ function generateReport() {
   toast.add({
     title: 'Report generation started',
     description: 'Your report will be ready in a few moments',
-    color: 'blue'
+    color: 'info'
   })
   createReportModalOpen.value = false
 }
@@ -386,7 +386,7 @@ function downloadReport(report: Report) {
   toast.add({
     title: 'Download started',
     description: `Downloading ${report.name}`,
-    color: 'green'
+    color: 'success'
   })
 }
 </script>

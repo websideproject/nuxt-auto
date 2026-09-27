@@ -38,14 +38,14 @@
       <UButton
         icon="i-heroicons-plus"
         label="Add Row"
-        color="gray"
+        color="neutral"
         variant="outline"
         size="sm"
         @click="addRow"
       />
       <UButton
         :label="submitLabel"
-        color="green"
+        color="success"
         size="sm"
         :loading="loading"
         :disabled="!isValid"

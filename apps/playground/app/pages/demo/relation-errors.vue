@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -141,7 +141,7 @@
 
             <UAlert
               icon="i-heroicons-check-circle"
-              color="green"
+              color="success"
               variant="subtle"
               title="Solution"
               description="Add the relation definition to your schema's relations object. Now you can include 'categories' in your queries."
@@ -173,7 +173,7 @@
             <UButton
               :loading="testLoading"
               icon="i-heroicons-play"
-              color="green"
+              color="success"
               @click="testRelationQuery"
             >
               Test
@@ -184,7 +184,7 @@
             <UAlert
               v-if="testResult.success"
               icon="i-heroicons-check-circle"
-              color="green"
+              color="success"
               variant="subtle"
               title="Success!"
               :description="`The '${testRelation}' relation exists and returned ${testResult.count} records.`"
@@ -254,7 +254,7 @@
 
           <UAlert
             icon="i-heroicons-light-bulb"
-            color="blue"
+            color="info"
             variant="subtle"
             title="Tip"
             description="Always check your Drizzle schema's relations() definitions match what you're trying to include in API queries."

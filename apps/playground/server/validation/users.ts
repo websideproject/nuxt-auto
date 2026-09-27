@@ -29,5 +29,6 @@ export const usersValidation = {
     include: z.union([z.string(), z.array(z.string())]).optional(),
     page: z.coerce.number().int().positive().optional(),
     limit: z.coerce.number().int().positive().max(100).optional()
-  }).optional()
+    // passthrough: a stripped key never reaches the handler (aggregate, groupBy, cursor, includeDeleted…)
+  }).passthrough().optional()
 }

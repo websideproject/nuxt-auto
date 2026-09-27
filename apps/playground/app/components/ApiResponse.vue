@@ -5,12 +5,12 @@
       <UButton
         :icon="copied ? 'i-heroicons-check' : 'i-heroicons-clipboard-document'"
         size="xs"
-        color="gray"
+        color="neutral"
         variant="ghost"
         @click="copyJson"
       />
     </div>
-    <pre class="text-sm overflow-x-auto"><code class="language-json">{{ formattedJson }}</code></pre>
+    <pre class="text-sm overflow-x-auto text-gray-800 dark:text-gray-200"><code class="language-json">{{ formattedJson }}</code></pre>
   </div>
 </template>
 
@@ -38,14 +38,3 @@ const copyJson = async () => {
   }
 }
 </script>
-
-<style scoped>
-code {
-  color: #d4d4d4;
-}
-
-/* JSON syntax highlighting using simple regex-based approach */
-:deep(.language-json) {
-  color: #d4d4d4;
-}
-</style>

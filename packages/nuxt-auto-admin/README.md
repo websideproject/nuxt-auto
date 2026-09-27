@@ -58,6 +58,19 @@ The admin pages use the `admin` layout, which Nuxt renders only inside `<NuxtLay
 Open `/admin`. A resource without `authorization` refuses every request (the API is deny-by-default), so its
 pages show "permission denied" until you declare who may do what.
 
+## Screenshots
+
+From the repo's playground, taken by its CI:
+
+| | |
+|---|---|
+| ![The Filters popover: an Id range, a Title contains box, a Published select and a Created At date range](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/admin-list-filters-1440.png) | ![The view dialog for article #1: every field as a label and value, with Edit and Delete](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/admin-view-modal-1440.png) |
+| **Filters** per column type | **View** in a dialog |
+| ![Two rows selected and the bulk delete confirmation open](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/admin-bulk-delete-1440.png) | ![The list as a regular user: drafts hidden, Create and Delete disabled, Edit and Delete disabled in the row menu](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/admin-list-user-1440.png) |
+| **Bulk delete** of the selected rows | **As a regular user**: only what the API allows |
+| ![The edit form of article #1 with Categories and Tags many-to-many cards](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/admin-edit-1440.png) | ![The import dialog: upload a CSV, match its columns to fields, create the records](https://raw.githubusercontent.com/websideproject/nuxt-auto/main/apps/docs/public/screenshots/admin-import-1440.png) |
+| **Edit** with many-to-many cards | **Import** from CSV |
+
 ## Documentation
 
 Full documentation: [websideproject.com/docs/nuxt-auto](https://websideproject.com/docs/nuxt-auto/getting-started/introduction)

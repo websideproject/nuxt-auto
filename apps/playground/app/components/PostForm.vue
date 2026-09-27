@@ -106,7 +106,7 @@
             Preview
           </h3>
           <UBadge
-            :color="form.published ? 'green' : 'gray'"
+            :color="form.published ? 'success' : 'neutral'"
             variant="subtle"
           >
             {{ form.published ? 'Published' : 'Draft' }}

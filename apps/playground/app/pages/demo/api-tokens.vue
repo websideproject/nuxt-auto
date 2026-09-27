@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -69,7 +69,7 @@
               <UBadge
                 v-for="scope in token.scopes"
                 :key="scope"
-                color="gray"
+                color="neutral"
                 variant="subtle"
                 size="xs"
                 class="mr-1"
@@ -211,7 +211,7 @@
           <div class="flex items-center gap-2 mb-2">
             <span class="font-medium text-sm">Response</span>
             <UBadge
-              :color="testResult.ok ? 'green' : 'red'"
+              :color="testResult.ok ? 'success' : 'error'"
               variant="subtle"
             >
               {{ testResult.status }} {{ testResult.statusText }}
@@ -254,7 +254,7 @@
               <code class="text-sm font-medium">{{ test.method }} {{ test.endpoint }}</code>
               <UBadge
                 v-if="test.result !== null"
-                :color="test.result ? 'green' : 'red'"
+                :color="test.result ? 'success' : 'error'"
                 variant="subtle"
                 size="xs"
               >
@@ -313,7 +313,7 @@
       <UAlert
         v-if="!user"
         icon="i-heroicons-exclamation-triangle"
-        color="amber"
+        color="warning"
         variant="subtle"
         class="mb-4"
         title="Authentication required"
@@ -350,7 +350,7 @@
             <div class="flex items-center gap-2 mb-1">
               <span class="font-medium">{{ key.name }}</span>
               <UBadge
-                color="gray"
+                color="neutral"
                 variant="subtle"
                 size="xs"
               >
@@ -358,7 +358,7 @@
               </UBadge>
               <UBadge
                 v-if="key.expiresAt"
-                :color="isExpired(key.expiresAt) ? 'red' : 'green'"
+                :color="isExpired(key.expiresAt) ? 'error' : 'success'"
                 variant="subtle"
                 size="xs"
               >
@@ -375,7 +375,7 @@
               <UBadge
                 v-for="scope in key.scopes"
                 :key="scope"
-                color="blue"
+                color="info"
                 variant="subtle"
                 size="xs"
               >
@@ -418,7 +418,7 @@
         <UAlert
           v-if="apiKeys.data.length === 0"
           icon="i-heroicons-information-circle"
-          color="gray"
+          color="neutral"
           variant="subtle"
           title="No API keys"
           description="Create your first API key to get started."
@@ -429,7 +429,7 @@
       <UAlert
         v-if="revealedToken"
         icon="i-heroicons-exclamation-triangle"
-        color="amber"
+        color="warning"
         variant="subtle"
         class="mt-4"
         title="Save your token now!"
@@ -594,21 +594,21 @@ const seededTokens = [
     label: 'Admin (unrestricted)',
     raw: 'sk_test_admin_unrestricted',
     role: 'admin',
-    badgeColor: 'red' as const,
+    badgeColor: 'error' as const,
     scopes: ['*']
   },
   {
     label: 'Editor (articles r/w)',
     raw: 'sk_test_editor_articles',
     role: 'editor',
-    badgeColor: 'blue' as const,
+    badgeColor: 'info' as const,
     scopes: ['articles:read', 'articles:create', 'articles:update']
   },
   {
     label: 'User (read-only)',
     raw: 'sk_test_user_readonly',
     role: 'user',
-    badgeColor: 'green' as const,
+    badgeColor: 'success' as const,
     scopes: ['articles:read', 'posts:read', 'categories:read', 'tags:read']
   }
 ]

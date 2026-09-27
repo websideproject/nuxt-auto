@@ -5,7 +5,7 @@
         to="/demo"
         icon="i-heroicons-arrow-left"
         variant="ghost"
-        color="gray"
+        color="neutral"
         class="mb-4"
       >
         Back to Demo Home
@@ -21,7 +21,7 @@
 
     <UAlert
       icon="i-heroicons-information-circle"
-      color="blue"
+      color="info"
       variant="subtle"
       class="mb-6"
       title="How it works"
@@ -67,7 +67,7 @@
       <UCard
         v-for="article in articles.data"
         :key="article.id"
-        :ui="{ body: { padding: 'p-6' } }"
+        :ui="{ body: 'p-6' }"
       >
         <div class="space-y-3">
           <div class="flex items-start justify-between gap-4">
@@ -78,14 +78,14 @@
                 </h3>
                 <UBadge
                   v-if="article.published"
-                  color="green"
+                  color="success"
                   variant="subtle"
                 >
                   Published
                 </UBadge>
                 <UBadge
                   v-else
-                  color="gray"
+                  color="neutral"
                   variant="subtle"
                 >
                   Draft
