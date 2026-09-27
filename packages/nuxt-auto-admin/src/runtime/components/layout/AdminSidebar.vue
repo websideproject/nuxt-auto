@@ -113,8 +113,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
-import { getJunctionTableNames } from '../../composables/useM2MDetection'
+import { computed } from 'vue'
+import { useJunctionTables } from '../../composables/useM2MDetection'
 import { useAdminConfig } from '../../composables/useAdminConfig'
 import { useAdminRegistry } from '../../composables/useAdminRegistry'
 import type { CustomPageConfig, ResourceSchema } from '../../types'
@@ -131,27 +131,7 @@ const { permissions: _permissionConfig } = adminConfig
 // Load all resources from registry
 const { allResources, getResourcesByGroup, isLoading } = useAdminRegistry()
 
-// Auto-detect junction tables from API
-const junctionTables = ref<string[]>([])
-
-onMounted(async () => {
-  junctionTables.value = await getJunctionTableNames()
-})
-
-// Helper to check if a resource should be filtered as a junction table
-function isJunctionResource(resource: ResourceSchema): boolean {
-  // Filter if manually marked as junction in config
-  if (resource.type === 'junction') {
-    return true
-  }
-
-  // Filter if auto-detected as junction
-  if (junctionTables.value.includes(resource.name)) {
-    return true
-  }
-
-  return false
-}
+const { isJunction: isJunctionResource } = useJunctionTables()
 
 // Merge resources and custom pages
 const ungroupedItems = computed(() => {

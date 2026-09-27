@@ -179,6 +179,12 @@ export interface ResourceConfig {
   displayName?: string
 
   /**
+   * One record, for "Create Article" and "Article deleted". Derived from displayName when not set
+   * ("Categories" → "Category"); set it for irregular plurals.
+   */
+  singularName?: string
+
+  /**
    * Icon for the resource (Nuxt UI icon name)
    */
   icon?: string
@@ -490,6 +496,11 @@ export interface ResourceSchema {
    * Display name (from config or generated)
    */
   displayName: string
+
+  /**
+   * One record (from config or derived from displayName)
+   */
+  singularName: string
 
   /**
    * Icon (from config or default)
