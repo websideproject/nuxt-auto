@@ -120,6 +120,24 @@ for (const spec of ENGINES) {
       expect(counts).toEqual({ true: 1, false: 2 })
     })
 
+    it('aggregates are numbers on every engine, grouped or not', async () => {
+      const a = await project('A')
+      const b = await project('B')
+      for (const [projectId, title] of [[a.id, 'a1'], [a.id, 'a2'], [b.id, 'b1']] as const) await create('tasks', { projectId, title })
+      const whole: any = await aggregateHandler(ctx('tasks', { operation: 'aggregate', query: { aggregate: 'count,sum(projectId),avg(projectId),min(title),max(title)' } }))
+      const row = whole.data[0]
+      expect(row).toMatchObject({ count: 3, sum_projectId: a.id * 2 + b.id, min_title: 'a1', max_title: 'b1' })
+      expect(row.avg_projectId).toBeCloseTo((a.id * 2 + b.id) / 3)
+      for (const key of ['count', 'sum_projectId', 'avg_projectId']) expect(typeof row[key], key).toBe('number')
+
+      const grouped: any = await aggregateHandler(ctx('tasks', { operation: 'aggregate', query: { aggregate: 'sum(projectId)', groupBy: 'projectId' } }))
+      for (const g of grouped.data) expect(g.sum_projectId).toBe(Number(g.group.projectId) * (Number(g.group.projectId) === a.id ? 2 : 1))
+
+      // No rows: sum and avg are null, not 0 and not NaN
+      const none: any = await aggregateHandler(ctx('tasks', { operation: 'aggregate', query: { aggregate: 'sum(projectId),avg(projectId)', filter: { title: 'none' } } }))
+      expect(none.data[0]).toEqual({ sum_projectId: null, avg_projectId: null })
+    })
+
     it('soft delete cascades to children, nulls set-null FKs, and restores as one batch', async () => {
       const p = await project('Doomed')
       const task = await create('tasks', { projectId: p.id, title: 't' })

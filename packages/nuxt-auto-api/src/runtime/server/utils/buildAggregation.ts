@@ -44,11 +44,13 @@ export function buildAggregateSelection(aggregates: AggregationQuery['aggregates
       case 'count':
         selection[key] = column ? count(column) : count()
         break
+      // Drizzle returns sum and avg as strings (to keep a decimal's precision); the API answers numbers, like count.
+      // A sum past Number.MAX_SAFE_INTEGER loses precision. min and max keep the column's own type (dates, text).
       case 'sum':
-        selection[key] = sum(column)
+        selection[key] = sum(column).mapWith(Number)
         break
       case 'avg':
-        selection[key] = avg(column)
+        selection[key] = avg(column).mapWith(Number)
         break
       case 'min':
         selection[key] = min(column)
