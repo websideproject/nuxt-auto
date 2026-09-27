@@ -1,5 +1,5 @@
-# Area labels, applied by .github/workflows/label-pr.yml from the paths a PR changes. Filters only: release notes
-# are grouped by the type label, so a PR is never listed twice.
+# Area labels, applied by .github/workflows/label-pr.yml from the paths a PR changes. They are the release-note
+# sections (.github/release-drafter.yml): a PR is listed under every package it changes.
 
 'area: api':
   - changed-files:

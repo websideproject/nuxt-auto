@@ -1,9 +1,9 @@
 name: Label PR
 
 # Two kinds of label, both kept in sync on every change to the PR:
-#   - one TYPE label from the title's conventional-commit type. Release Drafter reads it for the release-note
-#     section and the version bump (.github/release-drafter.yml);
-#   - AREA labels from the paths the PR changes (.github/labeler.yml). Filters only, never a release-note section.
+#   - one TYPE label from the title's conventional-commit type: it decides the version bump
+#     (.github/release-drafter.yml), and `breaking` gets its own release-note section;
+#   - AREA labels from the paths the PR changes (.github/labeler.yml): the release-note sections, one per package.
 #
 # `edited` covers a retitled PR, and a stacked PR retargeted to main (it had no labels while its base was another
 # branch).

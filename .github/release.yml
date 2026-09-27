@@ -1,31 +1,22 @@
 # GitHub's "Generate release notes" button. Releases are drafted by Release Drafter (.github/release-drafter.yml);
-# these sections mirror it so both group a PR the same way.
+# these are the same sections, but GitHub puts each PR only in the FIRST section it matches.
 changelog:
   categories:
     - title: 💥 Breaking Changes
       labels:
         - breaking
-    - title: 🚀 Features
+    - title: 📦 nuxt-auto-api
       labels:
-        - feature
-        - enhancement
-    - title: 🐛 Bug Fixes
+        - 'area: api'
+    - title: 🎨 nuxt-auto-admin
       labels:
-        - bug
-    - title: ⚡ Performance
+        - 'area: admin'
+    - title: 🧪 Playground
       labels:
-        - performance
+        - 'area: playground'
     - title: 📚 Documentation
       labels:
-        - documentation
-    - title: 🧰 Maintenance
-      labels:
-        - refactor
-        - test
-        - build
-        - ci
-        - chore
-        - revert
+        - 'area: docs'
     - title: Other Changes
       labels:
         - '*'

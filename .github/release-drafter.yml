@@ -1,33 +1,25 @@
 name-template: 'v$RESOLVED_VERSION ✨'
 tag-template: 'v$RESOLVED_VERSION'
 
-# Sections come from the TYPE label that .github/workflows/label-pr.yml sets from the PR title. A PR has exactly
-# one, so it is listed once. (Area labels are filters, not sections.)
+# Sections are by PACKAGE, from the area labels .github/labeler.yml sets from the changed paths; a PR that touches
+# several is listed under each. Breaking changes also get their own section first, so none is missed. A PR in no
+# area (CI, repo tooling) is listed above the sections. The TYPE label (from the title) decides the version below.
 categories:
   - title: '💥 Breaking Changes'
     labels:
       - 'breaking'
-  - title: '🚀 Features'
+  - title: '📦 nuxt-auto-api'
     labels:
-      - 'feature'
-      - 'enhancement'
-  - title: '🐛 Bug Fixes'
+      - 'area: api'
+  - title: '🎨 nuxt-auto-admin'
     labels:
-      - 'bug'
-  - title: '⚡ Performance'
+      - 'area: admin'
+  - title: '🧪 Playground'
     labels:
-      - 'performance'
+      - 'area: playground'
   - title: '📚 Documentation'
     labels:
-      - 'documentation'
-  - title: '🧰 Maintenance'
-    labels:
-      - 'refactor'
-      - 'test'
-      - 'build'
-      - 'ci'
-      - 'chore'
-      - 'revert'
+      - 'area: docs'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
