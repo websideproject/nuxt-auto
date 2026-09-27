@@ -18,6 +18,11 @@ Here are the available types and scopes:
 - refactor (a code change that neither fixes a bug nor adds a feature) 🛠
 - revert (reverts a previous commit) 🔄
 
+The type sets the PR's label and the version bump: `breaking`, or a `!` after the type (`feat!:`), and
+`feat` / `enhancement` are a minor release while the packages are 0.x; every other type is a patch. The release
+notes are grouped by package, from area labels (`area: api`, `area: admin`, `area: playground`, `area: docs`) that
+follow the changed paths.
+
 ### Scopes
 - docs (the documentation)
 - playground (the playground)

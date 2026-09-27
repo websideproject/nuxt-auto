@@ -1,0 +1,20 @@
+# Area labels, applied by .github/workflows/label-pr.yml from the paths a PR changes. They are the release-note
+# sections (.github/release-drafter.yml): a PR is listed under every package it changes.
+
+'area: api':
+  - changed-files:
+      - any-glob-to-any-file: packages/nuxt-auto-api/**
+
+'area: admin':
+  - changed-files:
+      - any-glob-to-any-file: packages/nuxt-auto-admin/**
+
+'area: playground':
+  - changed-files:
+      - any-glob-to-any-file: apps/playground/**
+
+'area: docs':
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/docs/**
+          - '**/README.md'

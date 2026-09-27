@@ -34,6 +34,7 @@ jobs:
             docs
             enhancement
             chore
+            perf
             performance
             style
             test

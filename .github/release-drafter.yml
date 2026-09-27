@@ -1,52 +1,36 @@
 name-template: 'v$RESOLVED_VERSION ✨'
 tag-template: 'v$RESOLVED_VERSION'
 
+# Sections are by PACKAGE, from the area labels .github/labeler.yml sets from the changed paths; a PR that touches
+# several is listed under each. Breaking changes also get their own section first, so none is missed. A PR in no
+# area (CI, repo tooling) is listed above the sections. The TYPE label (from the title) decides the version below.
 categories:
-  - title: '🚀 Features'
+  - title: '💥 Breaking Changes'
     labels:
-      - 'feature'
-      - 'enhancement'
-  - title: '🐛 Bug Fixes'
+      - 'breaking'
+  - title: '📦 nuxt-auto-api'
     labels:
-      - 'fix'
-      - 'bugfix'
-      - 'bug'
-  - title: '📦 API Module'
+      - 'area: api'
+  - title: '🎨 nuxt-auto-admin'
     labels:
-      - 'nuxt-auto-api'
-      - 'api'
-  - title: '🎨 Admin Module'
+      - 'area: admin'
+  - title: '🧪 Playground'
     labels:
-      - 'nuxt-auto-admin'
-      - 'admin'
+      - 'area: playground'
   - title: '📚 Documentation'
     labels:
-      - 'documentation'
-      - 'docs'
-  - title: '🧰 Maintenance'
-    labels:
-      - 'chore'
-      - 'dependencies'
+      - 'area: docs'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
 
+# While the packages are 0.x a breaking change is a minor bump (0.0.11 → 0.1.0). At 1.0, move `breaking` to major.
 version-resolver:
-  major:
-    labels:
-      - 'major'
-      - 'breaking'
   minor:
     labels:
-      - 'minor'
+      - 'breaking'
       - 'feature'
-  patch:
-    labels:
-      - 'patch'
-      - 'fix'
-      - 'bugfix'
-      - 'chore'
-      - 'dependencies'
+      - 'enhancement'
   default: patch
 
 template: |
