@@ -2,17 +2,17 @@
   <div class="space-y-8">
     <!-- Welcome Header -->
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
+      <h1 class="text-2xl font-semibold text-highlighted">
         Dashboard
       </h1>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <p class="mt-1 text-sm text-muted">
         Manage your application resources
       </p>
     </div>
 
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <UCard class="border-gray-200/60 dark:border-gray-800/60">
+      <UCard class="border-default/60">
         <div class="flex items-center gap-3">
           <div class="p-2.5 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
             <UIcon
@@ -21,17 +21,17 @@
             />
           </div>
           <div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">
+            <div class="text-2xl font-semibold text-highlighted">
               {{ resources.length }}
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
+            <div class="text-xs text-muted">
               Total Resources
             </div>
           </div>
         </div>
       </UCard>
 
-      <UCard class="border-gray-200/60 dark:border-gray-800/60">
+      <UCard class="border-default/60">
         <div class="flex items-center gap-3">
           <div class="p-2.5 bg-green-50 dark:bg-green-900/20 rounded-lg">
             <UIcon
@@ -40,17 +40,17 @@
             />
           </div>
           <div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">
+            <div class="text-2xl font-semibold text-highlighted">
               Ready
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
+            <div class="text-xs text-muted">
               System Status
             </div>
           </div>
         </div>
       </UCard>
 
-      <UCard class="border-gray-200/60 dark:border-gray-800/60">
+      <UCard class="border-default/60">
         <div class="flex items-center gap-3">
           <div class="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <UIcon
@@ -59,10 +59,10 @@
             />
           </div>
           <div>
-            <div class="text-2xl font-semibold text-gray-900 dark:text-white">
+            <div class="text-2xl font-semibold text-highlighted">
               Auto
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
+            <div class="text-xs text-muted">
               Generated UI
             </div>
           </div>
@@ -72,7 +72,7 @@
 
     <!-- Resources Grid -->
     <div>
-      <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-3">
+      <h2 class="text-base font-semibold text-highlighted mb-3">
         Resources
       </h2>
 
@@ -94,27 +94,27 @@
         <UCard
           v-for="resource in resources"
           :key="resource.name"
-          class="border-gray-200/60 dark:border-gray-800/60 hover:border-gray-300 dark:hover:border-gray-700 transition-colors cursor-pointer group"
+          class="border-default/60 hover:border-accented transition-colors cursor-pointer group"
           @click="goToResource(resource.name)"
         >
           <div class="flex items-center gap-3">
-            <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-md group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+            <div class="p-2 bg-elevated rounded-md group-hover:bg-accented transition-colors">
               <UIcon
                 :name="resource.icon"
-                class="h-4 w-4 text-gray-700 dark:text-gray-300"
+                class="h-4 w-4 text-default"
               />
             </div>
             <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-white">
+              <h3 class="text-sm font-medium text-highlighted">
                 {{ resource.displayName }}
               </h3>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p class="text-xs text-muted mt-0.5">
                 Manage {{ resource.displayName.toLowerCase() }}
               </p>
             </div>
             <UIcon
               name="i-heroicons-chevron-right"
-              class="h-4 w-4 text-gray-400 flex-shrink-0"
+              class="h-4 w-4 text-dimmed flex-shrink-0"
             />
           </div>
         </UCard>
@@ -122,14 +122,14 @@
 
       <UCard
         v-else
-        class="border-gray-200/60 dark:border-gray-800/60"
+        class="border-default/60"
       >
         <div class="text-center py-8">
           <UIcon
             name="i-heroicons-inbox"
-            class="h-10 w-10 text-gray-400 mx-auto mb-2"
+            class="h-10 w-10 text-dimmed mx-auto mb-2"
           />
-          <p class="text-sm text-gray-500 dark:text-gray-400">
+          <p class="text-sm text-muted">
             No resources available
           </p>
         </div>

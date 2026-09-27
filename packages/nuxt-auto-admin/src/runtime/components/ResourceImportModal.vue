@@ -12,7 +12,7 @@
           <input
             type="file"
             accept=".csv,text/csv"
-            class="block w-full text-sm text-gray-600 dark:text-gray-400 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 dark:file:bg-gray-800 file:px-3 file:py-1.5 file:text-sm"
+            class="block w-full text-sm text-toned file:mr-3 file:rounded-md file:border-0 file:bg-elevated file:px-3 file:py-1.5 file:text-sm"
             data-testid="admin-import-file"
             :disabled="isRunning"
             @change="onFile"
@@ -25,7 +25,7 @@
           </p>
           <p
             v-if="!fields.length"
-            class="mt-2 text-sm text-gray-500"
+            class="mt-2 text-sm text-muted"
           >
             This resource has no fields you may set.
           </p>
@@ -34,7 +34,7 @@
         <!-- 2. Mapping and preview -->
         <template v-if="headers.length && !results.length">
           <div>
-            <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+            <h4 class="text-sm font-semibold text-highlighted mb-2">
               Columns
             </h4>
             <div class="grid grid-cols-2 gap-2 items-center">
@@ -42,7 +42,7 @@
                 v-for="(header, index) in headers"
                 :key="index"
               >
-                <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ header || `Column ${index + 1}` }}</span>
+                <span class="text-sm text-default truncate">{{ header || `Column ${index + 1}` }}</span>
                 <USelectMenu
                   :model-value="mapping[index] ?? SKIP"
                   :items="fieldItems"
@@ -57,12 +57,12 @@
           </div>
 
           <div v-if="mappedFields.length">
-            <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+            <h4 class="text-sm font-semibold text-highlighted mb-2">
               Preview ({{ Math.min(PREVIEW_ROWS, items.length) }} of {{ items.length }} rows)
             </h4>
-            <div class="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-md">
+            <div class="overflow-x-auto border border-default rounded-md">
               <table class="min-w-full text-xs">
-                <thead class="bg-gray-50 dark:bg-gray-900">
+                <thead class="bg-muted">
                   <tr>
                     <th
                       v-for="field in mappedFields"
@@ -77,7 +77,7 @@
                   <tr
                     v-for="(item, i) in items.slice(0, PREVIEW_ROWS)"
                     :key="i"
-                    class="border-t border-gray-200 dark:border-gray-800"
+                    class="border-t border-default"
                   >
                     <td
                       v-for="field in mappedFields"
@@ -103,7 +103,7 @@
             v-for="result in results"
             :key="result.batch"
             class="text-sm"
-            :class="result.errors.length ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-gray-300'"
+            :class="result.errors.length ? 'text-red-700 dark:text-red-300' : 'text-default'"
           >
             <p>
               Rows {{ result.from }}–{{ result.to }}: {{ result.summary }}
@@ -118,7 +118,7 @@
           </div>
           <p
             v-if="stoppedEarly"
-            class="text-sm text-gray-600 dark:text-gray-400"
+            class="text-sm text-toned"
           >
             The import stopped at the failed batch; the rows after it were not sent.
           </p>

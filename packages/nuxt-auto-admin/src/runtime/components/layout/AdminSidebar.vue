@@ -1,7 +1,7 @@
 <template>
-  <aside class="w-64 h-screen bg-white dark:bg-gray-900 border-r border-gray-200/60 dark:border-gray-800/60 flex flex-col flex-shrink-0">
+  <aside class="w-64 h-screen bg-default border-r border-default/60 flex flex-col flex-shrink-0">
     <!-- Logo/Branding -->
-    <div class="h-14 px-4 py-5 border-b border-gray-200/60 dark:border-gray-800/60 flex-shrink-0">
+    <div class="h-14 px-4 py-5 border-b border-default/60 flex-shrink-0">
       <NuxtLink
         :to="adminPrefix"
         class="flex items-center gap-2.5 group"
@@ -25,7 +25,7 @@
             class="h-4 w-4 text-white"
           />
         </div>
-        <span class="font-semibold text-sm text-gray-900 dark:text-white">
+        <span class="font-semibold text-sm text-highlighted">
           {{ branding.title }}
         </span>
       </NuxtLink>
@@ -35,7 +35,7 @@
     <nav class="flex-1 overflow-y-auto px-3 py-4">
       <div
         v-if="isLoading"
-        class="text-center text-gray-500 dark:text-gray-400 py-8"
+        class="text-center text-muted py-8"
       >
         <UIcon
           name="i-heroicons-arrow-path"
@@ -75,7 +75,7 @@
           :key="group"
           class="mb-4"
         >
-          <div class="px-2 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+          <div class="px-2 py-1.5 text-xs font-medium text-muted">
             {{ group }}
           </div>
           <div class="space-y-1 mt-1">
@@ -100,8 +100,8 @@
     </nav>
 
     <!-- Footer -->
-    <div class="px-4 py-3 border-t border-gray-200/60 dark:border-gray-800/60 flex-shrink-0">
-      <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-500">
+    <div class="px-4 py-3 border-t border-default/60 flex-shrink-0">
+      <div class="flex items-center gap-1.5 text-xs text-muted">
         <UIcon
           name="i-heroicons-sparkles"
           class="h-3.5 w-3.5"

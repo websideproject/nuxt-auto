@@ -9,7 +9,7 @@
         name="i-heroicons-arrow-path"
         class="animate-spin h-8 w-8 text-primary-500 mb-4"
       />
-      <span class="text-gray-600 dark:text-gray-400">Loading...</span>
+      <span class="text-toned">Loading...</span>
     </div>
 
     <!-- Error state -->
@@ -42,12 +42,12 @@
         <div
           v-for="column in visibleColumns"
           :key="column.name"
-          class="border-b border-gray-200 dark:border-gray-800 pb-4 last:border-b-0 last:pb-0"
+          class="border-b border-default pb-4 last:border-b-0 last:pb-0"
         >
-          <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+          <dt class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
             {{ formatFieldLabel(column.name) }}
           </dt>
-          <dd class="text-base text-gray-900 dark:text-white font-medium">
+          <dd class="text-base text-highlighted font-medium">
             {{ formatDisplayValue(data[column.name], column) || '-' }}
           </dd>
         </div>
@@ -56,9 +56,9 @@
       <!-- M2M Relations (read-only) -->
       <div
         v-if="m2mFields.length > 0"
-        class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800 space-y-4"
+        class="mt-6 pt-6 border-t border-default space-y-4"
       >
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 class="text-lg font-semibold text-highlighted mb-4">
           Relationships
         </h3>
         <M2MRelationCard
@@ -92,7 +92,7 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-end gap-2 p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800">
+      <div class="flex justify-end gap-2 p-4 bg-muted border-t border-default">
         <UButton
           v-if="showButtonBehavior === 'disable' || canUpdate"
           variant="outline"
@@ -129,7 +129,7 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-end gap-2 p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800">
+      <div class="flex justify-end gap-2 p-4 bg-muted border-t border-default">
         <UButton
           v-if="showButtonBehavior === 'disable' || canUpdate"
           variant="outline"

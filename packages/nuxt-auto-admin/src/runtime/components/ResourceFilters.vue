@@ -24,7 +24,7 @@
           class="space-y-1"
         >
           <div class="flex items-center justify-between">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ formatFieldLabel(column.name) }}</label>
+            <label class="text-xs font-medium text-muted">{{ formatFieldLabel(column.name) }}</label>
             <UButton
               v-if="isSet(column.name)"
               size="xs"

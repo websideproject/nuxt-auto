@@ -8,10 +8,10 @@
         @click="goToList"
       />
       <div>
-        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
+        <h1 class="text-2xl font-semibold text-highlighted">
           Create {{ resource?.displayName || resourceName }}
         </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+        <p class="text-sm text-muted mt-0.5">
           Add a new {{ resource?.displayName?.toLowerCase() || resourceName }}
         </p>
       </div>
@@ -43,7 +43,7 @@
     <!-- Permission Denied (if button behavior is hide) -->
     <UCard
       v-else-if="!isLoadingPermissions && !canCreate && showButtonBehavior === 'hide'"
-      class="border-gray-200/60 dark:border-gray-800/60"
+      class="border-default/60"
     >
       <div class="p-6">
         <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -66,7 +66,7 @@
     <!-- Form Card -->
     <UCard
       v-else
-      class="border-gray-200/60 dark:border-gray-800/60"
+      class="border-default/60"
     >
       <ResourceForm
         :resource-name="resourceName"

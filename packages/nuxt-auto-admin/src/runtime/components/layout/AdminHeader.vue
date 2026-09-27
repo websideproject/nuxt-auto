@@ -1,11 +1,11 @@
 <template>
-  <header class="h-14 bg-white dark:bg-gray-900 border-b border-gray-200/60 dark:border-gray-800/60 px-4 sm:px-6 flex-shrink-0">
+  <header class="h-14 bg-default border-b border-default/60 px-4 sm:px-6 flex-shrink-0">
     <div class="h-full flex items-center justify-between">
       <!-- Breadcrumbs -->
       <nav class="flex items-center gap-1.5 text-sm min-w-0 flex-1">
         <NuxtLink
           :to="adminPrefix"
-          class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1"
+          class="text-toned hover:text-highlighted transition-colors flex items-center gap-1"
         >
           <UIcon
             name="i-heroicons-home"
@@ -15,7 +15,7 @@
         <template v-if="breadcrumbs.length > 0">
           <UIcon
             name="i-heroicons-chevron-right"
-            class="h-3.5 w-3.5 text-gray-400 dark:text-gray-600 flex-shrink-0"
+            class="h-3.5 w-3.5 text-dimmed flex-shrink-0"
           />
           <template
             v-for="(crumb, index) in breadcrumbs"
@@ -24,18 +24,18 @@
             <NuxtLink
               v-if="crumb.to"
               :to="crumb.to"
-              class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors truncate"
+              class="text-toned hover:text-highlighted transition-colors truncate"
             >
               {{ crumb.label }}
             </NuxtLink>
             <span
               v-else
-              class="text-gray-900 dark:text-white font-medium truncate"
+              class="text-highlighted font-medium truncate"
             >{{ crumb.label }}</span>
             <UIcon
               v-if="index < breadcrumbs.length - 1"
               name="i-heroicons-chevron-right"
-              class="h-3.5 w-3.5 text-gray-400 dark:text-gray-600 flex-shrink-0"
+              class="h-3.5 w-3.5 text-dimmed flex-shrink-0"
             />
           </template>
         </template>
