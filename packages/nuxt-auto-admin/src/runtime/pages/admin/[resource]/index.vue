@@ -180,7 +180,7 @@ function openDeleteModalFromView(id: string | number) {
 function handleCreateSuccess(_data: unknown) {
   toast.add({
     title: 'Success',
-    description: `${resource.value?.displayName || resourceName.value} created successfully`,
+    description: `${resource.value?.singularName || resourceName.value} created successfully`,
     icon: 'i-heroicons-check-circle',
     color: 'success',
   })
@@ -190,7 +190,7 @@ function handleCreateSuccess(_data: unknown) {
 function handleEditSuccess(_data: unknown) {
   toast.add({
     title: 'Success',
-    description: `${resource.value?.displayName || resourceName.value} updated successfully`,
+    description: `${resource.value?.singularName || resourceName.value} updated successfully`,
     icon: 'i-heroicons-check-circle',
     color: 'success',
   })
@@ -207,7 +207,7 @@ async function confirmDelete() {
 
     toast.add({
       title: 'Success',
-      description: `${resource.value?.displayName || resourceName.value} deleted successfully`,
+      description: `${resource.value?.singularName || resourceName.value} deleted successfully`,
       icon: 'i-heroicons-check-circle',
       color: 'success',
     })

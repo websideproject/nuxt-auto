@@ -34,7 +34,7 @@
   <UModal
     v-if="isDesktop"
     v-model:open="isOpen"
-    :title="`Edit ${resource?.displayName || resourceName}`"
+    :title="`Edit ${resource?.singularName || resourceName}`"
     :description="`Update record #${id}`"
     :ui="{ content: 'w-full max-w-4xl', body: 'p-0' }"
   >
@@ -46,7 +46,7 @@
   <UDrawer
     v-else
     v-model:open="isOpen"
-    :title="`Edit ${resource?.displayName || resourceName}`"
+    :title="`Edit ${resource?.singularName || resourceName}`"
     :description="`Update record #${id}`"
     direction="right"
     :ui="{ content: 'w-full max-w-4xl', body: 'p-0' }"

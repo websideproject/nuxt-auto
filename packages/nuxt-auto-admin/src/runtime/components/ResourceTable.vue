@@ -162,7 +162,7 @@
             No records found
           </h3>
           <p class="text-toned mb-6">
-            Get started by creating your first {{ resourceNameValue }}
+            Get started by creating your first {{ singularLabel }}
           </p>
           <UButton
             v-if="canCreate"
@@ -170,7 +170,7 @@
             icon="i-heroicons-plus"
             @click="handleCreate"
           >
-            Create {{ resourceNameValue }}
+            Create {{ resource?.singularName || resourceNameValue }}
           </UButton>
         </div>
       </template>
@@ -231,7 +231,7 @@
             Confirm Delete
           </h3>
           <p class="text-toned">
-            Are you sure you want to delete this {{ resourceNameValue }}? This action cannot be undone.
+            Are you sure you want to delete this {{ singularLabel }}? This action cannot be undone.
           </p>
         </div>
       </template>
@@ -258,7 +258,7 @@
     <!-- Bulk delete confirmation modal -->
     <UModal
       v-model:open="bulkModal.open"
-      :title="`Delete ${bulkModal.ids.length} ${resourceLabel}?`"
+      :title="`Delete ${countLabel(bulkModal.ids.length)}?`"
       description="This action cannot be undone."
     >
       <template #body>
@@ -373,6 +373,9 @@ const { permissions, canCreate, canRead, canDelete, isLoading: permissionsLoadin
 const { features, api, permissions: permissionConfig } = useAdminConfig()
 
 const resourceLabel = computed(() => resource.value?.displayName?.toLowerCase() || resourceNameValue.value)
+const singularLabel = computed(() => resource.value?.singularName?.toLowerCase() || resourceNameValue.value)
+// "1 article", "3 articles"
+const countLabel = (n: number) => `${n} ${n === 1 ? singularLabel.value : resourceLabel.value}`
 const pk = computed(() => resource.value?.primaryKey || 'id')
 
 // ─── Search & filters ──────────────────────────────────────────────────────
@@ -522,7 +525,7 @@ async function confirmBulkDelete() {
     return
   }
   bulkModal.open = false
-  toast.add({ title: `${result.meta?.successful ?? ids.length} ${resourceLabel.value} deleted`, icon: 'i-heroicons-check-circle', color: 'success' })
+  toast.add({ title: `${countLabel(result.meta?.successful ?? ids.length)} deleted`, icon: 'i-heroicons-check-circle', color: 'success' })
 }
 
 // ─── Export ────────────────────────────────────────────────────────────────
@@ -571,7 +574,7 @@ async function exportAs(format: 'csv' | 'json') {
     }
     downloadFile(content, `${resourceNameValue.value}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json')
     toast.add({
-      title: `Exported ${count} ${resourceLabel.value}`,
+      title: `Exported ${countLabel(count)}`,
       ...(count >= cap ? { description: `Exports stop at ${cap} rows — narrow the list with filters to export the rest.`, color: 'warning' as const } : { color: 'success' as const }),
       icon: 'i-heroicons-arrow-down-tray',
     })

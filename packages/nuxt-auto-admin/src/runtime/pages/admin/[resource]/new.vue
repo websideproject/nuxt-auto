@@ -9,10 +9,10 @@
       />
       <div>
         <h1 class="text-2xl font-semibold text-highlighted">
-          Create {{ resource?.displayName || resourceName }}
+          Create {{ resource?.singularName || resourceName }}
         </h1>
         <p class="text-sm text-muted mt-0.5">
-          Add a new {{ resource?.displayName?.toLowerCase() || resourceName }}
+          Add a new {{ resource?.singularName?.toLowerCase() || resourceName }}
         </p>
       </div>
     </div>

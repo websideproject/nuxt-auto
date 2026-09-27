@@ -1,4 +1,5 @@
-import type { FieldConfig } from '../types'
+import { ref, onMounted } from 'vue'
+import type { FieldConfig, ResourceSchema } from '../types'
 
 export interface M2MFieldConfig extends FieldConfig {
   name: string
@@ -139,4 +140,20 @@ export async function getJunctionTableNames(): Promise<string[]> {
     console.warn('[useM2MDetection] Failed to get junction tables:', error)
     return []
   }
+}
+
+let junctionNames: Promise<string[]> | undefined
+
+/**
+ * Junction tables (many-to-many links) are managed from the M2M cards, not as resources of their own: the sidebar
+ * and the dashboard leave them out. A resource is one when configured `type: 'junction'`, or when the API detects
+ * it. One request per page load, shared by every caller.
+ */
+export function useJunctionTables() {
+  const detected = ref<string[]>([])
+  onMounted(async () => {
+    detected.value = await (junctionNames ??= getJunctionTableNames())
+  })
+  const isJunction = (resource: ResourceSchema) => resource.type === 'junction' || detected.value.includes(resource.name)
+  return { isJunction }
 }

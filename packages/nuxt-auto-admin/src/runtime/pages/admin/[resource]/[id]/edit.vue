@@ -9,7 +9,7 @@
       />
       <div>
         <h1 class="text-2xl font-semibold text-highlighted">
-          Edit {{ resource?.displayName || resourceName }}
+          Edit {{ resource?.singularName || resourceName }}
         </h1>
         <p class="text-sm text-muted mt-0.5">
           Record #{{ id }}

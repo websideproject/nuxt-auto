@@ -233,6 +233,7 @@ type BuildTimeResource = ResourceRegistration
 
 interface BuildTimeResourceConfig {
   displayName?: string
+  singularName?: string
   icon?: string
   listFields?: string[]
   formFields?: unknown
@@ -398,6 +399,7 @@ function buildResourceSchemaEntry(
   allResourceNames: string[],
 ): string {
   const displayName = config.displayName || formatResourceName(resource.name)
+  const singularName = config.singularName || singularize(displayName)
   const icon = config.icon || 'i-heroicons-table-cells'
 
   // Generate code that will execute at runtime to introspect the schema
@@ -596,7 +598,8 @@ function buildResourceSchemaEntry(
 
     return {
       name: '${resource.name}',
-      displayName: '${displayName}',
+      displayName: ${JSON.stringify(displayName)},
+      singularName: ${JSON.stringify(singularName)},
       icon: '${icon}',
       columns,
       primaryKey,
@@ -616,6 +619,18 @@ function buildResourceSchemaEntry(
 /**
  * Format resource name for display
  */
+/**
+ * "Articles" → "Article", "Categories" → "Category", "API Keys" → "API Key", "Addresses" → "Address". English
+ * only and rule-based: set `singularName` on the resource for anything else.
+ */
+export function singularize(name: string): string {
+  if (/ies$/i.test(name)) return name.replace(/ies$/i, 'y')
+  if (/(?:ss|x|z|ch|sh)es$/i.test(name)) return name.replace(/es$/i, '')
+  if (/(?:us|ss|is)$/i.test(name)) return name // Status, Address, Analysis: already one
+  if (/s$/i.test(name)) return name.slice(0, -1)
+  return name
+}
+
 function formatResourceName(name: string): string {
   return name
     .replace(/([A-Z])/g, ' $1')

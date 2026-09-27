@@ -139,9 +139,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRuntimeConfig } from '#app'
 import { useAdminRegistry } from '../../composables/useAdminRegistry'
+import { useJunctionTables } from '../../composables/useM2MDetection'
 
 defineOptions({ name: 'AdminDashboardPage' })
 
@@ -149,7 +151,10 @@ const router = useRouter()
 const config = useRuntimeConfig()
 const adminPrefix = config.public.autoAdmin?.prefix || '/admin'
 
-const { allResources: resources, isLoading } = useAdminRegistry()
+const { allResources, isLoading } = useAdminRegistry()
+// As in the sidebar: junction tables are edited through their M2M cards, not listed as resources
+const { isJunction } = useJunctionTables()
+const resources = computed(() => allResources.value.filter(r => !isJunction(r)))
 
 function goToResource(resourceName: string) {
   router.push(`${adminPrefix}/${resourceName}`)
