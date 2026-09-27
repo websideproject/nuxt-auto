@@ -14,8 +14,8 @@
       v-if="m2mFields.length > 0"
       class="px-6 pb-6 space-y-4"
     >
-      <div class="border-t border-gray-200 dark:border-gray-800 pt-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div class="border-t border-default pt-6">
+        <h3 class="text-lg font-semibold text-highlighted mb-4">
           Relationships
         </h3>
         <div class="space-y-4">

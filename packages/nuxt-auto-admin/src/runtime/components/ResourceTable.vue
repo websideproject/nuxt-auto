@@ -73,7 +73,7 @@
         name="i-heroicons-arrow-path"
         class="animate-spin h-8 w-8 text-primary-500 mb-4"
       />
-      <span class="text-gray-600 dark:text-gray-400">Loading data...</span>
+      <span class="text-toned">Loading data...</span>
     </div>
 
     <!-- Permission denied state -->
@@ -137,7 +137,7 @@
           v-if="isFiltered"
           class="text-center py-12 px-4"
         >
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <h3 class="text-lg font-semibold text-highlighted mb-2">
             No matching records
           </h3>
           <UButton
@@ -152,16 +152,16 @@
           v-else
           class="text-center py-12 px-4"
         >
-          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-elevated mb-4">
             <UIcon
               name="i-heroicons-inbox"
-              class="h-8 w-8 text-gray-400"
+              class="h-8 w-8 text-dimmed"
             />
           </div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <h3 class="text-lg font-semibold text-highlighted mb-2">
             No records found
           </h3>
-          <p class="text-gray-600 dark:text-gray-400 mb-6">
+          <p class="text-toned mb-6">
             Get started by creating your first {{ resourceNameValue }}
           </p>
           <UButton
@@ -179,13 +179,13 @@
     <!-- Pagination -->
     <div
       v-if="data && data.length > 0 && meta"
-      class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800"
+      class="flex items-center justify-between pt-4 border-t border-default"
     >
-      <div class="text-sm text-gray-600 dark:text-gray-400">
-        Showing <span class="font-medium text-gray-900 dark:text-white">{{ firstRow }}</span> to
-        <span class="font-medium text-gray-900 dark:text-white">{{ firstRow + data.length - 1 }}</span>
+      <div class="text-sm text-toned">
+        Showing <span class="font-medium text-highlighted">{{ firstRow }}</span> to
+        <span class="font-medium text-highlighted">{{ firstRow + data.length - 1 }}</span>
         <template v-if="meta.total !== undefined">
-          of <span class="font-medium text-gray-900 dark:text-white">{{ meta.total }}</span>
+          of <span class="font-medium text-highlighted">{{ meta.total }}</span>
         </template>
         results
       </div>
@@ -230,7 +230,7 @@
           <h3 class="text-lg font-semibold mb-2">
             Confirm Delete
           </h3>
-          <p class="text-gray-600">
+          <p class="text-toned">
             Are you sure you want to delete this {{ resourceNameValue }}? This action cannot be undone.
           </p>
         </div>
@@ -279,7 +279,7 @@
         </div>
         <p
           v-else
-          class="text-sm text-gray-600 dark:text-gray-400"
+          class="text-sm text-toned"
         >
           The selected records on this page will be deleted.
         </p>
@@ -637,7 +637,7 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
             {
               class: value
                 ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
+                : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-elevated text-toned',
             },
             value ? 'Yes' : 'No',
           )
@@ -647,12 +647,12 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
         if (column && (fieldName === 'status' || fieldName === 'state') && typeof value === 'string') {
           const statusColors: Record<string, string> = {
             active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-            inactive: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
+            inactive: 'bg-elevated text-toned',
             pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
             completed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
             failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
           }
-          const colorClass = statusColors[value.toLowerCase()] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+          const colorClass = statusColors[value.toLowerCase()] || 'bg-elevated text-toned'
 
           return h(
             'span',

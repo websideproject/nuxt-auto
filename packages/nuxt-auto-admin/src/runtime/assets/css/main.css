@@ -2,6 +2,29 @@
 /* `dark:` here must mean the consuming app's `.dark` CLASS, not the reader's OS preference. Each CSS
    entry is compiled on its own, so without this line Tailwind falls back to
    `@media (prefers-color-scheme: dark)` and this module's dark styles fire in LIGHT theme on a dark-OS
-   machine. 17 files under src/runtime use `dark:`. */
+   machine. */
 @custom-variant dark (&:is(.dark *));
-@source "../../components";
+
+/* Nuxt UI's semantic colours (text-muted, border-default, bg-elevated, …), declared as @nuxt/ui declares them.
+   This entry is compiled on its own, without the app's `@import "@nuxt/ui"`, so it needs them itself. They read
+   the app's --ui-* variables, so the admin follows the app's neutral colour in both themes. */
+@theme default inline {
+  --text-color-dimmed: var(--ui-text-dimmed);
+  --text-color-muted: var(--ui-text-muted);
+  --text-color-toned: var(--ui-text-toned);
+  --text-color-default: var(--ui-text);
+  --text-color-highlighted: var(--ui-text-highlighted);
+  --text-color-inverted: var(--ui-text-inverted);
+  --background-color-default: var(--ui-bg);
+  --background-color-muted: var(--ui-bg-muted);
+  --background-color-elevated: var(--ui-bg-elevated);
+  --background-color-accented: var(--ui-bg-accented);
+  --background-color-inverted: var(--ui-bg-inverted);
+  --border-color-default: var(--ui-border);
+  --border-color-muted: var(--ui-border-muted);
+  --border-color-accented: var(--ui-border-accented);
+  --border-color-inverted: var(--ui-border-inverted);
+}
+
+/* The whole runtime: pages and layouts carry classes too, and the app's own scan skips node_modules. */
+@source "../..";

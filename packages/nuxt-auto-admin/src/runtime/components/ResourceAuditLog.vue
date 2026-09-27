@@ -2,30 +2,30 @@
   <!-- The log is optional: when the route is missing or the caller may not read it, a quiet note — never an error page. -->
   <UCard
     v-if="!unavailable || isLoading"
-    class="border-gray-200/60 dark:border-gray-800/60"
+    class="border-default/60"
     data-testid="admin-audit-log"
   >
     <template #header>
-      <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+      <h3 class="text-sm font-semibold text-highlighted">
         History
       </h3>
     </template>
 
     <p
       v-if="isLoading"
-      class="text-sm text-gray-500"
+      class="text-sm text-muted"
     >
       Loading…
     </p>
     <p
       v-else-if="error"
-      class="text-sm text-gray-500"
+      class="text-sm text-muted"
     >
       History could not be loaded: {{ apiErrorMessage(error) }}
     </p>
     <p
       v-else-if="!entries.length"
-      class="text-sm text-gray-500"
+      class="text-sm text-muted"
     >
       No recorded changes.
     </p>
@@ -46,15 +46,15 @@
           >
             {{ entry.operation }}
           </UBadge>
-          <span class="text-gray-900 dark:text-white">{{ formatTime(entry.timestamp) }}</span>
+          <span class="text-highlighted">{{ formatTime(entry.timestamp) }}</span>
           <span
             v-if="entry.userId"
-            class="text-gray-500"
+            class="text-muted"
           >by {{ entry.userId }}</span>
         </div>
         <p
           v-if="changedFields(entry).length"
-          class="mt-1 text-gray-600 dark:text-gray-400"
+          class="mt-1 text-toned"
         >
           Changed: {{ changedFields(entry).map(formatFieldLabel).join(', ') }}
         </p>
@@ -62,14 +62,14 @@
     </ol>
     <p
       v-if="entries.length >= LIMIT"
-      class="mt-3 text-xs text-gray-500"
+      class="mt-3 text-xs text-muted"
     >
       The latest {{ LIMIT }} changes.
     </p>
   </UCard>
   <p
     v-else
-    class="text-xs text-gray-500"
+    class="text-xs text-muted"
   >
     History is not available for this record.
   </p>

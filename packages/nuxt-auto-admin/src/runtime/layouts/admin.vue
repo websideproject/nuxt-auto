@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full bg-gray-50/50 dark:bg-gray-950 overflow-hidden">
+  <div class="flex h-full bg-muted/50 dark:bg-default overflow-hidden">
     <AdminSidebar />
 
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">

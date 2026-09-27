@@ -9,10 +9,10 @@
           @click="goToList"
         />
         <div>
-          <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
+          <h1 class="text-2xl font-semibold text-highlighted">
             {{ resource?.displayName || resourceName }}
           </h1>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p class="text-sm text-muted mt-0.5">
             Record #{{ id }}
           </p>
         </div>
@@ -44,7 +44,7 @@
     <!-- Permission Denied -->
     <UCard
       v-if="!isLoadingPermissions && !canRead"
-      class="border-gray-200/60 dark:border-gray-800/60"
+      class="border-default/60"
     >
       <div class="p-6">
         <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -67,7 +67,7 @@
     <!-- Content -->
     <UCard
       v-else
-      class="border-gray-200/60 dark:border-gray-800/60"
+      class="border-default/60"
     >
       <!-- Loading state -->
       <div
@@ -78,7 +78,7 @@
           name="i-heroicons-arrow-path"
           class="animate-spin h-8 w-8 text-primary-500 mb-4"
         />
-        <span class="text-gray-600 dark:text-gray-400">Loading...</span>
+        <span class="text-toned">Loading...</span>
       </div>
 
       <!-- Error state -->
@@ -105,17 +105,17 @@
       <!-- Data display -->
       <div
         v-else-if="data"
-        class="divide-y divide-gray-200/60 dark:divide-gray-800/60"
+        class="divide-y divide-(--ui-border)/60"
       >
         <div
           v-for="column in visibleColumns"
           :key="column.name"
           class="py-3 px-6"
         >
-          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <dt class="text-xs font-medium text-muted mb-1">
             {{ formatFieldLabel(column.name) }}
           </dt>
-          <dd class="text-sm text-gray-900 dark:text-white">
+          <dd class="text-sm text-highlighted">
             {{ formatDisplayValue(data[column.name], column) }}
           </dd>
         </div>
@@ -128,9 +128,9 @@
       >
         <UIcon
           name="i-heroicons-inbox"
-          class="h-10 w-10 text-gray-400 mx-auto mb-2"
+          class="h-10 w-10 text-dimmed mx-auto mb-2"
         />
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="text-sm text-muted">
           No data available
         </p>
       </div>
@@ -154,10 +154,10 @@
               />
             </div>
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 class="text-lg font-semibold text-highlighted mb-2">
                 Confirm Delete
               </h3>
-              <p class="text-gray-600 dark:text-gray-400">
+              <p class="text-toned">
                 Are you sure you want to delete this {{ resourceName }}? This action cannot be undone.
               </p>
             </div>
@@ -166,7 +166,7 @@
       </template>
 
       <template #footer="{ close }">
-        <div class="flex justify-end gap-3 p-4 bg-gray-50 dark:bg-gray-800/50">
+        <div class="flex justify-end gap-3 p-4 bg-muted">
           <UButton
             variant="ghost"
             @click="close"

@@ -1,15 +1,15 @@
 <template>
-  <UCard class="border-gray-200/60 dark:border-gray-800/60">
+  <UCard class="border-default/60">
     <!-- Card Header -->
     <template #header>
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 class="text-lg font-semibold text-highlighted">
             {{ relation.label || formatFieldLabel(relation.name) }}
           </h3>
           <p
             v-if="relation.help"
-            class="text-sm text-gray-500 dark:text-gray-400 mt-0.5"
+            class="text-sm text-muted mt-0.5"
           >
             {{ relation.help }}
           </p>

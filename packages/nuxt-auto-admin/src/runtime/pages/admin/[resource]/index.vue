@@ -3,10 +3,10 @@
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
+        <h1 class="text-2xl font-semibold text-highlighted">
           {{ resource?.displayName || resourceName }}
         </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <p class="text-sm text-muted mt-1">
           Manage all {{ resource?.displayName?.toLowerCase() || resourceName }}
         </p>
       </div>
@@ -22,7 +22,7 @@
     </div>
 
     <!-- Table Card -->
-    <UCard class="border-gray-200/60 dark:border-gray-800/60">
+    <UCard class="border-default/60">
       <ResourceTable
         v-if="resourceName"
         :resource-name="resourceName"
@@ -68,10 +68,10 @@
               />
             </div>
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 class="text-lg font-semibold text-highlighted mb-2">
                 Confirm Delete
               </h3>
-              <p class="text-gray-600 dark:text-gray-400">
+              <p class="text-toned">
                 Are you sure you want to delete this {{ resourceName }}? This action cannot be undone.
               </p>
             </div>
@@ -80,7 +80,7 @@
       </template>
 
       <template #footer="{ close }">
-        <div class="flex justify-end gap-3 p-4 bg-gray-50 dark:bg-gray-800/50">
+        <div class="flex justify-end gap-3 p-4 bg-muted">
           <UButton
             variant="ghost"
             @click="close"

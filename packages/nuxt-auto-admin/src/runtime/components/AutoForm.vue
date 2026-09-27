@@ -18,7 +18,7 @@
       </div>
 
       <!-- Form Actions -->
-      <div class="flex gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-800">
+      <div class="flex gap-3 pt-6 mt-6 border-t border-default">
         <UButton
           type="submit"
           :loading="isSubmitting"
