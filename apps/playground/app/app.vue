@@ -4,7 +4,7 @@ useHead({
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
   ],
   link: [
-    { rel: 'icon', href: '/favicon.ico' }
+    { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }
   ],
   htmlAttrs: {
     lang: 'en'
@@ -19,9 +19,7 @@ useSeoMeta({
   description,
   ogTitle: title,
   ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterCard: 'summary_large_image'
+  twitterCard: 'summary'
 })
 
 // Initialize auth session on mount
@@ -35,13 +33,12 @@ onMounted(() => {
   <UApp>
     <UHeader>
       <template #left>
-        <NuxtLink to="/">
-          <AppLogo class="w-auto h-6 shrink-0" />
+        <NuxtLink
+          to="/"
+          aria-label="Nuxt Auto playground"
+        >
+          <AppLogo />
         </NuxtLink>
-
-        <div class="hidden sm:block">
-          <TemplateMenu />
-        </div>
       </template>
 
       <template #right>
@@ -67,12 +64,17 @@ onMounted(() => {
       </NuxtLayout>
     </UMain>
 
-    <USeparator icon="i-simple-icons-nuxtdotjs" />
+    <USeparator>
+      <ProductLogo
+        kind="auto-admin"
+        class="size-6"
+      />
+    </USeparator>
 
     <UFooter>
       <template #left>
         <p class="text-sm text-muted">
-          Built with Nuxt UI • © {{ new Date().getFullYear() }}
+          Nuxt Auto playground · by <ColourfulText class="font-semibold" /> · © {{ new Date().getFullYear() }}
         </p>
       </template>
 
