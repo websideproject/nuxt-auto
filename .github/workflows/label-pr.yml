@@ -1,15 +1,20 @@
 name: Label PR
 
+# Two kinds of label, both kept in sync on every change to the PR:
+#   - one TYPE label from the title's conventional-commit type. Release Drafter reads it for the release-note
+#     section and the version bump (.github/release-drafter.yml);
+#   - AREA labels from the paths the PR changes (.github/labeler.yml). Filters only, never a release-note section.
+#
+# `edited` covers a retitled PR, and a stacked PR retargeted to main (it had no labels while its base was another
+# branch).
+
 on:
   pull_request_target:
-    types:
-      - opened
-    branches:
-      - main
+    types: [opened, reopened, edited, synchronize]
 
 jobs:
-  add-pr-labels:
-    name: Add PR labels
+  type:
+    name: Type label from the title
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -19,52 +24,44 @@ jobs:
           PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
         with:
           script: |
-            const labelsToAdd = []
-
-            const pullRequest = {
-              number: ${{ github.event.pull_request.number }},
-              title: process.env.PULL_REQUEST_TITLE,
-              labelsNames: ${{ toJson(github.event.pull_request.labels.*.name) }}
-            }
-
-            // Select label based on the type in PR title
-            const pullRequestTypeToLabelName = {
+            // type in the title → label. `!` after the type or scope (feat(module)!:) marks a breaking change.
+            const TYPES = {
               breaking: 'breaking',
               feat: 'feature',
+              enhancement: 'feature',
               fix: 'bug',
+              perf: 'performance',
+              performance: 'performance',
+              docs: 'documentation',
+              refactor: 'refactor',
+              test: 'test',
               build: 'build',
               ci: 'ci',
-              docs: 'documentation',
-              enhancement: 'enhancement',
-              chore: 'dependencies',
-              perf: 'performance',
-              style: 'style',
-              test: 'test',
-              refactor: 'refactor',
+              chore: 'chore',
+              style: 'chore',
               revert: 'revert'
             }
+            const typeLabels = new Set(Object.values(TYPES))
 
-            for (const [pullRequestType, labelName] of Object.entries(
-              pullRequestTypeToLabelName
-            )) {
-              if (
-                pullRequest.title.startsWith(pullRequestType) &&
-                !pullRequest.labelsNames.includes(
-                  pullRequestTypeToLabelName[pullRequestType]
-                )
-              ) {
-                labelsToAdd.push(labelName)
+            const match = /^(\w+)(?:\([^)]*\))?(!)?:/.exec(process.env.PULL_REQUEST_TITLE)
+            const wanted = match ? (match[2] ? 'breaking' : TYPES[match[1]]) : undefined
 
-                break
-              }
+            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number }
+            // Read the labels now, not from the event: another run may have changed them since.
+            const current = (await github.rest.issues.listLabelsOnIssue(issue)).data.map(l => l.name)
+
+            for (const name of current) {
+              if (typeLabels.has(name) && name !== wanted) await github.rest.issues.removeLabel({ ...issue, name })
             }
+            if (wanted && !current.includes(wanted)) await github.rest.issues.addLabels({ ...issue, labels: [wanted] })
 
-            // Add selected labels
-            if (labelsToAdd.length > 0) {
-              await github.rest.issues.addLabels({
-                issue_number: pullRequest.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                labels: labelsToAdd
-              })
-            }
+  area:
+    name: Area labels from the changed paths
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          sync-labels: true

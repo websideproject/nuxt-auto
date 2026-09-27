@@ -1,52 +1,44 @@
 name-template: 'v$RESOLVED_VERSION ✨'
 tag-template: 'v$RESOLVED_VERSION'
 
+# Sections come from the TYPE label that .github/workflows/label-pr.yml sets from the PR title. A PR has exactly
+# one, so it is listed once. (Area labels are filters, not sections.)
 categories:
+  - title: '💥 Breaking Changes'
+    labels:
+      - 'breaking'
   - title: '🚀 Features'
     labels:
       - 'feature'
       - 'enhancement'
   - title: '🐛 Bug Fixes'
     labels:
-      - 'fix'
-      - 'bugfix'
       - 'bug'
-  - title: '📦 API Module'
+  - title: '⚡ Performance'
     labels:
-      - 'nuxt-auto-api'
-      - 'api'
-  - title: '🎨 Admin Module'
-    labels:
-      - 'nuxt-auto-admin'
-      - 'admin'
+      - 'performance'
   - title: '📚 Documentation'
     labels:
       - 'documentation'
-      - 'docs'
   - title: '🧰 Maintenance'
     labels:
+      - 'refactor'
+      - 'test'
+      - 'build'
+      - 'ci'
       - 'chore'
-      - 'dependencies'
+      - 'revert'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
 
+# While the packages are 0.x a breaking change is a minor bump (0.0.11 → 0.1.0). At 1.0, move `breaking` to major.
 version-resolver:
-  major:
-    labels:
-      - 'major'
-      - 'breaking'
   minor:
     labels:
-      - 'minor'
+      - 'breaking'
       - 'feature'
-  patch:
-    labels:
-      - 'patch'
-      - 'fix'
-      - 'bugfix'
-      - 'chore'
-      - 'dependencies'
+      - 'enhancement'
   default: patch
 
 template: |

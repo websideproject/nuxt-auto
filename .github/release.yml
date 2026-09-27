@@ -1,57 +1,31 @@
+# GitHub's "Generate release notes" button. Releases are drafted by Release Drafter (.github/release-drafter.yml);
+# these sections mirror it so both group a PR the same way.
 changelog:
-  exclude:
-    labels:
-      - ignore-for-release
-    authors:
-      - octocat
   categories:
-    - title: Breaking Changes 💥
+    - title: 💥 Breaking Changes
       labels:
         - breaking
-        - major
-    - title: Features 🚀
+    - title: 🚀 Features
       labels:
         - feature
-    - title: API Module 📦
-      labels:
-        - nuxt-auto-api
-        - api
-    - title: Admin Module 🎨
-      labels:
-        - nuxt-auto-admin
-        - admin
-    - title: Enhancements 🌈
-      labels:
         - enhancement
-    - title: Bug Fixes 🐞
+    - title: 🐛 Bug Fixes
       labels:
         - bug
-        - fix
-        - bugfix
-    - title: Build System 🛠
-      labels:
-        - build
-    - title: Continuous Integration 🔄
-      labels:
-        - ci
-    - title: Documentation 📚
-      labels:
-        - documentation
-    - title: Tests 🧪
-      labels:
-        - test
-    - title: Refactoring 🛠
-      labels:
-        - refactor
-    - title: Dependency Updates 📦
-      labels:
-        - dependencies
-    - title: Performance Improvements ⚡️
+    - title: ⚡ Performance
       labels:
         - performance
-    - title: Style 💅
+    - title: 📚 Documentation
       labels:
-        - style
-    - title: Revert 🔄
+        - documentation
+    - title: 🧰 Maintenance
       labels:
+        - refactor
+        - test
+        - build
+        - ci
+        - chore
         - revert
+    - title: Other Changes
+      labels:
+        - '*'
