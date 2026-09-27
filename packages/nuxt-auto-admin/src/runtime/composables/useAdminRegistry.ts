@@ -1,47 +1,24 @@
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
+// @ts-expect-error - virtual module
+import { registry as generated } from '#nuxt-auto-admin-registry'
 import type { ResourceSchema } from '../types'
 
-// Module-level cache (not serialized for SSR)
-let registryCache: Record<string, ResourceSchema> | null = null
-let registryPromise: Promise<Record<string, ResourceSchema>> | null = null
+// Imported statically. A dynamic import() made the registry its own chunk, and Vite names that chunk after the virtual
+// module's id, which holds the absolute build path: under a deep checkout the file name passed 255 bytes and the
+// build failed (ENAMETOOLONG). Static, it is also there on the first navigation, when the route middleware looks a
+// resource up; while a chunk loaded, the middleware found no resource and skipped the permission check.
+const registry = generated as Record<string, ResourceSchema>
 
 /**
  * Access the admin registry (all resources)
  */
 export function useAdminRegistry() {
-  const registry = ref<Record<string, ResourceSchema>>(registryCache || {})
-  const isLoading = ref(!registryCache)
-
-  // Lazy load registry on first use
-  if (!registryCache && !registryPromise) {
-    registryPromise
-      // @ts-expect-error - virtual module
-      = import('#nuxt-auto-admin-registry')
-        .then((mod) => {
-          registryCache = mod.registry
-          registry.value = mod.registry
-          isLoading.value = false
-          return mod.registry
-        })
-        .catch((err) => {
-          console.error('[nuxt-auto-admin] Failed to load registry:', err)
-          isLoading.value = false
-        })
-  }
-  else if (registryPromise && !registryCache) {
-    // Wait for existing promise
-    registryPromise.then(() => {
-      registry.value = registryCache || {}
-      isLoading.value = false
-    })
-  }
-
   const allResources = computed(() => {
-    return Object.values(registry.value).sort((a, b) => (a.order || 0) - (b.order || 0))
+    return Object.values(registry).sort((a, b) => (a.order || 0) - (b.order || 0))
   })
 
   const getResource = (name: string) => {
-    return registry.value[name]
+    return registry[name]
   }
 
   const getResourcesByGroup = computed(() => {
@@ -59,10 +36,11 @@ export function useAdminRegistry() {
   })
 
   return {
-    registry: computed(() => registry.value),
+    registry: computed(() => registry),
     allResources,
     getResource,
     getResourcesByGroup,
-    isLoading: computed(() => isLoading.value),
+    // Always false: the registry is part of the bundle. Kept for callers written when it loaded lazily.
+    isLoading: computed(() => false),
   }
 }
