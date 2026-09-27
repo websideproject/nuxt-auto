@@ -18,10 +18,18 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      # The version bump is pushed straight to main; the ruleset lets only this app bypass the PR rule
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@v4
         with:
