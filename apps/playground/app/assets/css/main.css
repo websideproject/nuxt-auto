@@ -16,3 +16,20 @@
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
 }
+
+/* websideproject: the primary colour is ink, black on light and white on dark; colour comes from the logo */
+:root {
+  --ui-primary: black;
+}
+
+.dark {
+  --ui-primary: white;
+  --ui-bg: var(--ui-color-neutral-950);
+  --ui-bg-muted: var(--ui-color-neutral-900);
+  --ui-bg-elevated: var(--ui-color-neutral-900);
+  --ui-bg-accented: var(--ui-color-neutral-800);
+}
+
+::selection {
+  background: color-mix(in srgb, #ffbd7a 40%, transparent);
+}
