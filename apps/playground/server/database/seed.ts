@@ -116,7 +116,13 @@ export async function seed() {
       { title: 'Post 17', content: 'Content for aggregation test', published: false, userId: 2 },
       { title: 'Post 18', content: 'Content for aggregation test', published: true, userId: 2 },
       { title: 'Post 19', content: 'Content for aggregation test', published: true, userId: 3 },
-      { title: 'Post 20', content: 'Content for aggregation test', published: false, userId: 3 }
+      { title: 'Post 20', content: 'Content for aggregation test', published: false, userId: 3 },
+      // 25 posts: more than the admin's 20 per page, so the admin shows a second page of this objectLevel resource
+      { title: 'Post 21', content: 'Content for aggregation test', published: true, userId: 1 },
+      { title: 'Post 22', content: 'Content for aggregation test', published: true, userId: 2 },
+      { title: 'Post 23', content: 'Content for aggregation test', published: false, userId: 3 },
+      { title: 'Post 24', content: 'Content for aggregation test', published: true, userId: 1 },
+      { title: 'Post 25', content: 'Content for aggregation test', published: true, userId: 2 }
     ], 1))
     .returning()
 
