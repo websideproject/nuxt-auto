@@ -3,10 +3,10 @@
     <!-- Page Header -->
     <div class="flex items-start justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 class="text-3xl font-bold text-neutral-900 dark:text-white">
           Reports
         </h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">
+        <p class="mt-2 text-neutral-600 dark:text-neutral-400">
           Generate and download detailed reports about your data
         </p>
       </div>
@@ -37,10 +37,10 @@
             />
           </div>
           <div class="flex-1">
-            <h3 class="font-semibold text-gray-900 dark:text-white">
+            <h3 class="font-semibold text-neutral-900 dark:text-white">
               {{ reportType.title }}
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
               {{ reportType.description }}
             </p>
           </div>
@@ -52,7 +52,7 @@
     <UCard>
       <template #header>
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 class="text-xl font-semibold text-neutral-900 dark:text-white">
             Recent Reports
           </h2>
           <UButton
@@ -64,11 +64,11 @@
         </div>
       </template>
 
-      <div class="divide-y divide-gray-200 dark:divide-gray-800">
+      <div class="divide-y divide-neutral-200 dark:divide-neutral-800">
         <div
           v-for="report in recentReports"
           :key="report.id"
-          class="py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors px-4 -mx-4"
+          class="py-4 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors px-4 -mx-4"
         >
           <div class="flex items-center gap-4 flex-1 min-w-0">
             <div
@@ -82,7 +82,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <h3 class="font-medium text-gray-900 dark:text-white truncate">
+                <h3 class="font-medium text-neutral-900 dark:text-white truncate">
                   {{ report.name }}
                 </h3>
                 <UBadge
@@ -93,7 +93,7 @@
                   {{ report.type }}
                 </UBadge>
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <div class="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
                 Generated {{ report.generatedAt }} • {{ report.size }}
               </div>
             </div>
@@ -154,7 +154,7 @@
     <UCard>
       <template #header>
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 class="text-xl font-semibold text-neutral-900 dark:text-white">
             Scheduled Reports
           </h2>
           <UButton
@@ -173,12 +173,12 @@
       >
         <UIcon
           name="i-heroicons-calendar"
-          class="h-12 w-12 text-gray-400 mx-auto mb-3"
+          class="h-12 w-12 text-neutral-400 mx-auto mb-3"
         />
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-neutral-600 dark:text-neutral-400">
           No scheduled reports
         </p>
-        <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+        <p class="text-sm text-neutral-500 dark:text-neutral-500 mt-1">
           Create a schedule to automatically generate reports
         </p>
       </div>
@@ -190,18 +190,18 @@
         <div
           v-for="schedule in scheduledReports"
           :key="schedule.id"
-          class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+          class="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg"
         >
           <div class="flex items-center gap-4">
             <UIcon
               name="i-heroicons-calendar"
-              class="h-5 w-5 text-gray-600 dark:text-gray-400"
+              class="h-5 w-5 text-neutral-600 dark:text-neutral-400"
             />
             <div>
-              <div class="font-medium text-gray-900 dark:text-white">
+              <div class="font-medium text-neutral-900 dark:text-white">
                 {{ schedule.name }}
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-sm text-neutral-600 dark:text-neutral-400">
                 {{ schedule.frequency }}
               </div>
             </div>
@@ -215,12 +215,12 @@
     <UModal v-model:open="createReportModalOpen">
       <template #body>
         <div class="p-6">
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 class="text-xl font-semibold text-neutral-900 dark:text-white mb-4">
             Generate New Report
           </h3>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Report Type
               </label>
               <USelectMenu
@@ -229,7 +229,7 @@
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Date Range
               </label>
               <USelectMenu
@@ -238,7 +238,7 @@
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Format
               </label>
               <USelectMenu
@@ -251,7 +251,7 @@
       </template>
 
       <template #footer="{ close }">
-        <div class="flex justify-end gap-3 p-4 bg-gray-50 dark:bg-gray-800/50">
+        <div class="flex justify-end gap-3 p-4 bg-neutral-50 dark:bg-neutral-800/50">
           <UButton
             variant="ghost"
             @click="close"

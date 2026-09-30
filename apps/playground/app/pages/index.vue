@@ -27,12 +27,12 @@
     />
 
     <!-- Permission Demo Highlight -->
-    <UPageSection class="bg-gray-50 dark:bg-gray-900">
+    <UPageSection class="bg-neutral-50 dark:bg-neutral-900">
       <div class="max-w-4xl mx-auto text-center mb-12">
         <h2 class="text-3xl font-bold mb-4">
           Interactive Permission System
         </h2>
-        <p class="text-lg text-gray-600 dark:text-gray-400">
+        <p class="text-lg text-neutral-600 dark:text-neutral-400">
           See how authorization works by switching between different user roles. Experience object-level, role-based, and field-level security in action.
         </p>
       </div>
@@ -50,7 +50,7 @@
             <h3 class="font-semibold">
               Object-Level Auth
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               Users can only edit their own posts. Admins can edit all.
             </p>
             <UButton
@@ -76,7 +76,7 @@
             <h3 class="font-semibold">
               Role-Based
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               Only editors and admins can create articles. Users read-only.
             </p>
             <UButton
@@ -102,7 +102,7 @@
             <h3 class="font-semibold">
               Field-Level
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               Email addresses hidden unless viewing own profile or admin.
             </p>
             <UButton
@@ -128,7 +128,7 @@
             <h3 class="font-semibold">
               Live Permission Matrix
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               See all permissions update in real-time as you switch roles.
             </p>
             <UButton
@@ -177,7 +177,7 @@
     />
 
     <!-- How It Works -->
-    <UPageSection class="bg-gray-50 dark:bg-gray-900">
+    <UPageSection class="bg-neutral-50 dark:bg-neutral-900">
       <div class="max-w-4xl mx-auto">
         <h2 class="text-3xl font-bold text-center mb-12">
           How It Works
@@ -192,10 +192,10 @@
               <h3 class="text-xl font-semibold mb-2">
                 Define Your Schema
               </h3>
-              <p class="text-gray-600 dark:text-gray-400 mb-3">
+              <p class="text-neutral-600 dark:text-neutral-400 mb-3">
                 Use Drizzle ORM to define your database schema. That's it - CRUD endpoints are automatically generated.
               </p>
-              <UCard class="bg-white dark:bg-gray-800">
+              <UCard class="bg-white dark:bg-neutral-800">
                 <pre class="text-sm overflow-x-auto"><code>export const posts = sqliteTable('posts', {
   id: integer('id').primaryKey(),
   title: text('title').notNull(),
@@ -214,10 +214,10 @@
               <h3 class="text-xl font-semibold mb-2">
                 Add Authorization (Optional)
               </h3>
-              <p class="text-gray-600 dark:text-gray-400 mb-3">
+              <p class="text-neutral-600 dark:text-neutral-400 mb-3">
                 Configure permissions at operation, object, or field level. Skip this for public APIs.
               </p>
-              <UCard class="bg-white dark:bg-gray-800">
+              <UCard class="bg-white dark:bg-neutral-800">
                 <pre class="text-sm overflow-x-auto"><code>export const postsAuth = {
   permissions: {
     create: (ctx) => !!ctx.user,
@@ -239,10 +239,10 @@
               <h3 class="text-xl font-semibold mb-2">
                 Use in Your Frontend
               </h3>
-              <p class="text-gray-600 dark:text-gray-400 mb-3">
+              <p class="text-neutral-600 dark:text-neutral-400 mb-3">
                 Auto-imported composables with TanStack Query. Permission-aware components automatically enable/disable.
               </p>
-              <UCard class="bg-white dark:bg-gray-800">
+              <UCard class="bg-white dark:bg-neutral-800">
                 <pre class="text-sm overflow-x-auto"><code>const { data } = useAutoApiList('posts')
 const { canCreate } = usePermissions('posts')
 

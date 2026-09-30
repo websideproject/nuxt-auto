@@ -52,10 +52,10 @@
 
       <UCard class="border-default/60">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <div class="p-2.5 bg-primary/10 rounded-lg">
             <UIcon
               name="i-heroicons-sparkles"
-              class="h-5 w-5 text-blue-600 dark:text-blue-400"
+              class="h-5 w-5 text-primary"
             />
           </div>
           <div>

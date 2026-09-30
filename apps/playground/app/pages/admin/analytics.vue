@@ -2,10 +2,10 @@
   <div class="space-y-6">
     <!-- Page Header -->
     <div>
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+      <h1 class="text-3xl font-bold text-neutral-900 dark:text-white">
         Analytics
       </h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">
+      <p class="mt-2 text-neutral-600 dark:text-neutral-400">
         Track and analyze your application metrics
       </p>
     </div>
@@ -15,10 +15,10 @@
       <UCard>
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <div class="text-sm font-medium text-neutral-600 dark:text-neutral-400">
               Total Users
             </div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+            <div class="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
               1,234
             </div>
             <div class="text-sm text-green-600 dark:text-green-400 mt-1">
@@ -41,10 +41,10 @@
       <UCard>
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <div class="text-sm font-medium text-neutral-600 dark:text-neutral-400">
               Total Posts
             </div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+            <div class="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
               567
             </div>
             <div class="text-sm text-green-600 dark:text-green-400 mt-1">
@@ -67,10 +67,10 @@
       <UCard>
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <div class="text-sm font-medium text-neutral-600 dark:text-neutral-400">
               Page Views
             </div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+            <div class="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
               45.2K
             </div>
             <div class="text-sm text-green-600 dark:text-green-400 mt-1">
@@ -93,10 +93,10 @@
       <UCard>
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <div class="text-sm font-medium text-neutral-600 dark:text-neutral-400">
               Avg. Session
             </div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+            <div class="text-2xl font-bold text-neutral-900 dark:text-white mt-1">
               4m 32s
             </div>
             <div class="text-sm text-red-600 dark:text-red-400 mt-1">
@@ -123,7 +123,7 @@
       <UCard>
         <template #header>
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2 class="text-lg font-semibold text-neutral-900 dark:text-white">
               Traffic Overview
             </h2>
             <USelectMenu
@@ -133,7 +133,7 @@
           </div>
         </template>
 
-        <div class="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+        <div class="h-64 flex items-center justify-center text-neutral-500 dark:text-neutral-400">
           <div class="text-center">
             <UIcon
               name="i-heroicons-chart-bar"
@@ -150,7 +150,7 @@
       <!-- Top Pages -->
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 class="text-lg font-semibold text-neutral-900 dark:text-white">
             Top Pages
           </h2>
         </template>
@@ -162,15 +162,15 @@
             class="flex items-center justify-between"
           >
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <div class="text-sm font-medium text-neutral-900 dark:text-white truncate">
                 {{ page.path }}
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-sm text-neutral-600 dark:text-neutral-400">
                 {{ page.views }} views
               </div>
             </div>
             <div class="ml-4 flex-shrink-0">
-              <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div class="w-24 bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
                 <div
                   class="bg-primary-500 h-2 rounded-full"
                   :style="{ width: `${page.percentage}%` }"
@@ -185,7 +185,7 @@
     <!-- Recent Activity -->
     <UCard>
       <template #header>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+        <h2 class="text-lg font-semibold text-neutral-900 dark:text-white">
           Recent Activity
         </h2>
       </template>
@@ -206,13 +206,13 @@
             />
           </div>
           <div class="flex-1">
-            <div class="text-sm font-medium text-gray-900 dark:text-white">
+            <div class="text-sm font-medium text-neutral-900 dark:text-white">
               {{ activity.title }}
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
+            <div class="text-sm text-neutral-600 dark:text-neutral-400">
               {{ activity.description }}
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            <div class="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
               {{ activity.time }}
             </div>
           </div>

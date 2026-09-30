@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Posts - Object-Level Authorization
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Demonstrates how users can only edit their own posts, while admins can edit all posts.
       </p>
     </div>
@@ -103,11 +103,11 @@
                 </UBadge>
               </div>
 
-              <p class="text-gray-600 dark:text-gray-400 mb-2">
+              <p class="text-neutral-600 dark:text-neutral-400 mb-2">
                 {{ post.content }}
               </p>
 
-              <p class="text-sm text-gray-500">
+              <p class="text-sm text-neutral-500">
                 By User ID: {{ post.userId }}
               </p>
             </div>

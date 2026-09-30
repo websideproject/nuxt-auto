@@ -489,7 +489,10 @@ watch([page, listFilter], () => {
 const selectedIds = computed(() => data.value
   .filter(row => rowSelection.value[rowId(row)] && canDeleteRow(row[pk.value] as string | number))
   .map(row => row[pk.value] as string | number))
-const showBulkDelete = computed(() => bulkEnabled.value && (canDelete.value ? selectedIds.value.length > 0 : showUnauthorized.value))
+// Only while rows are selected, whoever is looking. Rows are selectable only for a caller who may delete (see
+// `selectable`), so a caller who may not never sees it — under `unauthorizedButtons: 'disable'` it used to sit
+// there greyed out with nothing it could ever apply to. The per-row Edit/Delete still follow that option.
+const showBulkDelete = computed(() => bulkEnabled.value && selectedIds.value.length > 0)
 
 const { mutateAsync: bulkDelete, isPending: isBulkDeleting } = useAutoApiBulkDelete(resourceNameValue.value)
 const bulkModal = reactive({

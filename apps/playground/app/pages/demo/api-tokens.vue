@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         API Token Authentication
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Create, manage, and test API tokens with scoped access. Tokens authenticate API requests via Bearer header.
       </p>
     </div>
@@ -42,7 +42,7 @@
         </div>
       </template>
 
-      <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+      <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
         These tokens are created by the seed script. Use them to quickly test Bearer auth without creating new tokens.
       </p>
 
@@ -50,7 +50,7 @@
         <div
           v-for="token in seededTokens"
           :key="token.raw"
-          class="flex items-center justify-between gap-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+          class="flex items-center justify-between gap-4 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg"
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
@@ -63,9 +63,9 @@
                 {{ token.role }}
               </UBadge>
             </div>
-            <code class="text-xs text-gray-500 break-all">{{ token.raw }}</code>
+            <code class="text-xs text-neutral-500 break-all">{{ token.raw }}</code>
             <div class="mt-1">
-              <span class="text-xs text-gray-400">Scopes: </span>
+              <span class="text-xs text-neutral-400">Scopes: </span>
               <UBadge
                 v-for="scope in token.scopes"
                 :key="scope"
@@ -217,7 +217,7 @@
               {{ testResult.status }} {{ testResult.statusText }}
             </UBadge>
           </div>
-          <pre class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-xs overflow-x-auto max-h-64 overflow-y-auto">{{ testResult.body }}</pre>
+          <pre class="bg-neutral-50 dark:bg-neutral-900 p-4 rounded-lg text-xs overflow-x-auto max-h-64 overflow-y-auto">{{ testResult.body }}</pre>
         </div>
       </div>
     </UCard>
@@ -236,18 +236,18 @@
         </div>
       </template>
 
-      <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+      <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
         Click each button to test how token scopes restrict access. The editor token only has
-        <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">articles:read</code>,
-        <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">articles:create</code>, and
-        <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">articles:update</code> scopes.
+        <code class="bg-neutral-100 dark:bg-neutral-800 px-1 rounded">articles:read</code>,
+        <code class="bg-neutral-100 dark:bg-neutral-800 px-1 rounded">articles:create</code>, and
+        <code class="bg-neutral-100 dark:bg-neutral-800 px-1 rounded">articles:update</code> scopes.
       </p>
 
       <div class="space-y-3">
         <div
           v-for="test in scopeTests"
           :key="test.label"
-          class="flex items-center justify-between gap-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+          class="flex items-center justify-between gap-4 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg"
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
@@ -261,7 +261,7 @@
                 {{ test.result ? 'Allowed' : 'Denied' }}
               </UBadge>
             </div>
-            <span class="text-xs text-gray-500">{{ test.description }}</span>
+            <span class="text-xs text-neutral-500">{{ test.description }}</span>
           </div>
           <UButton
             size="xs"
@@ -344,7 +344,7 @@
         <div
           v-for="key in apiKeys.data"
           :key="key.id"
-          class="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
+          class="flex items-center justify-between gap-4 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg"
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
@@ -366,7 +366,7 @@
               </UBadge>
             </div>
             <div class="flex items-center gap-2 mb-1">
-              <code class="text-xs text-gray-500">{{ key.key }}</code>
+              <code class="text-xs text-neutral-500">{{ key.key }}</code>
             </div>
             <div
               v-if="key.scopes && key.scopes.length"
@@ -384,13 +384,13 @@
             </div>
             <span
               v-else
-              class="text-xs text-gray-400"
+              class="text-xs text-neutral-400"
             >No scopes (unrestricted)</span>
             <div
               v-if="key.lastUsedAt"
               class="mt-1"
             >
-              <span class="text-xs text-gray-400">Last used: {{ formatDate(key.lastUsedAt) }}</span>
+              <span class="text-xs text-neutral-400">Last used: {{ formatDate(key.lastUsedAt) }}</span>
             </div>
           </div>
           <div class="flex gap-1">

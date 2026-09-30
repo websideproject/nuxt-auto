@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Permission System Documentation
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Learn how to use the nuxt-auto-api permission system in your projects.
       </p>
     </div>
@@ -52,7 +52,7 @@
         <div class="prose dark:prose-invert max-w-none">
           <p>Check permissions from any Vue component:</p>
 
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>const { canCreate, canUpdate, canDelete } = usePermissions('posts')
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>const { canCreate, canUpdate, canDelete } = usePermissions('posts')
 
 // Use in template
 &lt;UButton :disabled="!canCreate"&gt;Create Post&lt;/UButton&gt;
@@ -82,7 +82,7 @@
           <h3 class="text-lg font-semibold mt-4">
             Role-based permissions
           </h3>
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>export const articlesAuth = {
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>export const articlesAuth = {
   permissions: {
     create: ['editor', 'admin'],
     update: ['editor', 'admin'],
@@ -94,7 +94,7 @@
           <h3 class="text-lg font-semibold mt-4">
             Object-level permissions
           </h3>
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>export const postsAuth = {
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>export const postsAuth = {
   permissions: {
     read: true,
     create: (ctx) => !!ctx.user,
@@ -113,7 +113,7 @@
           <h3 class="text-lg font-semibold mt-4">
             Field-level permissions
           </h3>
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>export const usersAuth = {
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>export const usersAuth = {
   permissions: {
     read: true,
     update: (ctx) => !!ctx.user,
@@ -145,7 +145,7 @@
             PermissionButton
           </h3>
           <p>Button that disables itself based on permissions:</p>
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>&lt;PermissionButton
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>&lt;PermissionButton
   resource="posts"
   action="update"
   icon="i-heroicons-pencil"
@@ -157,7 +157,7 @@
             ResourceActions
           </h3>
           <p>Group of action buttons for a resource:</p>
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>&lt;ResourceActions
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>&lt;ResourceActions
   resource="posts"
   :item-id="post.id"
   show-create
@@ -205,7 +205,7 @@
           <h3 class="text-lg font-semibold mt-4">
             3. Example: Better Auth Integration
           </h3>
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>// server/plugins/auth.ts
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>// server/plugins/auth.ts
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', async (event) => {
     const session = await auth.api.getSession({ headers: event.headers })
@@ -236,7 +236,7 @@ export default defineNitroPlugin((nitroApp) => {
             Global Permissions Endpoint (Recommended)
           </h3>
           <p>The module automatically provides a global endpoint that returns permissions for all resources in a single request:</p>
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>GET /api/permissions
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>GET /api/permissions
 
 Response:
 {
@@ -270,7 +270,7 @@ Response:
             Per-Resource Endpoints
           </h3>
           <p>Each resource also has its own endpoint if needed:</p>
-          <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto"><code>GET /api/{resource}/permissions
+          <pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto"><code>GET /api/{resource}/permissions
 
 Response:
 {

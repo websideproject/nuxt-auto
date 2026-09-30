@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Relation Errors
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Helpful error messages guide you when relations are misconfigured or missing.
       </p>
     </div>
@@ -38,7 +38,7 @@
         </template>
 
         <div class="space-y-4">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
             Try requesting a relation that doesn't exist:
           </p>
 
@@ -97,7 +97,7 @@
           </template>
 
           <div class="space-y-3">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               Missing relation definition:
             </p>
 
@@ -130,7 +130,7 @@
           </template>
 
           <div class="space-y-3">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               Proper relation definition:
             </p>
 
@@ -159,7 +159,7 @@
         </template>
 
         <div class="space-y-4">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
             Test any relation name to see if it exists:
           </p>
 
@@ -202,7 +202,7 @@
                 :description="testResult.error"
               />
 
-              <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+              <div class="bg-neutral-50 dark:bg-neutral-900 p-4 rounded-lg">
                 <p class="text-sm font-medium mb-2">
                   Full Error Response:
                 </p>

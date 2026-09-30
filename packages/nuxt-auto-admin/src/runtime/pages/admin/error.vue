@@ -6,7 +6,7 @@
     />
     <div
       v-else
-      class="min-h-screen flex items-center justify-center bg-muted px-4"
+      class="min-h-[var(--auto-admin-height,100dvh)] flex items-center justify-center bg-muted px-4"
     >
       <UCard class="max-w-lg w-full">
         <div class="text-center space-y-4 py-8">

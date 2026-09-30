@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-muted px-4">
+  <div class="min-h-[var(--auto-admin-height,100dvh)] flex items-center justify-center bg-muted px-4">
     <UCard class="max-w-lg w-full">
       <div class="text-center space-y-4 py-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20">

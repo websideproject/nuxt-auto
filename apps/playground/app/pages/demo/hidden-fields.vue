@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Hidden Fields
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Automatically filters sensitive data like passwords and API keys from all API responses.
       </p>
     </div>
@@ -35,8 +35,8 @@
           <h2 class="text-xl font-semibold">
             User List
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/users</code>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            GET <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/users</code>
           </p>
         </template>
 
@@ -52,7 +52,7 @@
         </div>
 
         <div v-else>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
             Notice that <code class="font-mono text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 px-1 py-0.5 rounded">password</code> and
             <code class="font-mono text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 px-1 py-0.5 rounded">apiKey</code> fields are automatically filtered out:
           </p>
@@ -66,8 +66,8 @@
           <h2 class="text-xl font-semibold">
             Single User
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/users/1</code>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            GET <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/users/1</code>
           </p>
         </template>
 
@@ -83,7 +83,7 @@
         </div>
 
         <div v-else>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
             Even when fetching a single user, sensitive fields remain hidden:
           </p>
           <ApiResponse :data="user" />
@@ -96,8 +96,8 @@
           <h2 class="text-xl font-semibold">
             Nested Relations
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts?include=author</code>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            GET <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/posts?include=author</code>
           </p>
         </template>
 
@@ -113,7 +113,7 @@
         </div>
 
         <div v-else>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
             When including relations, hidden fields are also filtered from nested objects (check author.password and author.apiKey):
           </p>
           <ApiResponse :data="postsWithAuthor?.data?.slice(0, 2)" />
@@ -134,7 +134,7 @@
             <h3 class="font-medium mb-2">
               Method 1: Module Registration (Recommended)
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
               Configure hidden fields when registering resources in your module:
             </p>
 
@@ -149,7 +149,7 @@
             <h3 class="font-medium mb-2">
               Method 2: Runtime Configuration
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
               Alternatively, configure in <code class="font-mono text-xs">nuxt.config.ts</code> for global or per-resource hidden fields:
             </p>
 

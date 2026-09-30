@@ -4,7 +4,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Interactive Permission Demo
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Explore how authorization works by switching between different user roles. See permissions update in real-time!
       </p>
     </div>
@@ -30,7 +30,7 @@
             <p class="font-semibold text-lg">
               {{ user.name }}
             </p>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               {{ user.email }}
             </p>
             <UBadge
@@ -55,7 +55,7 @@
             <p class="font-semibold text-lg">
               Not logged in
             </p>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               Anonymous user (read-only access)
             </p>
             <UBadge
@@ -89,7 +89,7 @@
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-700">
+            <tr class="border-b border-neutral-200 dark:border-neutral-700">
               <th class="text-left py-3 px-4">
                 Resource
               </th>
@@ -111,7 +111,7 @@
             <tr
               v-for="resource in resources"
               :key="resource"
-              class="border-b border-gray-100 dark:border-gray-800"
+              class="border-b border-neutral-100 dark:border-neutral-800"
             >
               <td class="py-3 px-4 font-medium">
                 {{ resource }}
@@ -168,7 +168,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Posts - Object-Level Authorization
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Users can only edit their own posts. Admins can edit all posts.
                 </p>
                 <UButton
@@ -199,7 +199,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Articles - Role-Based Restrictions
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Only editors and admins can create/edit articles. Users can read published articles.
                 </p>
                 <UButton
@@ -230,7 +230,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Users - Field-Level Security
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Email addresses are hidden unless viewing your own profile or you're an admin.
                 </p>
                 <UButton
@@ -261,7 +261,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Documentation
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Learn how the permission system works and how to use it in your projects.
                 </p>
                 <UButton
@@ -292,7 +292,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Hidden Fields
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Automatically filter sensitive data like passwords and API keys from all responses.
                 </p>
                 <UButton
@@ -323,7 +323,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Nested Relations
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Enhanced include syntax with field selection, filtering, and pagination.
                 </p>
                 <UButton
@@ -354,7 +354,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Bulk Operations
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Atomic create, update, and delete operations for multiple records at once.
                 </p>
                 <UButton
@@ -385,7 +385,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Aggregations
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Count, sum, avg, min, max with groupBy and having for data analysis.
                 </p>
                 <UButton
@@ -416,7 +416,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Lifecycle Hooks
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Before/after CRUD hooks for audit logging, validation, and side effects.
                 </p>
                 <UButton
@@ -447,7 +447,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   Relation Errors
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Helpful error messages guide you when relations are misconfigured.
                 </p>
                 <UButton
@@ -478,7 +478,7 @@
                 <h3 class="font-semibold text-lg mb-1">
                   API Token Authentication
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                   Create scoped API keys, test Bearer auth, and see scope enforcement in action.
                 </p>
                 <UButton

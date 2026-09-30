@@ -68,14 +68,14 @@
               v-model="form.published"
               :disabled="loading"
             />
-            <span class="text-sm text-gray-600 dark:text-gray-400">
+            <span class="text-sm text-neutral-600 dark:text-neutral-400">
               {{ form.published ? 'Published' : 'Draft' }}
             </span>
           </div>
         </UFormField>
 
         <!-- Actions -->
-        <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700">
           <UButton
             type="button"
             color="neutral"
@@ -116,19 +116,19 @@
 
       <div class="space-y-4">
         <div>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 class="text-2xl font-bold text-neutral-900 dark:text-white">
             {{ form.title || 'Untitled Post' }}
           </h2>
           <p
             v-if="form.userId"
-            class="text-sm text-gray-500 dark:text-gray-400 mt-2"
+            class="text-sm text-neutral-500 dark:text-neutral-400 mt-2"
           >
             By {{ getUserName(form.userId) }}
           </p>
         </div>
 
-        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-          <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+        <div class="border-t border-neutral-200 dark:border-neutral-700 pt-4">
+          <p class="text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap">
             {{ form.content || 'No content yet. Start typing to see your post preview...' }}
           </p>
         </div>
