@@ -1,7 +1,7 @@
 <template>
-  <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+  <div class="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
     <div class="flex items-center justify-between mb-2">
-      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">API Response</span>
+      <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">API Response</span>
       <UButton
         :icon="copied ? 'i-heroicons-check' : 'i-heroicons-clipboard-document'"
         size="xs"
@@ -10,7 +10,7 @@
         @click="copyJson"
       />
     </div>
-    <pre class="text-sm overflow-x-auto text-gray-800 dark:text-gray-200"><code class="language-json">{{ formattedJson }}</code></pre>
+    <pre class="text-sm overflow-x-auto text-neutral-800 dark:text-neutral-200"><code class="language-json">{{ formattedJson }}</code></pre>
   </div>
 </template>
 

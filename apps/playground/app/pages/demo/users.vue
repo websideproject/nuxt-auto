@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Users - Field-Level Security
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         The API decides which fields each caller receives: email is sent to admins, and to anyone else only on their
         own record.
       </p>
@@ -89,12 +89,12 @@
                 <div class="flex items-center gap-2">
                   <UIcon
                     name="i-heroicons-envelope"
-                    class="text-gray-400"
+                    class="text-neutral-400"
                     size="16"
                   />
                   <span
                     v-if="emailOf(userItem)"
-                    class="text-sm text-gray-600 dark:text-gray-400"
+                    class="text-sm text-neutral-600 dark:text-neutral-400"
                   >
                     {{ emailOf(userItem) }}
                   </span>
@@ -102,7 +102,7 @@
                     v-else
                     class="flex items-center gap-2"
                   >
-                    <span class="text-sm text-gray-400">
+                    <span class="text-sm text-neutral-400">
                       [Hidden]
                     </span>
                     <UBadge
@@ -115,7 +115,7 @@
                   </div>
                 </div>
 
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-neutral-500">
                   User ID: {{ userItem.id }}
                 </p>
               </div>

@@ -108,13 +108,13 @@
                 </UBadge>
               </div>
 
-              <p class="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+              <p class="text-neutral-600 dark:text-neutral-400 mb-3 line-clamp-2">
                 {{ post.content }}
               </p>
 
               <div
                 v-if="post.author"
-                class="flex items-center gap-2 text-sm text-gray-500"
+                class="flex items-center gap-2 text-sm text-neutral-500"
               >
                 <UIcon
                   name="i-lucide-user"
@@ -143,7 +143,7 @@
         <!-- Pagination -->
         <UCard v-if="data.meta.total">
           <div class="flex items-center justify-between">
-            <div class="text-sm text-gray-600 dark:text-gray-400">
+            <div class="text-sm text-neutral-600 dark:text-neutral-400">
               Showing {{ (currentPage - 1) * pageSize + 1 }} to
               {{ Math.min(currentPage * pageSize, data.meta.total) }}
               of {{ data.meta.total }} posts
@@ -162,12 +162,12 @@
           <div class="text-center py-12">
             <UIcon
               name="i-lucide-file-text"
-              class="w-12 h-12 mx-auto text-gray-400 mb-4"
+              class="w-12 h-12 mx-auto text-neutral-400 mb-4"
             />
             <h3 class="text-lg font-semibold mb-2">
               No posts found
             </h3>
-            <p class="text-gray-600 dark:text-gray-400 mb-4">
+            <p class="text-neutral-600 dark:text-neutral-400 mb-4">
               {{ searchQuery ? 'Try adjusting your filters' : 'Get started by creating your first post' }}
             </p>
             <UButton

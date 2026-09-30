@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Nested Relations
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Enhanced include syntax with field selection, filtering, and pagination for related data.
       </p>
     </div>
@@ -75,7 +75,7 @@
             />
           </div>
 
-          <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+          <div class="bg-neutral-50 dark:bg-neutral-900 p-4 rounded-lg">
             <p class="text-sm font-medium mb-2">
               Generated Query:
             </p>
@@ -121,7 +121,7 @@
             <h3 class="font-medium mb-2">
               Field Selection
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
               Select only specific fields from the relation:
             </p>
             <CodeBlock
@@ -149,7 +149,7 @@
             <h3 class="font-medium mb-2">
               Pagination
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
               Limit the number of related items returned:
             </p>
             <CodeBlock
@@ -177,7 +177,7 @@
             <h3 class="font-medium mb-2">
               Filtering Relations
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
               Filter related items by specific criteria:
             </p>
             <CodeBlock
@@ -205,7 +205,7 @@
             <h3 class="font-medium mb-2">
               Combined: Fields + Filtering + Limit
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
               Combine all features for precise control:
             </p>
             <CodeBlock
@@ -233,7 +233,7 @@
             <h3 class="font-medium mb-2">
               Deep Nesting
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
               Traverse multiple levels of relationships:
             </p>
             <CodeBlock

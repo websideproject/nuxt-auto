@@ -1,5 +1,5 @@
 <template>
-  <aside class="w-64 h-screen bg-default border-r border-default/60 flex flex-col flex-shrink-0">
+  <aside class="w-64 h-full bg-default border-r border-default/60 flex flex-col flex-shrink-0">
     <!-- Logo/Branding -->
     <div class="h-14 px-4 py-5 border-b border-default/60 flex-shrink-0">
       <NuxtLink

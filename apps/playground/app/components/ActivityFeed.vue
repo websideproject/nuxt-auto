@@ -21,18 +21,18 @@
           >
             {{ event.hook }}
           </span>
-          <span class="text-xs text-gray-500">
+          <span class="text-xs text-neutral-500">
             {{ formatTime(event.timestamp) }}
           </span>
         </div>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
           {{ event.message }}
         </p>
       </div>
     </div>
     <div
       v-if="events.length === 0"
-      class="text-center py-8 text-gray-500"
+      class="text-center py-8 text-neutral-500"
     >
       No events yet. Perform an action to see hook activity.
     </div>
@@ -60,7 +60,7 @@ const getEventClass = (type: string) => {
     case 'error':
       return 'bg-red-50 dark:bg-red-950'
     default:
-      return 'bg-gray-50 dark:bg-gray-900'
+      return 'bg-neutral-50 dark:bg-neutral-900'
   }
 }
 
@@ -86,7 +86,7 @@ const getIconClass = (type: string) => {
     case 'error':
       return 'text-red-500'
     default:
-      return 'text-gray-500'
+      return 'text-neutral-500'
   }
 }
 
@@ -99,7 +99,7 @@ const getTextClass = (type: string) => {
     case 'error':
       return 'text-red-700 dark:text-red-300'
     default:
-      return 'text-gray-700 dark:text-gray-300'
+      return 'text-neutral-700 dark:text-neutral-300'
   }
 }
 

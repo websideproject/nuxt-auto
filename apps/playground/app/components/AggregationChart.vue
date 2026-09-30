@@ -6,14 +6,14 @@
       class="space-y-2"
     >
       <div class="flex items-center justify-between text-sm">
-        <span class="font-medium text-gray-700 dark:text-gray-300">
+        <span class="font-medium text-neutral-700 dark:text-neutral-300">
           {{ formatLabel(item.label) }}
         </span>
-        <span class="font-semibold text-gray-900 dark:text-gray-100">
+        <span class="font-semibold text-neutral-900 dark:text-neutral-100">
           {{ formatValue(item.value) }}
         </span>
       </div>
-      <div class="relative h-8 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div class="relative h-8 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
         <div
           class="absolute inset-y-0 left-0 bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
           :style="{ width: getBarWidth(item.value) + '%' }"
@@ -22,7 +22,7 @@
     </div>
     <div
       v-if="data.length === 0"
-      class="text-center py-8 text-gray-500"
+      class="text-center py-8 text-neutral-500"
     >
       No data to display
     </div>

@@ -3,7 +3,7 @@
     <div
       v-for="(row, index) in rows"
       :key="index"
-      class="flex items-end gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
+      class="flex items-end gap-3 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg"
     >
       <div
         class="flex-1 grid gap-3"
@@ -13,7 +13,7 @@
           v-for="field in fields"
           :key="field.name"
         >
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
             {{ field.label }}
           </label>
           <UInput

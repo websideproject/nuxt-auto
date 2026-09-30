@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Lifecycle Hooks
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Before/after CRUD hooks for audit logging, validation, and side effects.
       </p>
     </div>
@@ -61,7 +61,7 @@
             <h3 class="font-semibold">
               Create Hook Demo
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               beforeCreate hook transforms title to uppercase
             </p>
           </template>
@@ -89,10 +89,10 @@
               <p class="text-sm font-medium text-green-700 dark:text-green-300 mb-2">
                 ✓ Post created successfully!
               </p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+              <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 Original: <code>{{ createTitle }}</code>
               </p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+              <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 Transformed: <code class="font-bold">{{ createdPost.data.title }}</code>
               </p>
             </div>
@@ -105,7 +105,7 @@
             <h3 class="font-semibold">
               Update Hook Demo
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               afterUpdate hook logs changes
             </p>
           </template>
@@ -119,7 +119,7 @@
               <label class="block text-sm font-medium mb-2">Select a post to update:</label>
               <select
                 v-model="selectedPostId"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"
+                class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
               >
                 <option :value="null">
                   -- Select a post --
@@ -161,7 +161,7 @@
             <h3 class="font-semibold">
               Delete Hook Demo
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               beforeDelete hook validates permissions
             </p>
           </template>
@@ -175,7 +175,7 @@
               <label class="block text-sm font-medium mb-2">Select a post to delete:</label>
               <select
                 v-model="selectedDeleteId"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"
+                class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900"
               >
                 <option :value="null">
                   -- Select a post --
@@ -209,7 +209,7 @@
             <h3 class="font-semibold">
               List Hook Demo
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
               afterList hook logs query execution
             </p>
           </template>
@@ -252,32 +252,32 @@
                 <p class="font-medium text-sm">
                   beforeCreate / beforeUpdate / beforeDelete
                 </p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-neutral-500">
                   Validate, transform, or reject the operation
                 </p>
               </div>
             </div>
 
             <div class="flex items-center gap-3 ml-4">
-              <div class="w-0.5 h-8 bg-gray-300 dark:bg-gray-700" />
+              <div class="w-0.5 h-8 bg-neutral-300 dark:bg-neutral-700" />
             </div>
 
             <div class="flex items-center gap-3">
-              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-700 dark:text-gray-300 font-semibold text-sm">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center text-neutral-700 dark:text-neutral-300 font-semibold text-sm">
                 2
               </div>
               <div class="flex-1">
                 <p class="font-medium text-sm">
                   Database Operation
                 </p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-neutral-500">
                   Execute the actual query
                 </p>
               </div>
             </div>
 
             <div class="flex items-center gap-3 ml-4">
-              <div class="w-0.5 h-8 bg-gray-300 dark:bg-gray-700" />
+              <div class="w-0.5 h-8 bg-neutral-300 dark:bg-neutral-700" />
             </div>
 
             <div class="flex items-center gap-3">
@@ -288,7 +288,7 @@
                 <p class="font-medium text-sm">
                   afterCreate / afterUpdate / afterDelete
                 </p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-neutral-500">
                   Log, notify, or trigger side effects
                 </p>
               </div>

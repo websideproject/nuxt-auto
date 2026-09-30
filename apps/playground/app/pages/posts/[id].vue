@@ -71,7 +71,7 @@
 
           <div
             v-if="data.data.author"
-            class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400"
+            class="flex items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400"
           >
             <div class="flex items-center gap-2">
               <UIcon
@@ -150,7 +150,7 @@
 
           <div
             v-if="data.data.comments.length === 0"
-            class="text-center py-8 text-gray-500"
+            class="text-center py-8 text-neutral-500"
           >
             <UIcon
               name="i-lucide-message-circle"
@@ -166,16 +166,16 @@
             <div
               v-for="comment in data.data.comments"
               :key="comment.id"
-              class="border-l-2 border-gray-200 dark:border-gray-700 pl-4"
+              class="border-l-2 border-neutral-200 dark:border-neutral-700 pl-4"
             >
               <div class="flex items-center gap-2 mb-2 text-sm">
                 <span class="font-medium">
                   {{ comment.author?.name || comment.author?.email || 'Unknown' }}
                 </span>
-                <span class="text-gray-500">•</span>
-                <span class="text-gray-500">{{ formatDate(comment.createdAt) }}</span>
+                <span class="text-neutral-500">•</span>
+                <span class="text-neutral-500">{{ formatDate(comment.createdAt) }}</span>
               </div>
-              <p class="text-gray-700 dark:text-gray-300">
+              <p class="text-neutral-700 dark:text-neutral-300">
                 {{ comment.content }}
               </p>
             </div>
@@ -187,19 +187,19 @@
       <UCard title="Post Details">
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span class="text-gray-600 dark:text-gray-400">Post ID:</span>
+            <span class="text-neutral-600 dark:text-neutral-400">Post ID:</span>
             <span class="ml-2 font-mono">{{ data.data.id }}</span>
           </div>
           <div>
-            <span class="text-gray-600 dark:text-gray-400">Author ID:</span>
+            <span class="text-neutral-600 dark:text-neutral-400">Author ID:</span>
             <span class="ml-2 font-mono">{{ data.data.userId }}</span>
           </div>
           <div>
-            <span class="text-gray-600 dark:text-gray-400">Created:</span>
+            <span class="text-neutral-600 dark:text-neutral-400">Created:</span>
             <span class="ml-2">{{ formatFullDate(data.data.createdAt) }}</span>
           </div>
           <div>
-            <span class="text-gray-600 dark:text-gray-400">Updated:</span>
+            <span class="text-neutral-600 dark:text-neutral-400">Updated:</span>
             <span class="ml-2">{{ formatFullDate(data.data.updatedAt) }}</span>
           </div>
         </div>

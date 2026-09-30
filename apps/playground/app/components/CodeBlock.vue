@@ -10,7 +10,7 @@
       />
     </div>
     <pre
-      class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm"
+      class="bg-neutral-900 text-neutral-100 rounded-lg p-4 overflow-x-auto text-sm"
     ><code :class="`language-${language}`">{{ code }}</code></pre>
   </div>
 </template>

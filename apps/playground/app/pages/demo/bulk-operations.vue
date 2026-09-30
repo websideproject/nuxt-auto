@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Bulk Operations
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Atomic create, update, and delete operations for multiple records in a single request.
       </p>
     </div>
@@ -35,8 +35,8 @@
           <h2 class="text-xl font-semibold">
             Bulk Create
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            POST <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            POST <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
           </p>
         </template>
 
@@ -66,8 +66,8 @@
           <h2 class="text-xl font-semibold">
             Bulk Update
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            PATCH <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            PATCH <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
           </p>
         </template>
 
@@ -86,7 +86,7 @@
           v-else
           class="space-y-4"
         >
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
             Select posts to update, modify their titles, then click Update Selected:
           </p>
 
@@ -94,7 +94,7 @@
             <div
               v-for="post in posts?.data?.slice(0, 5)"
               :key="post.id"
-              class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+              class="flex items-center gap-3 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg"
             >
               <UCheckbox
                 :model-value="selectedForUpdate.includes(post.id)"
@@ -137,8 +137,8 @@
           <h2 class="text-xl font-semibold">
             Bulk Delete
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            DELETE <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            DELETE <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/posts/bulk</code>
           </p>
         </template>
 
@@ -157,7 +157,7 @@
           v-else
           class="space-y-4"
         >
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
             Select posts to delete (this action cannot be undone):
           </p>
 
@@ -165,7 +165,7 @@
             <div
               v-for="post in posts?.data"
               :key="post.id"
-              class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+              class="flex items-start gap-3 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg"
             >
               <UCheckbox
                 :model-value="selectedForDelete.includes(post.id)"
@@ -176,7 +176,7 @@
                 <p class="font-medium text-sm">
                   {{ post.title }}
                 </p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-neutral-500">
                   ID: {{ post.id }}
                 </p>
               </div>

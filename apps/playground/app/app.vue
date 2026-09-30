@@ -58,7 +58,9 @@ onMounted(() => {
       </template>
     </UHeader>
 
-    <UMain>
+    <!-- flex-1 + min-h-auto (instead of UMain's viewport-tall minimum): the main area takes what the header and footer leave, so a short page keeps the footer
+         on screen; the admin shell fills exactly the viewport under the header (--auto-admin-height). -->
+    <UMain class="flex-1 min-h-auto [--auto-admin-height:calc(100dvh-var(--ui-header-height))]">
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>

@@ -30,6 +30,13 @@
   --ui-bg-accented: var(--ui-color-neutral-800);
 }
 
+/* Sticky footer: header, main and footer are direct children of #__nuxt (UApp adds no wrapper). */
+#__nuxt {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 ::selection {
   background: color-mix(in srgb, #ffbd7a 40%, transparent);
 }

@@ -2,10 +2,10 @@
   <div class="space-y-6">
     <!-- Page Header -->
     <div>
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+      <h1 class="text-3xl font-bold text-neutral-900 dark:text-white">
         Settings
       </h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">
+      <p class="mt-2 text-neutral-600 dark:text-neutral-400">
         Configure your application settings and preferences
       </p>
     </div>
@@ -22,7 +22,7 @@
                 class="h-5 w-5 text-blue-600 dark:text-blue-400"
               />
             </div>
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 class="text-xl font-semibold text-neutral-900 dark:text-white">
               General Settings
             </h2>
           </div>
@@ -30,7 +30,7 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
               Application Name
             </label>
             <UInput
@@ -40,7 +40,7 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
               Contact Email
             </label>
             <UInput
@@ -51,7 +51,7 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
               Timezone
             </label>
             <USelectMenu
@@ -72,7 +72,7 @@
                 class="h-5 w-5 text-purple-600 dark:text-purple-400"
               />
             </div>
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 class="text-xl font-semibold text-neutral-900 dark:text-white">
               Appearance
             </h2>
           </div>
@@ -81,10 +81,10 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div class="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                 Dark Mode
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-sm text-neutral-600 dark:text-neutral-400">
                 Enable dark mode for the admin panel
               </div>
             </div>
@@ -93,10 +93,10 @@
 
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div class="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                 Compact Mode
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-sm text-neutral-600 dark:text-neutral-400">
                 Use compact layout with reduced spacing
               </div>
             </div>
@@ -115,7 +115,7 @@
                 class="h-5 w-5 text-green-600 dark:text-green-400"
               />
             </div>
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 class="text-xl font-semibold text-neutral-900 dark:text-white">
               Notifications
             </h2>
           </div>
@@ -124,10 +124,10 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div class="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                 Email Notifications
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-sm text-neutral-600 dark:text-neutral-400">
                 Receive email updates about important events
               </div>
             </div>
@@ -136,10 +136,10 @@
 
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div class="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                 Push Notifications
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-sm text-neutral-600 dark:text-neutral-400">
                 Receive push notifications in your browser
               </div>
             </div>

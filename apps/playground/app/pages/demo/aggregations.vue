@@ -14,7 +14,7 @@
       <h1 class="text-4xl font-bold mb-2">
         Aggregations
       </h1>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-neutral-600 dark:text-neutral-400">
         Count, sum, avg, min, max with groupBy and having clauses for powerful data analysis.
       </p>
     </div>
@@ -53,10 +53,10 @@
               <p class="text-4xl font-bold text-green-600">
                 {{ totalCount?.data[0]?.count ?? 0 }}
               </p>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">
                 Total Posts
               </p>
-              <code class="text-xs text-gray-500">GET /api/posts/aggregate?aggregate=count</code>
+              <code class="text-xs text-neutral-500">GET /api/posts/aggregate?aggregate=count</code>
             </div>
           </UCard>
 
@@ -65,10 +65,10 @@
               <p class="text-4xl font-bold text-blue-600">
                 {{ publishedCount?.data[0]?.count ?? 0 }}
               </p>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">
                 Published Posts
               </p>
-              <code class="text-xs text-gray-500">?aggregate=count&filter={published:true}</code>
+              <code class="text-xs text-neutral-500">?aggregate=count&filter={published:true}</code>
             </div>
           </UCard>
 
@@ -77,10 +77,10 @@
               <p class="text-4xl font-bold text-orange-600">
                 {{ draftCount?.data[0]?.count ?? 0 }}
               </p>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">
                 Draft Posts
               </p>
-              <code class="text-xs text-gray-500">?aggregate=count&filter={published:false}</code>
+              <code class="text-xs text-neutral-500">?aggregate=count&filter={published:false}</code>
             </div>
           </UCard>
         </div>
@@ -92,8 +92,8 @@
           <h2 class="text-xl font-semibold">
             GroupBy Example
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/aggregate?aggregate=count&groupBy=published</code>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            GET <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/posts/aggregate?aggregate=count&groupBy=published</code>
           </p>
         </template>
 
@@ -112,7 +112,7 @@
           v-else
           class="space-y-4"
         >
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
             Group posts by published status and count each group:
           </p>
 
@@ -133,8 +133,8 @@
           <h2 class="text-xl font-semibold">
             Posts Per User
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            GET <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">/api/posts/aggregate?aggregate=count&groupBy=userId</code>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            GET <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/posts/aggregate?aggregate=count&groupBy=userId</code>
           </p>
         </template>
 
@@ -153,7 +153,7 @@
           v-else
           class="space-y-4"
         >
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
             Count posts grouped by user:
           </p>
 
@@ -231,7 +231,7 @@
             </div>
           </div>
 
-          <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+          <div class="bg-neutral-50 dark:bg-neutral-900 p-4 rounded-lg">
             <p class="text-sm font-medium mb-2">
               Generated Query:
             </p>
