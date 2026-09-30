@@ -45,6 +45,11 @@ interface Shot {
   crop?: (page: Page) => Locator
   /** A full-page picture unless false. An open dialog or menu is photographed at the viewport it floats in. */
   fullPage?: boolean
+  /**
+   * A taller viewport for this picture. The admin scrolls inside its own shell, which is as tall as the viewport, so
+   * a full-page picture of a long admin page stops at the fold; give it the height its content needs.
+   */
+  height?: number
 }
 
 /** The card (UCard) holding a heading. */
@@ -135,7 +140,7 @@ const ADMIN_SHOTS: Shot[] = [
   },
   { name: 'admin-detail', path: '/admin/articles/1', role: 'admin', says: 'getting-started-nuxt-4' },
   { name: 'admin-create', path: '/admin/articles/new', role: 'admin', says: 'Author Id' },
-  { name: 'admin-edit', path: '/admin/articles/1/edit', role: 'admin', says: 'TypeScript, Nuxt' }
+  { name: 'admin-edit', path: '/admin/articles/1/edit', role: 'admin', says: 'TypeScript, Nuxt', height: 1340 }
 ]
 
 // ─── nuxt-auto-api, through the playground's pages ──────────────────────────────────────────────────────────
@@ -225,6 +230,7 @@ for (const viewport of VIEWPORTS) {
 
       test(image, async ({ page, context, baseURL }) => {
         await context.addCookies([{ name: 'demo-session', value: shot.role, url: baseURL! }])
+        if (shot.height) await page.setViewportSize({ width: viewport.width, height: shot.height })
         await page.clock.setFixedTime(FIXED_NOW)
 
         // A write the server refuses changes nothing; one it accepts would change the pictures that follow
