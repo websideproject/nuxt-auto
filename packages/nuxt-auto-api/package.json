@@ -2,7 +2,7 @@
   "name": "@websideproject/nuxt-auto-api",
   "version": "0.0.11",
   "description": "Secure REST APIs for Nuxt from your Drizzle schema: deny-by-default authorization, multi-tenancy, validation, soft delete, M2M and TanStack Query composables",
-  "homepage": "https://github.com/websideproject/nuxt-auto",
+  "homepage": "https://websideproject.com/docs/nuxt-auto",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/websideproject/nuxt-auto.git",
