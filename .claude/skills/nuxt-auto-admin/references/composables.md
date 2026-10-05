@@ -66,7 +66,6 @@ interface ResourceSchema {
   formFields: { create: FieldConfig[]; edit: FieldConfig[] }
   hiddenFields: string[]
   readonlyFields: string[]
-  actions: Record<string, CustomAction>
   group?: string
   order?: number
   disabled?: boolean

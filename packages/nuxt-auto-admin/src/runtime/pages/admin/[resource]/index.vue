@@ -11,14 +11,28 @@
         </p>
       </div>
 
-      <UButton
-        v-if="showButtonBehavior === 'disable' || canCreate"
-        icon="i-heroicons-plus"
-        :disabled="!canCreate"
-        @click="openCreateModal"
-      >
-        Create New
-      </UButton>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <UButton
+          v-for="action in shownPageActions"
+          :key="action.key"
+          :icon="action.icon"
+          :color="action.color ?? 'neutral'"
+          :variant="action.variant ?? 'outline'"
+          :disabled="!pageActionAllowed(action)"
+          :data-testid="`admin-action-${action.key}`"
+          @click="runAction(action)"
+        >
+          {{ action.label }}
+        </UButton>
+        <UButton
+          v-if="showButtonBehavior === 'disable' || canCreate"
+          icon="i-heroicons-plus"
+          :disabled="!canCreate"
+          @click="openCreateModal"
+        >
+          Create New
+        </UButton>
+      </div>
     </div>
 
     <!-- Table Card -->
@@ -31,6 +45,12 @@
         @edit="openEditModal"
       />
     </UCard>
+
+    <CustomActionConfirm
+      :state="actionPending"
+      @confirm="confirmAction"
+      @cancel="cancelAction"
+    />
 
     <!-- Modals -->
     <ResourceCreateModal
@@ -106,6 +126,10 @@ import { useRoute } from '#app'
 import ResourceCreateModal from '../../../components/modals/ResourceCreateModal.vue'
 import ResourceViewModal from '../../../components/modals/ResourceViewModal.vue'
 import ResourceEditModal from '../../../components/modals/ResourceEditModal.vue'
+import CustomActionConfirm from '../../../components/CustomActionConfirm.vue'
+import { useAdminCustomActions } from '../../../composables/useAdminCustomActions'
+import { isActionAllowed } from '../../../utils/customActions'
+import type { ResolvedAction } from '../../../utils/customActions'
 import { useAdminResource } from '../../../composables/useAdminResource'
 import { useAdminActions } from '../../../composables/useAdminActions'
 import { useAdminPermissions } from '../../../composables/useAdminPermissions'
@@ -123,12 +147,18 @@ const resourceName = computed(() => route.params.resource as string)
 
 const { resource } = useAdminResource(resourceName.value)
 const { handleDelete, isDeleting, goToEdit, goToDetail } = useAdminActions(resourceName.value)
-const { canCreate } = useAdminPermissions(resourceName.value)
+const { canCreate, canRead, canUpdate, canDelete } = useAdminPermissions(resourceName.value)
 
 const { permissions: permissionConfig, ui: uiConfig } = useAdminConfig()
 const showButtonBehavior = computed(() => permissionConfig.unauthorizedButtons || 'disable')
 const editMode = computed(() => uiConfig.editMode)
 const viewMode = computed(() => uiConfig.viewMode)
+
+// Page-level custom actions (the app's admin.actions.ts), next to "Create New".
+const { pageActions, run: runAction, pending: actionPending, confirm: confirmAction, cancel: cancelAction } = useAdminCustomActions(resourceName.value)
+const resourceCan = { create: canCreate, read: canRead, update: canUpdate, delete: canDelete }
+const pageActionAllowed = (action: ResolvedAction) => isActionAllowed(action, { resource: resourceName.value, can: op => resourceCan[op].value })
+const shownPageActions = computed(() => pageActions.filter(a => showButtonBehavior.value === 'disable' || pageActionAllowed(a)))
 
 // Modal states
 const createModalOpen = ref(false)

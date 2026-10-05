@@ -1,10 +1,14 @@
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   defineNuxtModule,
   createResolver,
   addImportsDir,
   addTemplate,
+  addTypeTemplate,
   addLayout,
   addRouteMiddleware,
+  resolvePath,
 } from '@nuxt/kit'
 import type { AdminApiInfo, ModuleOptions } from './runtime/types'
 import type { BuildTimeRegistry, ResourceRegistration } from '@websideproject/nuxt-auto-api'
@@ -127,6 +131,21 @@ export default defineNuxtModule<ModuleOptions>({
       global: true,
     })
 
+    // Custom actions: their handlers are functions, so they live in an app file that is bundled with the admin —
+    // `admin.actions.ts` (or `autoAdmin.actions`) — and reach the pages through this template.
+    const actionsFile = await findActionsFile(options.actions, nuxt.options.srcDir)
+    addTemplate({
+      filename: 'nuxt-auto-admin-actions.mjs',
+      getContents: () => actionsFile ? `export { default } from ${JSON.stringify(actionsFile)}\n` : 'export default {}\n',
+      write: true,
+    })
+    addTypeTemplate({
+      filename: 'types/nuxt-auto-admin-actions.d.ts',
+      getContents: () => `declare module '#nuxt-auto-admin-actions' {\n  const actions: import(${JSON.stringify(resolver.resolve('./runtime/types'))}).AdminActions\n  export default actions\n}\n`,
+    })
+    nuxt.options.alias['#nuxt-auto-admin-actions'] = join(nuxt.options.buildDir, 'nuxt-auto-admin-actions.mjs')
+    if (actionsFile) nuxt.options.watch.push(actionsFile)
+
     // Add composables
     addImportsDir(resolver.resolve('./runtime/composables'))
 
@@ -204,11 +223,33 @@ export function assertNoAccessFunctions(options: ModuleOptions): void {
   if (typeof (options as { access?: unknown }).access === 'function') {
     throw new TypeError('[nuxt-auto-admin] `autoAdmin.access` was never applied — a function in nuxt.config cannot reach the running app. Guard the admin with a named route middleware: `autoAdmin.middleware: \'auth\'`.')
   }
+  for (const [name, config] of Object.entries(options.resources ?? {})) {
+    if ((config as { actions?: unknown } | undefined)?.actions !== undefined) {
+      throw new TypeError(`[nuxt-auto-admin] resources.${name}.actions: custom actions cannot be configured in nuxt.config — their handlers are functions, which cannot reach the running app. Define them in \`app/admin.actions.ts\`: \`export default defineAdminActions({ ${name}: { … } })\`.`)
+    }
+  }
   for (const page of options.customPages ?? []) {
     if (typeof (page as { canAccess?: unknown }).canAccess === 'function') {
       throw new TypeError(`[nuxt-auto-admin] customPages "${page.name}": \`canAccess\` was never applied — a function in nuxt.config cannot reach the running app. Use \`permissions: ['<resource>:<action>']\`, or a route middleware on the page itself.`)
     }
   }
+}
+
+/**
+ * The app file that defines custom actions: `autoAdmin.actions` (resolved like an import — `~/`, aliases), else
+ * `admin.actions.{ts,js,mjs}` in the source directory when it exists. `null` = no custom actions.
+ */
+export async function findActionsFile(option: string | undefined, srcDir: string): Promise<string | null> {
+  if (option) {
+    const file = await resolvePath(option, { extensions: ['.ts', '.js', '.mjs'] })
+    if (!existsSync(file)) throw new Error(`[nuxt-auto-admin] autoAdmin.actions: ${option} not found`)
+    return file
+  }
+  for (const ext of ['ts', 'js', 'mjs']) {
+    const file = join(srcDir, `admin.actions.${ext}`)
+    if (existsSync(file)) return file
+  }
+  return null
 }
 
 /**
@@ -239,7 +280,6 @@ interface BuildTimeResourceConfig {
   formFields?: unknown
   hiddenFields?: string[]
   readonlyFields?: string[]
-  actions?: unknown
   group?: string
   order?: number
   disabled?: boolean
@@ -607,7 +647,6 @@ function buildResourceSchemaEntry(
       formFields,
       hiddenFields: ${JSON.stringify(config.hiddenFields || [])},
       readonlyFields: ${JSON.stringify(config.readonlyFields || [])},
-      actions: ${JSON.stringify(config.actions || {})},
       group: ${config.group ? `'${config.group}'` : 'undefined'},
       order: ${config.order || 0},
       disabled: false,

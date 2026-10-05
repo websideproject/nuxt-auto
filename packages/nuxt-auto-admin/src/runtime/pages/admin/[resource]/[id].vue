@@ -18,7 +18,19 @@
         </div>
       </div>
 
-      <div class="flex gap-2">
+      <div class="flex flex-wrap justify-end gap-2">
+        <UButton
+          v-for="action in shownDetailActions"
+          :key="action.key"
+          :icon="action.icon"
+          :color="action.color ?? 'neutral'"
+          :variant="action.variant ?? 'outline'"
+          :disabled="!data || !detailActionAllowed(action)"
+          :data-testid="`admin-action-${action.key}`"
+          @click="runAction(action, data)"
+        >
+          {{ action.label }}
+        </UButton>
         <UButton
           v-if="showButtonBehavior === 'disable' || canUpdate"
           icon="i-heroicons-pencil"
@@ -142,6 +154,12 @@
       :record-id="id"
     />
 
+    <CustomActionConfirm
+      :state="actionPending"
+      @confirm="confirmAction"
+      @cancel="cancelAction"
+    />
+
     <!-- Delete confirmation modal -->
     <UModal v-model:open="deleteModalOpen">
       <template #body>
@@ -196,6 +214,10 @@ import { ref, computed } from 'vue'
 import { useRoute } from '#app'
 import { formatFieldLabel, formatDisplayValue } from '../../../utils/fieldTypeMapping'
 import ResourceAuditLog from '../../../components/ResourceAuditLog.vue'
+import CustomActionConfirm from '../../../components/CustomActionConfirm.vue'
+import { useAdminCustomActions } from '../../../composables/useAdminCustomActions'
+import { isActionAllowed } from '../../../utils/customActions'
+import type { ResolvedAction } from '../../../utils/customActions'
 import { useAdminResource } from '../../../composables/useAdminResource'
 import { useAdminPermissions, useAdminRecordPermissions } from '../../../composables/useAdminPermissions'
 import { useAdminActions } from '../../../composables/useAdminActions'
@@ -211,6 +233,7 @@ const id = computed(() => route.params.id as string)
 const { resource } = useAdminResource(resourceName.value)
 const { data: response, isLoading, error } = useAutoApiGet(resourceName.value, id)
 const {
+  canCreate,
   canRead,
   isLoading: isLoadingPermissions,
   getPermissionDeniedMessage,
@@ -230,6 +253,15 @@ const showAuditLog = features.auditLog === true && api.auditLog
 const data = computed(() => response.value?.data)
 
 const deleteModalOpen = ref(false)
+
+// Detail custom actions (the app's admin.actions.ts): get this record; `update`/`delete` are this row's answer.
+const { detailActions, run: runAction, pending: actionPending, confirm: confirmAction, cancel: cancelAction } = useAdminCustomActions(resourceName.value)
+const detailActionAllowed = (action: ResolvedAction) => isActionAllowed(action, {
+  resource: resourceName.value,
+  item: data.value,
+  can: op => ({ create: canCreate.value, read: canRead.value, update: canUpdate.value, delete: canDelete.value })[op],
+})
+const shownDetailActions = computed(() => detailActions.filter(a => showButtonBehavior.value === 'disable' || detailActionAllowed(a)))
 
 const visibleColumns = computed(() => {
   if (!resource.value || !data.value) return []

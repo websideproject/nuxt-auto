@@ -2,78 +2,75 @@
 
 ## Custom Actions
 
-Add custom buttons to resource rows, toolbars, or detail pages.
+Buttons next to the built-in ones. Handlers are functions, and a function in `nuxt.config` cannot reach the
+running app — so actions live in **`app/admin.actions.ts`** (or the file `autoAdmin.actions` points at), never in
+`autoAdmin.resources.<name>.actions` (that key fails the build with a pointer to the file). The file is found at
+startup: restart dev after creating it.
 
 ```ts
-resources: {
-  posts: {
-    actions: {
-      publish: {
-        label: 'Publish',
-        icon: 'i-heroicons-paper-airplane',
-        type: 'single',            // 'single' | 'bulk' | 'page-level'
-        location: 'row',           // 'row' | 'toolbar' | 'detail'
-        permission: (ctx) => ctx.user?.roles?.includes('editor'),
-        confirm: 'Publish this post?',   // confirmation dialog message
-        // or: confirm: (item) => `Publish "${item.title}"?`
-        handler: async (item, ctx) => {
-          await $fetch(`/api/posts/${item.id}`, {
-            method: 'PATCH',
-            body: { status: 'published', publishedAt: new Date() },
-          })
-          await ctx.refresh()
-          ctx.toast.add({ title: 'Post published', color: 'success' })
-        },
-        variant: 'ghost',
-        color: 'success',
+// app/admin.actions.ts — defineAdminActions is auto-imported
+export default defineAdminActions({
+  articles: {
+    publish: {
+      label: 'Publish',
+      icon: 'i-heroicons-rocket-launch',
+      type: 'single',
+      location: ['row', 'detail'],
+      permission: 'update',                       // the API's answer — for a row, that row's
+      confirm: article => `Publish "${article.title}"?`,
+      handler: async (article, ctx) => {
+        await $fetch(ctx.path(article.id), { method: 'PATCH', body: { published: true } })
+        await ctx.refresh()
+        ctx.toast.success(`"${article.title}" is live`)
       },
     },
   },
-}
+})
 ```
 
-### `CustomAction` interface
+### `CustomAction`
 
 ```ts
 interface CustomAction {
   label: string
-  icon?: string                          // Iconify icon
+  icon?: string
   type: 'single' | 'bulk' | 'page-level'
-  location: 'row' | 'toolbar' | 'detail'
-  permission?: (ctx: ActionContext) => boolean | Promise<boolean>
-  handler: (item: any | any[], ctx: ActionContext) => Promise<void> | void
-  confirm?: string | ((item: any | any[]) => string)
-  variant?: 'primary' | 'secondary' | 'ghost' | 'link'
-  color?: string
+  location: 'row' | 'toolbar' | 'detail' | Array<…>  // single: row and/or detail; bulk/page-level: always toolbar
+  permission?: 'create' | 'read' | 'update' | 'delete' | ((ctx: { resource: string, item?: any }) => boolean)
+  handler: (item: any, ctx: ActionContext) => Promise<void> | void
+  confirm?: string | ((item: any) => string)
+  variant?: 'solid' | 'outline' | 'soft' | 'subtle' | 'ghost' | 'link'   // Nuxt UI
+  color?: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
 }
 ```
+
+A `permission` function runs while the admin renders (it may call the app's composables) and must be synchronous.
+A refused action is disabled or hidden per `permissions.unauthorizedButtons`. It only decides which buttons show —
+the API still decides what the handler's requests may do.
 
 ### `ActionContext`
 
 ```ts
 interface ActionContext {
-  user: any                    // Current authenticated user
-  resource: string             // Resource name
-  refresh: () => Promise<void> // Re-fetch the current list/detail
-  toast: any                   // @nuxt/ui useToast() instance
+  resource: string
+  refresh: () => Promise<void>                 // invalidates ['autoapi', resource]: every list and record
+  toast: { success(message), error(message, error?) }
+  path: (...segments) => string                // ctx.path(7) → '/api/articles/7' (API prefix honoured)
 }
 ```
 
-### Action types
+There is no `user` in the context — read your auth state in a `permission` function or in the handler file.
+A handler that throws gets an error toast with the API's message.
+
+### Types and places
 
 | Type | Receives | Shown in |
 |------|----------|----------|
-| `single` | Single item | Row actions, detail page |
-| `bulk` | Array of selected items | Toolbar (bulk actions) |
-| `page-level` | N/A | Page toolbar only |
+| `single` | the record | `row`: the row menu after View/Edit/Delete · `detail`: detail page + view modal |
+| `bulk` | the selected rows of the page | list toolbar while rows are selected (`Label (n)`); rows become selectable even without delete permission |
+| `page-level` | `undefined` | next to "Create New" |
 
-### Action locations
-
-| Location | Where |
-|----------|-------|
-| `row` | Per-row action buttons in the table |
-| `toolbar` | Above the table (for bulk and page-level) |
-| `detail` | On the detail/edit page |
+`features.bulkActions: false` turns row selection off, custom bulk actions included.
 
 ---
 
@@ -116,31 +113,20 @@ When `permission` returns `false`, the action button respects the `unauthorizedB
 
 ## Admin Access Guard
 
-The `access` function in module config controls who can reach any admin route at all:
+Who may open the admin at all is decided by your own named route middleware, run on every admin page:
 
 ```ts
 autoAdmin: {
-  access: (user) => {
-    if (!user) return false
-    return user.roles?.includes('admin') || user.roles?.includes('moderator')
-  },
+  middleware: 'auth', // app/middleware/auth.ts
 }
 ```
 
-The `admin-auth` middleware enforces this on every `/admin/*` route.
+`access: (user) => …` is not supported — a function in `nuxt.config` never reaches the app, so it fails the build.
+The admin only offers what the API allows the caller; data access is always enforced by nuxt-auto-api.
 
 ---
 
 ## Middleware
-
-### `admin-auth`
-
-Use in custom pages to enforce the global `access` check:
-
-```ts
-// pages/admin/custom-page.vue
-definePageMeta({ middleware: 'admin-auth' })
-```
 
 ### `permissions.global`
 
@@ -150,7 +136,8 @@ Automatically runs on all admin routes. Checks per-resource permissions and show
 
 ## Custom Page Access
 
-Each custom page can define its own access check independent of the global one:
+A custom page is guarded by API permissions (`'<resource>:<action>'`), or by a route middleware on the page itself.
+`canAccess: (user) => …` fails the build (a function in nuxt.config never reaches the app):
 
 ```ts
 customPages: [
@@ -159,7 +146,7 @@ customPages: [
     label: 'Reports',
     path: '/reports',
     icon: 'i-heroicons-chart-bar',
-    canAccess: (user) => user?.permissions?.includes('view:reports'),
+    permissions: ['reports:read'],
   },
 ]
 ```
