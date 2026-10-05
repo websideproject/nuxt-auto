@@ -24,6 +24,12 @@ export interface ModuleOptions {
   access?: never
 
   /**
+   * The file that defines custom actions (`export default defineAdminActions({ … })`). Defaults to
+   * `admin.actions.ts` in the app's source directory (`app/` in Nuxt 4) when that file exists.
+   */
+  actions?: string
+
+  /**
    * Branding configuration
    */
   branding?: {
@@ -220,9 +226,10 @@ export interface ResourceConfig {
   readonlyFields?: string[]
 
   /**
-   * Custom actions for this resource
+   * Not supported here — a function in nuxt.config cannot reach the running app. Custom actions live in
+   * `app/admin.actions.ts` (`defineAdminActions`); the module refuses this key with a pointer there.
    */
-  actions?: Record<string, CustomAction>
+  actions?: never
 
   /**
    * Disable the resource in admin panel
@@ -372,64 +379,77 @@ export interface WidgetOptions {
   [key: string]: unknown
 }
 
+/** Where a custom action's button appears. */
+export type ActionLocation = 'row' | 'toolbar' | 'detail'
+
+/** An API operation the caller must be allowed on the resource (or the row) for the action to be enabled. */
+export type ActionOperation = 'create' | 'read' | 'update' | 'delete'
+
 /**
- * Custom action configuration
+ * A custom action — defined in the app's `admin.actions.ts` with `defineAdminActions()`, never in nuxt.config
+ * (a function there cannot reach the running app).
+ *
+ * - `type: 'single'` gets one record: `location: 'row'` (the row menu) and/or `'detail'` (the record's page and
+ *   view modal).
+ * - `type: 'bulk'` gets the selected records: a button on the list toolbar while rows are selected.
+ * - `type: 'page-level'` gets nothing: a button next to "Create New".
  */
-export interface CustomAction {
-  /**
-   * Action label/title
-   */
+export interface CustomAction<T = any> {
+  /** Button / menu label */
   label: string
 
-  /**
-   * Icon for the action button
-   */
+  /** Icon name, e.g. `i-heroicons-rocket-launch` */
   icon?: string
 
-  /**
-   * Action type
-   */
   type: 'single' | 'bulk' | 'page-level'
 
-  /**
-   * Where the action appears
-   */
-  location: 'row' | 'toolbar' | 'detail'
+  /** Where it appears. `bulk` and `page-level` actions are always `'toolbar'`. */
+  location: ActionLocation | ActionLocation[]
 
   /**
-   * Permission check for the action
+   * Who may use it. An operation (`'update'`) is checked against the API's own answer — for a row action, that
+   * row's. A function runs while the admin renders, so it may call your composables (e.g. your auth state);
+   * it must answer synchronously. A refused action is hidden or disabled per `permissions.unauthorizedButtons`.
    */
-  permission?: (context: ActionContext) => boolean | Promise<boolean>
+  permission?: ActionOperation | ((context: ActionPermissionContext<T>) => boolean)
 
-  /**
-   * Action handler
-   */
-  handler: (item: unknown | unknown[], context: ActionContext) => Promise<void> | void
+  /** Runs the action. `item` is the record (`single`), the selected records (`bulk`) or `undefined` (`page-level`). */
+  handler: (item: any, context: ActionContext) => Promise<void> | void
 
-  /**
-   * Confirmation message (if any)
-   */
-  confirm?: string | ((item: unknown | unknown[]) => string)
+  /** Ask before running: a message, or a function of the item(s). */
+  confirm?: string | ((item: any) => string)
 
-  /**
-   * Button variant
-   */
-  variant?: 'primary' | 'secondary' | 'ghost' | 'link'
+  /** Nuxt UI button variant */
+  variant?: 'solid' | 'outline' | 'soft' | 'subtle' | 'ghost' | 'link'
 
-  /**
-   * Button color
-   */
-  color?: string
+  /** Nuxt UI color */
+  color?: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
 }
+
+/** What a `permission` function is given. `item` is set for a single action on a row or a record page. */
+export interface ActionPermissionContext<T = any> {
+  resource: string
+  item?: T
+}
+
+/** Custom actions per resource, as `defineAdminActions()` takes them. */
+export type AdminActions = Record<string, Record<string, CustomAction>>
 
 /**
  * Action context passed to custom actions
  */
 export interface ActionContext {
-  user: unknown
+  /** Resource name */
   resource: string
+  /** Refetch every list and record of this resource the admin shows */
   refresh: () => Promise<void>
-  toast: unknown
+  /** Toast notifications */
+  toast: {
+    success: (message: string) => void
+    error: (message: string, error?: unknown) => void
+  }
+  /** The resource's API path, e.g. `path(post.id)` → `/api/posts/7` (honours the API prefix) */
+  path: (...segments: Array<string | number>) => string
 }
 
 /**
@@ -544,11 +564,6 @@ export interface ResourceSchema {
    * Readonly fields
    */
   readonlyFields: string[]
-
-  /**
-   * Custom actions
-   */
-  actions: Record<string, CustomAction>
 
   /**
    * Authorization config

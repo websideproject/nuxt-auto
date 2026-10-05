@@ -32,7 +32,7 @@ export default defineNuxtConfig({
   ],
   autoAdmin: {
     prefix: '/admin',
-    access: (user) => user?.roles?.includes('admin'),
+    middleware: 'auth', // your middleware decides who may open the admin
     branding: { title: 'My App Admin', logo: '/logo.svg' },
     resources: {
       posts: {

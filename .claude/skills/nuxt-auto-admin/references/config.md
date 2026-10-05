@@ -6,9 +6,11 @@
 // nuxt.config.ts
 autoAdmin: {
   prefix?: string                      // default: '/admin'
+  actions?: string                     // custom actions file; default app/admin.actions.ts if it exists
 
-  // Who can access the admin panel at all
-  access?: (user: any) => boolean | Promise<boolean>
+  // Who can open the admin at all: named route middleware (your app's middleware/auth.ts).
+  // `access: (user) => …` is NOT supported — a function here never reaches the app; it fails the build.
+  middleware?: string | string[]
 
   branding?: {
     logo?: string                      // URL to logo image
@@ -65,8 +67,6 @@ interface ResourceConfig {
     create?: FieldConfig[]           // Override fields for create form
     edit?: FieldConfig[]             // Override fields for edit form
   }
-
-  actions?: Record<string, CustomAction>   // Custom per-item, bulk, or page-level actions
 
   disabled?: boolean                 // Hide this resource from admin entirely
   group?: string                     // Sidebar group label (e.g. 'Content', 'Users')
@@ -143,8 +143,7 @@ interface CustomPageConfig {
   order?: number
 
   // Access control
-  permissions?: string | string[]
-  canAccess?: (user: any) => boolean | Promise<boolean>
+  permissions?: string | string[]   // API permissions, '<resource>:<action>' (canAccess functions fail the build)
 }
 ```
 
@@ -157,7 +156,7 @@ customPages: [
     icon: 'i-heroicons-chart-bar',
     group: 'Insights',
     order: 10,
-    canAccess: (user) => user?.roles?.includes('analyst'),
+    permissions: ['analytics:read'],
   },
 ]
 ```

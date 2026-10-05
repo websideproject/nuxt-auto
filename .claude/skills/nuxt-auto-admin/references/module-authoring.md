@@ -136,7 +136,6 @@ interface ResourceConfig {
     edit?: FieldConfig[]
   }
 
-  actions?: Record<string, CustomAction>
   disabled?: boolean               // Hide resource entirely
 }
 ```
@@ -170,38 +169,20 @@ The `formFields` config in your module is used to **override** this auto-detecti
 
 ## Custom Actions from a Module
 
-```ts
-if ((nuxt.options as any).autoAdmin) {
-  (nuxt.options as any).autoAdmin = {
-    ...(nuxt.options as any).autoAdmin,
-    resources: {
-      posts: {
-        ...,
-        actions: {
-          publish: {
-            label: 'Publish',
-            icon: 'i-heroicons-paper-airplane',
-            type: 'single',
-            location: 'row',
-            permission: (ctx) => ctx.user?.roles?.includes('editor'),
-            confirm: (item) => `Publish "${item.title}"?`,
-            handler: async (item, ctx) => {
-              await $fetch(`/api/posts/${item.id}`, {
-                method: 'PATCH',
-                body: { status: 'published', publishedAt: new Date() },
-              })
-              await ctx.refresh()
-            },
-          },
-        },
-      },
-      ...((nuxt.options as any).autoAdmin.resources ?? {}),
-    },
-  }
-}
-```
+A module cannot add custom actions through `autoAdmin` options: handlers are functions, and module options reach
+the app as JSON (`resources.<name>.actions` fails the build). Export them instead, and let the app include them
+in its `app/admin.actions.ts`:
 
----
+```ts
+// in the module's package: export const blogAdminActions = { articles: { publish: { … } } }
+// in the app:
+import { blogAdminActions } from '@my/blog-module/admin-actions'
+
+export default defineAdminActions({
+  ...blogAdminActions,
+  // the app's own
+})
+```
 
 ## Detecting Admin Presence
 

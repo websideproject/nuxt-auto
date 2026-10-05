@@ -108,6 +108,15 @@ const ADMIN_SHOTS: Shot[] = [
       await expect(page.getByRole('dialog')).toContainText('Confirm Delete')
     }
   },
+  {
+    // A custom action (app/admin.actions.ts) in the row menu, asking before it runs.
+    name: 'admin-custom-action', path: '/admin/articles', role: 'admin', says: 'Building Type-Safe APIs with Drizzle', fullPage: false,
+    act: async (page) => {
+      await openRowMenu(page)
+      await page.getByRole('menuitem', { name: 'Publish' }).click()
+      await expect(page.getByTestId('admin-action-confirm')).toContainText('Publish')
+    }
+  },
   { name: 'admin-list-selection', path: '/admin/articles', role: 'admin', says: 'Building Type-Safe APIs with Drizzle', act: page => selectRows(page, 2) },
   {
     name: 'admin-bulk-delete', path: '/admin/articles', role: 'admin', says: 'Building Type-Safe APIs with Drizzle', fullPage: false,

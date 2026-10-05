@@ -22,6 +22,21 @@
 
       <div class="flex-1" />
 
+      <template v-if="selectedRows.length">
+        <UButton
+          v-for="action in shownBulkActions"
+          :key="action.key"
+          :icon="action.icon"
+          :color="action.color ?? 'neutral'"
+          :variant="action.variant ?? 'soft'"
+          :disabled="!bulkActionAllowed(action)"
+          :data-testid="`admin-action-${action.key}`"
+          @click="runAction(action, selectedRows)"
+        >
+          {{ action.label }} ({{ selectedRows.length }})
+        </UButton>
+      </template>
+
       <UButton
         v-if="showBulkDelete"
         color="error"
@@ -306,6 +321,12 @@
       </template>
     </UModal>
 
+    <CustomActionConfirm
+      :state="actionPending"
+      @confirm="confirmAction"
+      @cancel="cancelAction"
+    />
+
     <ResourceImportModal
       v-if="showImport"
       v-model:open="importOpen"
@@ -331,6 +352,10 @@ import { downloadFile, parseCsv, toCsv } from '../utils/csv'
 import PermissionDeniedPage from './PermissionDeniedPage.vue'
 import ResourceFilters from './ResourceFilters.vue'
 import ResourceImportModal from './ResourceImportModal.vue'
+import CustomActionConfirm from './CustomActionConfirm.vue'
+import { useAdminCustomActions } from '../composables/useAdminCustomActions'
+import { isActionAllowed } from '../utils/customActions'
+import type { ResolvedAction } from '../utils/customActions'
 import { useAdminResource } from '../composables/useAdminResource'
 import { useAdminPermissions, useAdminRecordPermissions } from '../composables/useAdminPermissions'
 import { useAdminConfig } from '../composables/useAdminConfig'
@@ -369,7 +394,7 @@ const apiPath = useAutoApiPath()
 
 const { resource } = useAdminResource(resourceNameValue.value)
 // False until /permissions answers: the UI never offers an action before the API says it is allowed.
-const { permissions, canCreate, canRead, canDelete, isLoading: permissionsLoading } = useAdminPermissions(resourceNameValue.value)
+const { permissions, canCreate, canRead, canUpdate, canDelete, isLoading: permissionsLoading } = useAdminPermissions(resourceNameValue.value)
 const { features, api, permissions: permissionConfig } = useAdminConfig()
 
 const resourceLabel = computed(() => resource.value?.displayName?.toLowerCase() || resourceNameValue.value)
@@ -475,7 +500,24 @@ const permissionErrorMessage = computed(() => {
 // A button the caller may not use is hidden or shown disabled, per `permissions.unauthorizedButtons`.
 const showUnauthorized = computed(() => (permissionConfig.unauthorizedButtons || 'disable') === 'disable')
 const bulkEnabled = computed(() => features.bulkActions !== false && api.bulk)
-const selectable = computed(() => bulkEnabled.value && canDelete.value)
+
+// ─── Custom actions (the app's admin.actions.ts) ───────────────────────────
+const { rowActions, bulkActions, run: runAction, pending: actionPending, confirm: confirmAction, cancel: cancelAction } = useAdminCustomActions(resourceNameValue.value)
+const resourceCan = { create: canCreate, read: canRead, update: canUpdate, delete: canDelete }
+const bulkActionAllowed = (action: ResolvedAction) => isActionAllowed(action, { resource: resourceNameValue.value, can: op => resourceCan[op].value })
+const rowActionAllowed = (action: ResolvedAction, row: Record<string, unknown>) => {
+  const id = row[pk.value] as string | number
+  return isActionAllowed(action, {
+    resource: resourceNameValue.value,
+    item: row,
+    can: op => op === 'update' ? canUpdateRow(id) : op === 'delete' ? canDeleteRow(id) : resourceCan[op].value,
+  })
+}
+const shownBulkActions = computed(() => features.bulkActions === false ? [] : bulkActions.filter(a => showUnauthorized.value || bulkActionAllowed(a)))
+// Custom bulk actions select any row; bulk delete still only takes the rows the caller may delete. Only an action
+// the caller may USE opens selection — one merely shown disabled would offer checkboxes that lead nowhere.
+const hasBulkCustom = computed(() => shownBulkActions.value.some(bulkActionAllowed))
+const selectable = computed(() => (bulkEnabled.value && canDelete.value) || hasBulkCustom.value)
 const showExport = computed(() => features.export !== false && (canRead.value || showUnauthorized.value))
 const showImport = computed(() => features.import === true && api.bulk && (canCreate.value || showUnauthorized.value))
 
@@ -486,6 +528,7 @@ const rowId = (row: Record<string, unknown>) => String(row[pk.value])
 watch([page, listFilter], () => {
   rowSelection.value = {}
 })
+const selectedRows = computed(() => data.value.filter(row => rowSelection.value[rowId(row)]))
 const selectedIds = computed(() => data.value
   .filter(row => rowSelection.value[rowId(row)] && canDeleteRow(row[pk.value] as string | number))
   .map(row => row[pk.value] as string | number))
@@ -593,7 +636,7 @@ async function exportAs(format: 'csv' | 'json') {
 // ─── Import ────────────────────────────────────────────────────────────────
 const importOpen = ref(false)
 
-const showToolbar = computed(() => searchEnabled.value || filtersEnabled.value || showBulkDelete.value || showExport.value || showImport.value)
+const showToolbar = computed(() => searchEnabled.value || filtersEnabled.value || showBulkDelete.value || showExport.value || showImport.value || hasBulkCustom.value)
 
 // ─── Row actions ───────────────────────────────────────────────────────────
 const { handleDelete: deleteResource, isDeleting } = useAdminActions(resourceNameValue.value)
@@ -618,8 +661,8 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
         'aria-label': 'Select all',
       }),
       cell: ({ row }: CellContext<Record<string, unknown>, unknown>) => h(UCheckbox, {
-        'modelValue': row.getIsSelected() && canDeleteRow(row.original[pk.value] as string | number),
-        'disabled': !canDeleteRow(row.original[pk.value] as string | number),
+        'modelValue': row.getIsSelected() && (hasBulkCustom.value || canDeleteRow(row.original[pk.value] as string | number)),
+        'disabled': !hasBulkCustom.value && !canDeleteRow(row.original[pk.value] as string | number),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
         'aria-label': 'Select row',
       }),
@@ -714,6 +757,16 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
             onSelect: () => openDeleteModal(row.original),
           },
         ],
+        // The app's own row actions, after the built-in ones.
+        ...[rowActions
+          .filter(action => showUnauthorized.value || rowActionAllowed(action, row.original))
+          .map(action => ({
+            label: action.label,
+            icon: action.icon,
+            ...(action.color ? { color: action.color } : {}),
+            disabled: !rowActionAllowed(action, row.original),
+            onSelect: () => runAction(action, row.original),
+          }))].filter(group => group.length),
       ])
 
       return h(

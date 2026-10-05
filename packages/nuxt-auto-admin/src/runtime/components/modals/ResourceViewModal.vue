@@ -92,7 +92,19 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-end gap-2 p-4 bg-muted border-t border-default">
+      <div class="flex flex-wrap justify-end gap-2 p-4 bg-muted border-t border-default">
+        <UButton
+          v-for="action in shownDetailActions"
+          :key="action.key"
+          :icon="action.icon"
+          :color="action.color ?? 'neutral'"
+          :variant="action.variant ?? 'outline'"
+          :disabled="!data || !detailActionAllowed(action)"
+          :data-testid="`admin-action-${action.key}`"
+          @click="runAction(action, data)"
+        >
+          {{ action.label }}
+        </UButton>
         <UButton
           v-if="showButtonBehavior === 'disable' || canUpdate"
           variant="outline"
@@ -129,7 +141,19 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-end gap-2 p-4 bg-muted border-t border-default">
+      <div class="flex flex-wrap justify-end gap-2 p-4 bg-muted border-t border-default">
+        <UButton
+          v-for="action in shownDetailActions"
+          :key="action.key"
+          :icon="action.icon"
+          :color="action.color ?? 'neutral'"
+          :variant="action.variant ?? 'outline'"
+          :disabled="!data || !detailActionAllowed(action)"
+          :data-testid="`admin-action-${action.key}`"
+          @click="runAction(action, data)"
+        >
+          {{ action.label }}
+        </UButton>
         <UButton
           v-if="showButtonBehavior === 'disable' || canUpdate"
           variant="outline"
@@ -152,6 +176,12 @@
       </div>
     </template>
   </UDrawer>
+
+  <CustomActionConfirm
+    :state="actionPending"
+    @confirm="confirmAction"
+    @cancel="cancelAction"
+  />
 </template>
 
 <script setup lang="ts">
@@ -163,9 +193,13 @@ import ResourceAuditLog from '../ResourceAuditLog.vue'
 import { useM2MDetection } from '../../composables/useM2MDetection'
 import type { M2MFieldConfig } from '../../composables/useM2MDetection'
 import { useAdminResource } from '../../composables/useAdminResource'
-import { useAdminRecordPermissions } from '../../composables/useAdminPermissions'
+import { useAdminPermissions, useAdminRecordPermissions } from '../../composables/useAdminPermissions'
 import { useAdminConfig } from '../../composables/useAdminConfig'
 import { useAutoApiGet } from '@websideproject/nuxt-auto-api/composables'
+import CustomActionConfirm from '../CustomActionConfirm.vue'
+import { useAdminCustomActions } from '../../composables/useAdminCustomActions'
+import { isActionAllowed } from '../../utils/customActions'
+import type { ResolvedAction } from '../../utils/customActions'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 
@@ -201,6 +235,16 @@ const isDesktop = useMediaQuery('(min-width: 1024px)')
 
 // Extract actual data from response
 const data = computed(() => response.value?.data)
+
+// Detail custom actions (the app's admin.actions.ts): get this record; `update`/`delete` are this row's answer.
+const { canCreate, canRead } = useAdminPermissions(props.resourceName)
+const { detailActions, run: runAction, pending: actionPending, confirm: confirmAction, cancel: cancelAction } = useAdminCustomActions(props.resourceName)
+const detailActionAllowed = (action: ResolvedAction) => isActionAllowed(action, {
+  resource: props.resourceName,
+  item: data.value,
+  can: op => ({ create: canCreate.value, read: canRead.value, update: canUpdate.value, delete: canDelete.value })[op],
+})
+const shownDetailActions = computed(() => detailActions.filter(a => showButtonBehavior.value === 'disable' || detailActionAllowed(a)))
 
 const visibleColumns = computed(() => {
   if (!resource.value || !data.value) return []
