@@ -189,7 +189,7 @@ interface EndpointOptions<TBody, TQuery, TResponse> {
   body?: ZodSchema
   query?: ZodSchema
   skipAuthorization?: boolean   // the resource gate only — you still scope rows
-  skipValidation?: boolean
+  skipValidation?: boolean      // query validation only — a body is never checked against the table; use `body`
   authorize?: (ctx, event) => boolean | Promise<boolean>
   handler: (ctx, event) => Promise<TResponse> | TResponse
   transform?: (data, ctx) => any

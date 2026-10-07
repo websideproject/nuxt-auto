@@ -33,7 +33,10 @@ export interface EndpointOptions<TBody = any, TQuery = any, TResponse = any> {
   query?: any // ZodType
   /** Skip authorization check */
   skipAuthorization?: boolean
-  /** Skip validation check */
+  /**
+   * Skip the resource's query validation. The request BODY is never validated against the resource's table
+   * schema — declare `body` with your own schema (validated before the handler; result in `ctx.body`).
+   */
   skipValidation?: boolean
   /**
    * Name of this endpoint, matched against `ResourceAuthConfig.custom[endpointName]`.

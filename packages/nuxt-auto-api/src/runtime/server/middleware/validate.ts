@@ -28,7 +28,8 @@ async function parse(schema: z.ZodType<any> | undefined, value: any, pathPrefix:
  * `schemas` may be a getter so the schema is resolved per request (tenant-aware omissions).
  */
 export function createValidationMiddleware(schemas?: ValidationSchema | (() => ValidationSchema)) {
-  return async (context: HandlerContext) => {
+  /** `body: false` validates the query only (custom endpoints — see `createEndpoint`). */
+  return async (context: HandlerContext, options?: { body?: boolean }) => {
     const s = typeof schemas === 'function' ? schemas() : schemas
     // A JSON `?filter=` arrives as a string; parse it first so a custom query schema can declare an object.
     // (Malformed JSON is left as-is — the handler answers it with a 400.)
@@ -43,6 +44,7 @@ export function createValidationMiddleware(schemas?: ValidationSchema | (() => V
     context.validated.query = await parse(s?.query ?? generateQuerySchema(), context.query)
 
     const { operation } = context
+    if (options?.body === false) return
     if (operation !== 'create' && operation !== 'update' && !(context.bulk && operation === 'delete')) return
 
     let body: any

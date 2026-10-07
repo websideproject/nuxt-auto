@@ -111,7 +111,7 @@ export async function createContextFromRegistry(
 ): Promise<{
   context: HandlerContext
   authorize: (ctx: HandlerContext) => Promise<void>
-  validate: (ctx: HandlerContext) => Promise<void>
+  validate: (ctx: HandlerContext, options?: { body?: boolean }) => Promise<void>
   runMiddleware: (stage: MiddlewareStage) => Promise<void>
   effectiveAuth: ResourceAuthConfig | undefined
 }> {

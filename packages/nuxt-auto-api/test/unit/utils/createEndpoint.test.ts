@@ -98,7 +98,7 @@ describe('createEndpoint', () => {
       const result = await handler(mockEvent)
 
       expect(mockAuthorize).toHaveBeenCalledWith(mockContext)
-      expect(mockValidate).toHaveBeenCalledWith(mockContext)
+      expect(mockValidate).toHaveBeenCalledWith(mockContext, { body: false })
       expect(result).toEqual({ data: { user: { id: 1 } } })
     })
 
@@ -113,6 +113,16 @@ describe('createEndpoint', () => {
 
       expect(mockAuthorize).not.toHaveBeenCalled()
       expect(mockValidate).toHaveBeenCalled()
+    })
+
+    it('never validates a create body against the table row (query only)', async () => {
+      const handler = createEndpoint({
+        resource: 'users',
+        operation: 'create',
+        handler: async () => ({ ok: true }),
+      })
+      await handler({ method: 'POST', path: '/api/users/import', context: {} } as any)
+      expect(mockValidate).toHaveBeenCalledWith(mockContext, { body: false })
     })
 
     it('should skip validation when requested', async () => {
