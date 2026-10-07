@@ -41,6 +41,23 @@ describe('Validation Middleware', () => {
       expect(context.validated.query).toEqual({ page: 1, limit: 20 })
     })
 
+    it('body: false validates the query and leaves the body alone (custom endpoints)', async () => {
+      const schemas = {
+        query: z.object({ page: z.coerce.number().optional() }),
+        create: z.object({ title: z.string().min(1) }), // a row the custom body doesn't look like
+      }
+      const { readBody } = await import('h3')
+      vi.mocked(readBody).mockClear()
+      const middleware = createValidationMiddleware(schemas)
+      const context = createMockContext({ event: createMockH3Event(), operation: 'create', query: { page: '2' } })
+
+      await middleware(context as any, { body: false })
+
+      expect(context.validated.query).toEqual({ page: 2 })
+      expect(context.validated.body).toBeUndefined()
+      expect(readBody, 'the body is not even read').not.toHaveBeenCalled()
+    })
+
     it('should validate body for create operation', async () => {
       const schemas = {
         create: z.object({

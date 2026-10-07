@@ -1,7 +1,7 @@
 import { computed, unref } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useTrackedQuery } from './ssrQuery'
-import type { UseQueryOptions, QueryKey } from '@tanstack/vue-query'
+import type { QueryKey, QueryObserverOptions } from '@tanstack/vue-query'
 import { withAutoApiHandlers } from './mutationHandlers'
 import type { AutoApiMutationOptions } from './mutationHandlers'
 import type { MaybeRef } from 'vue'
@@ -20,9 +20,14 @@ import { useAutoApiFetch } from './autoApiFetch'
  *   toast: { enabled: true, showSuccess: true },
  * })
  * mutate({ orgId: '...', email: '...' })
+ *
+ * For a per-row URL, pass a function of the mutation input — it is called on every `mutate`:
+ * const send = useAutoApiEndpointMutation((v: { id: string }) => `/api/campaigns/${v.id}/send`)
+ * send.mutate({ id: row.id })
+ * (the input is also sent as the body; endpoints ignore keys their `body` schema doesn't declare)
  */
 export function useAutoApiEndpointMutation<TData = any, TBody = Record<string, any>>(
-  url: MaybeRef<string>,
+  url: MaybeRef<string> | ((input: TBody) => string),
   options?: {
     method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     /** Query keys to invalidate on success. Pass arrays of key arrays. */
@@ -32,7 +37,7 @@ export function useAutoApiEndpointMutation<TData = any, TBody = Record<string, a
 ) {
   const queryClient = useQueryClient()
   const fetcher = useAutoApiFetch()
-  const urlRef = computed(() => unref(url))
+  const resolveUrl = (input: TBody) => (typeof url === 'function' ? url(input) : unref(url))
   const { handleSuccess, handleError } = useAutoApiToast()
 
   const { method = 'POST', invalidates, toast: toastOptions, ...mutationOptions } = options ?? {}
@@ -47,7 +52,7 @@ export function useAutoApiEndpointMutation<TData = any, TBody = Record<string, a
         if (toastOptions?.enabled && toastOptions?.showErrors) handleError(error)
       },
     }),
-    mutationFn: (body: TBody) => fetcher<TData>(urlRef.value, { method, body: body as any }) as Promise<TData>,
+    mutationFn: (body: TBody) => fetcher<TData>(resolveUrl(body), { method, body: body as any }) as Promise<TData>,
   })
 }
 
@@ -75,7 +80,12 @@ export function useAutoApiEndpointQuery<TData = any>(
     toast?: AutoApiToastOptions
     /** Strip the auto-api `{ data }` envelope and return the inner payload typed as `TData`. */
     unwrap?: boolean
-  } & Omit<UseQueryOptions<TData, Error>, 'queryKey' | 'queryFn'>,
+    /** Run the query only while true (e.g. until the URL is known). */
+    enabled?: MaybeRef<boolean> | (() => boolean)
+    // The other TanStack options. Typed from `QueryObserverOptions` (a plain object) — `Omit<UseQueryOptions>`
+    // over vue-query's `MaybeRef<…>` union kept no keys at all, so `enabled`, `staleTime`, `refetchInterval`, …
+    // were all type errors although they always worked at runtime.
+  } & Partial<Omit<QueryObserverOptions<TData, Error>, 'queryKey' | 'queryFn' | 'enabled'>>,
 ) {
   const fetcher = useAutoApiFetch()
   const urlRef = computed(() => unref(url))

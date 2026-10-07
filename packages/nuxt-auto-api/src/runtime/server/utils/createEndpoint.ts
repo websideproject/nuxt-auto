@@ -79,8 +79,12 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
 
       await runMiddleware('post-auth')
 
+      // The resource's QUERY schema applies (filters, paging). Its BODY schema does not: it describes a table
+      // row, and a custom endpoint's body is its own shape — declare it with `body`. Validating against the row
+      // 400'd every `create` endpoint whose body lacked the table's required columns (an import, a duplicate,
+      // a checkout), which is why `skipValidation: true` ended up on almost every endpoint.
       if (!options.skipValidation) {
-        await result.validate(context)
+        await result.validate(context, { body: false })
       }
     }
     else {
