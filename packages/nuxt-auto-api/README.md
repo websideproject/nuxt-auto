@@ -46,11 +46,26 @@ export default defineNitroPlugin(() => {
 ```
 
 ```ts
+// modules/blog/schema.ts — a Drizzle table, as you'd write it anyway
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+
+export const posts = sqliteTable('posts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  published: integer('published', { mode: 'boolean' }).notNull().default(false),
+  authorId: text('author_id'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+})
+```
+
+```ts
 // modules/blog/index.ts — register resources from a module
 import { defineNuxtModule, createResolver } from '@nuxt/kit'
 import { createModuleImport } from '@websideproject/nuxt-auto-api'
 
 export default defineNuxtModule({
+  // Nuxt also loads modules/*/index.ts by itself; the name lets it see the entry in nuxt.config is the same module
+  meta: { name: 'blog' },
   setup(_, nuxt) {
     const { resolve } = createResolver(import.meta.url)
     nuxt.hook('autoApi:registerSchema', (registry) => {
@@ -87,7 +102,7 @@ That's `GET/POST /api/posts`, `GET/PATCH/DELETE /api/posts/:id`, `/api/posts/bul
 
 ```vue
 <script setup lang="ts">
-const { data } = useAutoApiList('posts', { sort: '-createdAt', include: 'author[id,name]', limit: 20 })
+const { data } = useAutoApiList('posts', { sort: '-createdAt', limit: 20 })
 const { mutate: createPost } = useAutoApiCreate('posts')
 </script>
 ```
