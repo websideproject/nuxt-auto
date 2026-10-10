@@ -39,4 +39,6 @@ jobs:
           if [ -z "$OLD" ] || [ "$new_major" != "$old_major" ]; then ICON=" 🚀"
           elif [ "$new_minor" != "$old_minor" ]; then ICON=" ✨"
           else ICON=""; fi
-          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$DRAFT_ID" -f name="v$NEW$ICON" --jq .name
+          # tag_name goes along: a draft PATCHed without it falls back to an "untagged-…" tag, and publishing that
+          # runs release.yml with no version in the tag.
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$DRAFT_ID" -f name="v$NEW$ICON" -f tag_name="v$NEW" --jq .name

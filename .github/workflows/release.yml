@@ -48,6 +48,12 @@ jobs:
           else
             VERSION=${GITHUB_REF#refs/tags/v}
           fi
+          # A manual run may be given "v0.1.0"; npm and the skip check below want "0.1.0".
+          VERSION=${VERSION#v}
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::\"$VERSION\" is not a version. Publish the release with a vX.Y.Z tag, or run this workflow with a version."
+            exit 1
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION"
 
@@ -136,7 +142,8 @@ jobs:
       - name: Commit version updates
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          TARGET=${{ github.event.release.target_commitish || github.ref_name }}
+          # A manual run started from a tag has the TAG as ref_name; the bump belongs on the default branch.
+          TARGET=${{ github.event.release.target_commitish || github.event.repository.default_branch }}
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packages/*/package.json
