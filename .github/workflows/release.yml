@@ -91,11 +91,24 @@ jobs:
             }
           ' "$VERSION"
 
+      # npm never takes a version twice: a re-run after a partial publish skips what is already there
       - name: Publish nuxt-auto-api to npm
-        run: bunx npm publish --workspace=@websideproject/nuxt-auto-api --provenance --access public
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          if [ "$(npm view "@websideproject/nuxt-auto-api@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "@websideproject/nuxt-auto-api@$VERSION is already on npm, skipping"
+          else
+            bunx npm publish --workspace=@websideproject/nuxt-auto-api --provenance --access public
+          fi
 
       - name: Publish nuxt-auto-admin to npm
-        run: bunx npm publish --workspace=@websideproject/nuxt-auto-admin --provenance --access public
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          if [ "$(npm view "@websideproject/nuxt-auto-admin@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "@websideproject/nuxt-auto-admin@$VERSION is already on npm, skipping"
+          else
+            bunx npm publish --workspace=@websideproject/nuxt-auto-admin --provenance --access public
+          fi
 
       - name: Restore workspace:* after publish
         run: |
