@@ -20,5 +20,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v6
+        id: drafter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The title says how big the release is, against the latest published one:
+      # patch "v0.1.1", minor "v0.2.0 ✨", major "v1.0.0 🚀". Release Drafter's name-template can't branch,
+      # so this re-titles the draft each time the drafter rewrites it.
+      - name: Title the draft by bump size
+        if: steps.drafter.outputs.id != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRAFT_ID: ${{ steps.drafter.outputs.id }}
+          NEW: ${{ steps.drafter.outputs.resolved_version }}
+        run: |
+          OLD=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName 2>/dev/null | sed 's/^v//' || true)
+          IFS=. read -r old_major old_minor _ <<< "$OLD"
+          IFS=. read -r new_major new_minor _ <<< "$NEW"
+          if [ -z "$OLD" ] || [ "$new_major" != "$old_major" ]; then ICON=" 🚀"
+          elif [ "$new_minor" != "$old_minor" ]; then ICON=" ✨"
+          else ICON=""; fi
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$DRAFT_ID" -f name="v$NEW$ICON" --jq .name
