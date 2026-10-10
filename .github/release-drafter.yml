@@ -1,4 +1,4 @@
-name-template: 'v$RESOLVED_VERSION ✨'
+name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 
 # Sections are by PACKAGE, from the area labels .github/labeler.yml sets from the changed paths; a PR that touches
