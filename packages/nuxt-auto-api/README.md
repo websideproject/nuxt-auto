@@ -21,6 +21,7 @@ composables for the client.
 
 ```bash
 npx nuxt module add @websideproject/nuxt-auto-api
+npm install drizzle-orm better-sqlite3   # Drizzle + your database's driver; auto-api uses this same Drizzle
 ```
 
 ## Quick start
