@@ -1,46 +1,32 @@
 import { eq, count } from 'drizzle-orm'
-import { users, posts, comments } from '../../../database/schema'
-import { createError } from 'h3'
+import { posts, comments } from '../../../database/schema'
 
 /**
  * Custom endpoint using createEndpoint (auto-imported).
- * Demonstrates: resource-bound endpoint, full pipeline, custom logic.
+ * Demonstrates: resource-bound endpoint, row access helpers, response filtering.
  */
 export default createEndpoint({
   resource: 'users',
   operation: 'get',
 
   async handler(ctx) {
-    const userId = parseInt(ctx.params.id)
+    // The same row visibility as GET /api/users/:id: 404 when invisible or missing, 403 when objectLevel refuses
+    const user = await findAuthorizedRow(ctx, 'users', ctx.params.id)
 
-    if (isNaN(userId)) {
-      throw createError({ statusCode: 400, message: 'Invalid user ID' })
-    }
-
-    // Custom query logic - fetch user and stats in parallel
-    const [user, postStats, commentStats] = await Promise.all([
-      ctx.db.query.users.findFirst({
-        where: eq(users.id, userId)
-      }),
-      ctx.db
-        .select({ count: count() })
-        .from(posts)
-        .where(eq(posts.userId, userId)),
-      ctx.db
-        .select({ count: count() })
-        .from(comments)
-        .where(eq(comments.userId, userId))
+    const [[postStats], [commentStats]] = await Promise.all([
+      ctx.db.select({ count: count() }).from(posts).where(eq(posts.userId, user.id)),
+      ctx.db.select({ count: count() }).from(comments).where(eq(comments.userId, user.id))
     ])
 
-    if (!user) {
-      throw createError({ statusCode: 404, message: 'User not found' })
-    }
+    // createEndpoint returns what the handler returns: strip hidden fields (password, apiKey) and the fields the
+    // caller may not read (email), as the generated routes do
+    const visible = await filterReadableFields(filterHiddenFields(user, ctx), ctx)
 
     return {
-      ...user,
+      ...visible,
       stats: {
-        postCount: postStats[0].count,
-        commentCount: commentStats[0].count
+        postCount: postStats!.count,
+        commentCount: commentStats!.count
       }
     }
   }
