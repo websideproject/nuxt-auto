@@ -19,6 +19,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-auto-admin',
     configKey: 'autoAdmin',
+    compatibility: { nuxt: '>=4.0.0' },
   },
   defaults: {
     prefix: '/admin',
