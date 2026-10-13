@@ -7,6 +7,7 @@ interface PluginRegistryState {
   globalHooks: ResourceHooks[]
   resourceHooks: Record<string, ResourceHooks[]>
   permissionEvaluators: PermissionEvaluator[]
+  protectedFields: Record<string, string[]>
   initialized: boolean
 }
 
@@ -22,6 +23,7 @@ function getRegistry(): PluginRegistryState {
       globalHooks: [],
       resourceHooks: {},
       permissionEvaluators: [],
+      protectedFields: {},
       initialized: false,
     }
   }
@@ -70,6 +72,21 @@ export function addResourceHook(resource: string, hooks: ResourceHooks): void {
     registry.resourceHooks[resource] = []
   }
   registry.resourceHooks[resource].push(hooks)
+}
+
+/**
+ * Declare columns of `resource` that request bodies may never set — like a registration's `protectedFields`, for
+ * a plugin whose hooks fill them on the server (the API token plugin's hash and owner). They are left out of the
+ * generated validation schemas, so they are never required, and dropped from bodies before hooks run.
+ */
+export function addProtectedFields(resource: string, fields: string[]): void {
+  const registry = getRegistry()
+  registry.protectedFields[resource] = [...new Set([...(registry.protectedFields[resource] ?? []), ...fields])]
+}
+
+/** Columns plugins declared server-owned for `resource` (see `addProtectedFields`). */
+export function getPluginProtectedFields(resource: string): string[] {
+  return getRegistry().protectedFields[resource] ?? []
 }
 
 /**

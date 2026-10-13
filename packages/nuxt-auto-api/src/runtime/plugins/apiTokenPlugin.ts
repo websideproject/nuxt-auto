@@ -1,9 +1,10 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { createError, getHeader } from 'h3'
+import { createError, getHeader, readBody } from 'h3'
 import { eq } from 'drizzle-orm'
 import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 import { registerPluginRoutes } from './pluginRoutes'
+import { addProtectedFields } from '../server/plugins/pluginRegistry'
 import type { AuthUser, HandlerContext } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -485,6 +486,24 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
       for (const resName of resourceNames) {
         const c = cfg(resName)
 
+        // The hash, the owner and the organization are written by the hooks below, never by a request body:
+        // declared server-owned, they are not required by the generated create schema (a client sends only
+        // `name` / `scopes`) and are dropped from bodies.
+        addProtectedFields(resName, [c.secretField, c.userField, ...(c.orgField ? [c.orgField] : [])])
+
+        // `{ _rotate: true }` is not a column, so update validation drops it before the hooks run. Read it from
+        // the raw body first (h3 caches the body, so validation still reads it).
+        ctx.addMiddleware({
+          name: 'api-token-rotate-flag',
+          stage: 'pre-auth',
+          resources: [resName],
+          operations: ['update'],
+          async handler(context: HandlerContext) {
+            const raw = await readBody(context.event).catch(() => null)
+            if (raw && typeof raw === 'object' && (raw as any)._rotate === true) (context as any)._rotateToken = true
+          },
+        })
+
         ctx.addHook(resName, {
           // -- beforeCreate: generate & hash token -----------------------
           beforeCreate(data: any, context: HandlerContext) {
@@ -534,8 +553,8 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
             Reflect.deleteProperty(updated, c.userField)
             if (c.orgField) Reflect.deleteProperty(updated, c.orgField)
 
-            // Handle token rotation
-            if (updated._rotate === true) {
+            // Handle token rotation (the flag is captured before validation — see the rotate-flag middleware)
+            if (updated._rotate === true || (context as any)._rotateToken === true) {
               delete updated._rotate
               const rawToken = generateRawToken(tokenPrefix, tokenLength)
               const hashed = hashToken(rawToken, hashAlgorithm)

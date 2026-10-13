@@ -2,6 +2,7 @@ import type { HandlerContext } from '../../types'
 import { getSoftDeleteColumn, getSoftDeleteCompanions } from './softDelete'
 import { getColumns, isGeneratedPrimaryKey, primaryKeyName } from './table'
 import { getTenancyConfig, isTenantScoped, tenantField } from './tenant'
+import { getPluginProtectedFields } from '../plugins/pluginRegistry'
 
 const AUDIT_COLUMNS = ['createdBy', 'created_by', 'updatedBy', 'updated_by']
 const CREATED_AT_COLUMNS = ['createdAt', 'created_at']
@@ -16,7 +17,7 @@ const CREATED_AT_COLUMNS = ['createdAt', 'created_at']
  *    integer rowid). A client-chosen key there could be the largest integer the column holds, after which
  *    the next generated key overflows and every insert into the table fails. A text / UUID key the database
  *    does not generate stays writable, so clients can create rows with ids they made (optimistic UI).
- *  - plus the registration's own `protectedFields`
+ *  - plus the registration's own `protectedFields`, and those plugins declared (`addProtectedFields`)
  *
  * They are **dropped** from the body, not refused: clients routinely send a whole row back on PATCH
  * (id, createdAt, …) and that must keep working. Hooks run after the drop, so a `beforeCreate` /
@@ -59,6 +60,7 @@ export function protectedFieldsFor(
   const declared = context.registry?.[resource]?.protectedFields
     ?? (resource === context.resource ? context.resourceConfig?.protectedFields : undefined)
   for (const f of declared ?? []) out.add(f)
+  for (const f of getPluginProtectedFields(resource)) add(f)
   return out
 }
 
