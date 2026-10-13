@@ -48,24 +48,23 @@ export default defineNuxtModule({
             order: 1,
             listFields: ['title', 'status', 'authorId', 'publishedAt', 'createdAt'],
             hiddenFields: ['deletedAt', 'internalScore'],
-            readonlyFields: ['createdAt', 'updatedAt', 'slug'],
             formFields: {
               create: [
                 { name: 'title',    label: 'Title',   widget: 'TextInput',     required: true },
-                { name: 'slug',     label: 'Slug',    widget: 'SlugInput',
-                  options: { generateFrom: 'title' } },
-                { name: 'content',  label: 'Content', widget: 'MarkdownEditor' },
+                { name: 'slug',     label: 'Slug',    widget: 'TextInput',     required: true },
+                { name: 'content',  label: 'Content', widget: 'TextareaInput', options: { rows: 12 } },
                 { name: 'status',   label: 'Status',  widget: 'SelectInput',
                   options: { enumValues: ['draft', 'published', 'archived'] } },
                 { name: 'authorId', label: 'Author',  widget: 'RelationSelect',
-                  options: { resource: 'users', displayField: 'name', searchFields: ['name', 'email'] } },
+                  options: { resource: 'users', displayField: 'name' } },
                 { name: 'tags',     label: 'Tags',    widget: 'MultiRelationSelect',
                   options: { resource: 'tags', displayField: 'name',
                     junctionTable: 'postTags', junctionLeftKey: 'postId', junctionRightKey: 'tagId' } },
               ],
               edit: [
                 { name: 'title',   label: 'Title',   widget: 'TextInput',     required: true },
-                { name: 'content', label: 'Content', widget: 'MarkdownEditor' },
+                { name: 'slug',    label: 'Slug',    widget: 'TextInput',     readonly: true },
+                { name: 'content', label: 'Content', widget: 'TextareaInput', options: { rows: 12 } },
                 { name: 'status',  label: 'Status',  widget: 'SelectInput',
                   options: { enumValues: ['draft', 'published', 'archived'] } },
                 { name: 'tags',    label: 'Tags',    widget: 'MultiRelationSelect',
@@ -127,13 +126,12 @@ interface ResourceConfig {
   order?: number                   // Sort order within the group
   type?: 'resource' | 'junction'  // 'junction' = hidden from sidebar
 
-  listFields?: string[]            // Which columns appear in the table view
+  listFields?: string[]            // Which columns appear in the table view (columns, not relations)
   hiddenFields?: string[]          // Excluded from list AND form
-  readonlyFields?: string[]        // Shown in forms but not editable
 
   formFields?: {
-    create?: FieldConfig[]
-    edit?: FieldConfig[]
+    create?: FieldConfig[]         // replaces the generated forms — always give `create`
+    edit?: FieldConfig[]           // falls back to `create`
   }
 
   disabled?: boolean               // Hide resource entirely
@@ -148,22 +146,22 @@ Even without `formFields` config, nuxt-auto-admin introspects every registered D
 
 | Column pattern | Auto widget |
 |----------------|-------------|
-| `*Id` (FK) | `RelationSelect` (targets guessed from resource name) |
+| Foreign key | `RelationSelect` |
 | Enum column | `SelectInput` with enum values |
-| `password`, `*hash*`, `*secret*` | `PasswordInput` |
-| Boolean | `CheckboxInput` |
+| Name contains `password` | `PasswordInput` |
+| Boolean, or integer named `is…` | `CheckboxInput` |
 | Integer/numeric | `NumberInput` |
-| Date/timestamp | `DateTimePicker` |
-| Large text, `*content*`, `*body*` | `TextareaInput` |
-| JSON | `JsonEditor` |
-| Default | `TextInput` |
+| Date/timestamp, or name ending `At` / `Date` | `DateTimePicker` |
+| TEXT, `*content*`, `*body*`, `*description*`, `*bio*`, `*notes*` | `TextareaInput` |
+| Default (JSON included) | `TextInput` |
 
 The `formFields` config in your module is used to **override** this auto-detection — useful for:
-- Setting M2M `MultiRelationSelect` fields (not auto-detected for FK-less junction)
-- Using `MarkdownEditor` instead of `TextareaInput`
-- Specifying `RelationSelect.displayField` and `searchFields`
-- Adding `SlugInput` with `generateFrom`
+- Setting M2M `MultiRelationSelect` fields with `junctionTable` (when discovery doesn't report the relation)
+- Specifying `RelationSelect.displayField` (and the field to search by, `searchFields[0]`)
+- Marking fields `readonly`, or leaving fields out
 - Ordering fields explicitly
+
+Only the nine implemented widgets render (see fields-widgets.md); other `WidgetType` names fall back to `TextInput`.
 
 ---
 

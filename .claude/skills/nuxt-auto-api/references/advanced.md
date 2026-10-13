@@ -139,7 +139,9 @@ export default createEndpoint({
   handler: async (ctx) => {
     // The gate does NOT scope rows — apply the same row rules as the list:
     const rows = await ctx.db.select().from(posts).where(rowScope(ctx, 'posts', posts))
-    return ctx.queryParams.format === 'csv' ? toCsv(rows) : rows
+    // Responses are NOT filtered for you: strip hidden + unreadable fields like the generated routes do
+    const visible = await filterReadableFields(filterHiddenFields(rows, ctx), ctx)
+    return ctx.queryParams.format === 'csv' ? toCsv(visible) : visible
   },
 })
 ```
@@ -148,6 +150,8 @@ export default createEndpoint({
 - `endpointName`: `authorization.custom[name].permissions` decides the ops it declares; undeclared ops fall back to the resource gate.
 - Standalone (no `resource`) and `getAutoApiContext(event)`: caller resolved, **nothing authorized** — gate it yourself.
 - Handlers return the payload; `responseFormat: 'auto'` (default) wraps it in `{ data }`. Never hand-wrap.
+- The response is NOT filtered: `findAuthorizedRow` / `ctx.db` return whole rows — pass them through `filterHiddenFields(rows, ctx)` and `await filterReadableFields(rows, ctx)`.
+- Resource-bound `ctx.params` holds only `id` and `relation`; read other route segments with `getRouterParam(event, …)`.
 
 ### Row access helpers
 

@@ -14,16 +14,12 @@ autoAdmin: {
 
   branding?: {
     logo?: string                      // URL to logo image
-    title?: string                     // default: 'Admin Panel'
-    favicon?: string
+    title?: string                     // default: 'Admin Panel' (sidebar)
   }
+  // (`branding.favicon`, `dashboard` and `theme` exist in the types but are NOT read — colors come from Nuxt UI's app.config)
 
   // Per-resource overrides (see ResourceConfig below)
   resources?: Record<string, ResourceConfig>
-
-  dashboard?: DashboardConfig
-
-  theme?: ThemeConfig
 
   customPages?: CustomPageConfig[]
 
@@ -59,13 +55,13 @@ interface ResourceConfig {
   displayName?: string               // Human-readable name shown in sidebar and headers
   icon?: string                      // Iconify icon (e.g. 'i-heroicons-document-text')
 
-  listFields?: string[]              // Columns shown in the list/table view
+  listFields?: string[]              // Columns shown in the list (default: up to 6 picked columns) — columns only, not relations
   hiddenFields?: string[]            // Fields excluded from list + form views
-  readonlyFields?: string[]          // Shown in forms but not editable
+  // (`readonlyFields` is in the types but NOT read — use `readonly: true` in formFields)
 
   formFields?: {
-    create?: FieldConfig[]           // Override fields for create form
-    edit?: FieldConfig[]             // Override fields for edit form
+    create?: FieldConfig[]           // Replaces the generated forms: always give `create`
+    edit?: FieldConfig[]             // Falls back to `create`
   }
 
   disabled?: boolean                 // Hide this resource from admin entirely
@@ -87,11 +83,10 @@ resources: {
     order: 1,
     listFields: ['title', 'status', 'authorId', 'publishedAt', 'createdAt'],
     hiddenFields: ['deletedAt', 'internalScore'],
-    readonlyFields: ['createdAt', 'updatedAt'],
     formFields: {
       create: [
         { name: 'title',    label: 'Title',   widget: 'TextInput',  required: true },
-        { name: 'content',  label: 'Content', widget: 'MarkdownEditor' },
+        { name: 'content',  label: 'Content', widget: 'TextareaInput', options: { rows: 12 } },
         { name: 'authorId', label: 'Author',  widget: 'RelationSelect',
           options: { resource: 'users', displayField: 'name' } },
         { name: 'status',   label: 'Status',  widget: 'SelectInput',
@@ -102,28 +97,7 @@ resources: {
       ],
     },
   },
-  post_tags: { type: 'junction' },   // hide junction table from sidebar
-}
-```
-
----
-
-## `DashboardConfig`
-
-```ts
-interface DashboardConfig {
-  // Define stat cards, recent activity, or custom widgets
-  widgets?: DashboardWidget[]
-}
-```
-
----
-
-## `ThemeConfig`
-
-```ts
-interface ThemeConfig {
-  // Color overrides for the admin panel (uses @nuxt/ui theming)
+  postTags: { type: 'junction' },   // hide a registered junction table from the sidebar
 }
 ```
 

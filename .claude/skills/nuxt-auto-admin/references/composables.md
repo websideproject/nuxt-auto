@@ -11,7 +11,7 @@ const config = useAdminConfig()
 // Returns:
 {
   prefix: string
-  branding: { title?: string; logo?: string; favicon?: string }
+  branding: { title?: string; logo?: string }
   permissions: {
     unauthorizedButtons: 'hide' | 'disable'
     unauthorizedSidebarItems: 'hide' | 'disable'
@@ -65,7 +65,7 @@ interface ResourceSchema {
   listFields: string[]
   formFields: { create: FieldConfig[]; edit: FieldConfig[] }
   hiddenFields: string[]
-  readonlyFields: string[]
+  readonlyFields: string[]         // carried from config, not used by any page
   group?: string
   order?: number
   disabled?: boolean
