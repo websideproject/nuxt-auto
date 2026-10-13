@@ -40,4 +40,4 @@ export type { PermissionEvaluator, PermissionObject, PermissionFunction, Handler
 // anywhere (e.g. a Nitro server plugin), not just the plugin runtime context. The registry is global, so
 // these are callable at server startup. A context extender runs once per request before
 // authorization and can attach data/resolvers onto the handler context (auto-api never inspects it).
-export { registerPermissionEvaluator, getPermissionEvaluators, addContextExtender, addResourceHook, addGlobalHook } from '../server/plugins/pluginRegistry'
+export { registerPermissionEvaluator, getPermissionEvaluators, addContextExtender, addResourceHook, addGlobalHook, addProtectedFields } from '../server/plugins/pluginRegistry'

@@ -1,5 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { createApiTokenPlugin } from '../../../src/runtime/plugins/apiTokenPlugin'
+import { protectedFieldsFor } from '../../../src/runtime/server/utils/protectedFields'
+import { schemasFor } from '../../../src/runtime/server/validation/schemaGenerator'
+
+// The rotate-flag middleware reads the raw body; here the test's event carries it.
+vi.mock('h3', async importOriginal => ({
+  ...(await importOriginal<typeof import('h3')>()),
+  readBody: async (event: any) => event.__body,
+}))
 
 async function hooksFor(options: Parameters<typeof createApiTokenPlugin>[0]) {
   const hooks: Record<string, any> = {}
@@ -33,5 +42,53 @@ describe('api token ownership', () => {
     const { apiKeys } = await hooksFor({ resources: { apiKeys: { orgField: 'organizationId' } } })
     const data = await apiKeys.beforeUpdate(1, { name: 'renamed', userId: 'admin', organizationId: 'org-b', key: 'x' }, caller)
     expect(data).toEqual({ name: 'renamed' })
+  })
+})
+
+describe('api token requests get through validation', () => {
+  const apiKeys = sqliteTable('api_keys', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    key: text('key').notNull(),
+    userId: text('user_id').notNull(),
+    organizationId: text('organization_id'),
+    scopes: text('scopes', { mode: 'json' }).$type<string[]>(),
+  })
+  const context = { resource: 'apiKeys', registry: { apiKeys: { name: 'apiKeys', schema: apiKeys } }, runtimeConfig: {} } as any
+
+  beforeEach(() => {
+    globalThis.__autoApiPluginRegistry = undefined
+  })
+
+  it('a create body of only name and scopes passes — the hash, owner and organization are server-owned', async () => {
+    await hooksFor({ resources: { apiKeys: { orgField: 'organizationId' } } })
+    expect([...protectedFieldsFor(context, 'apiKeys', apiKeys, 'create')]).toEqual(expect.arrayContaining(['key', 'userId', 'organizationId']))
+
+    const { create } = schemasFor(context, 'apiKeys', context.registry.apiKeys)
+    const parsed = await create.safeParseAsync({ name: 'CI', scopes: ['articles:read'], userId: 'someone-else' })
+    expect(parsed.success).toBe(true)
+    expect(parsed.data).not.toHaveProperty('userId')
+  })
+
+  it('`{ _rotate: true }` rotates although update validation drops the key', async () => {
+    const middleware: any[] = []
+    const hooks: Record<string, any> = {}
+    await createApiTokenPlugin({ resources: { apiKeys: {} } }).runtimeSetup!({
+      addHook: (resource: string, h: any) => { hooks[resource] = h },
+      addMiddleware: (m: any) => middleware.push(m),
+      addServerHandler: () => {},
+      extendContext: () => {},
+      logger: { info() {}, warn() {}, error() {}, debug() {} },
+    } as any)
+
+    const rotateFlag = middleware.find(m => m.name === 'api-token-rotate-flag')
+    expect(rotateFlag).toMatchObject({ stage: 'pre-auth', resources: ['apiKeys'], operations: ['update'] })
+
+    const request = { ...caller, event: { __body: { _rotate: true } } }
+    await rotateFlag.handler(request)
+    // What validation leaves of `{ _rotate: true }`: nothing.
+    const data = await hooks.apiKeys.beforeUpdate(1, {}, request)
+    expect(typeof data.key).toBe('string')
+    expect(request._rawToken).toMatch(/^[0-9a-f]+$/)
   })
 })
