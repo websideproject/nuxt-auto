@@ -18,10 +18,16 @@ import { drizzle } from 'drizzle-orm/d1'
 import { initializeDatabase } from '@websideproject/nuxt-auto-api/database'
 import * as schema from '../database/schema'
 
-export default defineNitroPlugin(async () => {
-  const env = await (globalThis as any).__env__          // cloudflare_module preset bindings
-  initializeDatabase(drizzle(env.DB, { schema }), 'd1')  // the engine is set HERE, nowhere else
+// On Cloudflare the bindings exist per request (event.context.cloudflare.env), not while plugins start
+export default defineNitroPlugin((nitroApp) => {
+  let ready = false
+  nitroApp.hooks.hook('request', (event) => {
+    if (ready) return
+    initializeDatabase(drizzle(event.context.cloudflare.env.DB, { schema }), 'd1')  // the engine is set HERE, nowhere else
+    ready = true
+  })
 })
+// better-sqlite3 / Postgres / …: call initializeDatabase(drizzle(client, { schema }), engine) directly in the plugin
 ```
 
 ---
@@ -55,7 +61,7 @@ interface AutoApiOptions {
   bulk?: {
     enabled?: boolean                  // default: true
     maxBatchSize?: number              // default: 100
-    transactional?: boolean            // default: true (not atomic on D1 — it reports data.committed)
+    transactional?: boolean            // default: true — all-or-nothing on every engine (one db.batch() on D1)
   }
 
   aggregations?: {

@@ -38,14 +38,13 @@ export default defineNuxtConfig({
       posts: {
         displayName: 'Blog Posts',
         icon: 'i-heroicons-document-text',
-        listFields: ['title', 'status', 'author', 'createdAt'],
+        listFields: ['title', 'status', 'authorId', 'createdAt'], // columns, not relations
         hiddenFields: ['slug', 'internalNotes'],
       },
       users: {
         displayName: 'Users',
         icon: 'i-heroicons-users',
         group: 'Team',
-        readonlyFields: ['email', 'createdAt'],
       },
     },
   },

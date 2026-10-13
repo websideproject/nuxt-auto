@@ -9,7 +9,7 @@ M2M relationships are managed through junction tables. nuxt-auto-api auto-detect
 ```ts
 autoApi: {
   m2m?: {
-    autoDetect?: boolean    // default: true — detect junction tables automatically
+    autoDetect?: boolean    // default: true — discovery (/api/_m2m/*, used by the admin) also reports junctions among REGISTERED resources; routes ignore it
 
     relations?: {
       // Manual config: posts.tags (junction: post_tags)
@@ -21,7 +21,7 @@ autoApi: {
           label?: 'Tags',
           help?: string,
           displayField?: 'name',        // field to show in UI
-          metadataColumns?: ['order', 'addedAt'],  // extra junction columns
+          metadataColumns?: ['order', 'addedAt'],  // reported to the admin; routes treat every non-key column as metadata
         },
       },
     },
@@ -29,7 +29,10 @@ autoApi: {
 }
 ```
 
-Junction table detection: a table with exactly two foreign keys and no other non-FK columns is treated as a junction table.
+Junction lookup is **by name only** (Drizzle `.references()` and `relations()` are not read):
+
+- Routes (`/api/{resource}/:id/relations/{relation}`): `junctionTable` if configured, else the schema **export name** made of both resource names (`articleCategories`, `article_categories`, `categoryArticles`, singular/plural); key columns by property name (`articleId`, `article_id`, `idArticle`). The junction must be in the schema passed to `drizzle()`; it need NOT be registered.
+- Discovery for the admin: the relations in `m2m.relations`, plus (with `autoDetect`) registered tables with no `id`, two `…Id`/`…_id` columns naming registered resources, and a name made of both. An unregistered junction is only discovered when listed in `m2m.relations`.
 
 ---
 

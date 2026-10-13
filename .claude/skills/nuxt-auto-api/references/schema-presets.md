@@ -51,7 +51,7 @@ export const articles = sqliteTable('articles', {
 | `timestamps()` | `updatedAt` auto-refreshes |
 | `softDelete()` | Soft-delete pipeline (list hide, restore, purge, cascade, trash) |
 | `tenant()` | Tenant scoping |
-| `audit()` | `createdBy`/`updatedBy` from request user (audit-stamp plugin, column-detected) |
+| `audit()` | `createdBy`/`updatedBy` from request user — only once `createAuditStampPlugin()` is registered (NOT on by default; without it the columns stay NULL) |
 | `liveUnique(t, col, name)` | Partial unique index — only among live (non-deleted) rows |
 
 ## `softDelete()` options

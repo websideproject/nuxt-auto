@@ -170,13 +170,15 @@ export function createRequestMetadataPlugin(
 
       // PART 1: Context enrichment (always runs)
       ctx.extendContext(async (context) => {
+        // Merged, not assigned: other extenders put their own keys on `requestMeta` (e.g. `billing`), and the
+        // order plugins are listed in must not decide whether those survive.
         try {
           const metadata = await extract(context.event)
-          context.requestMeta = metadata
+          context.requestMeta = { ...context.requestMeta, ...metadata }
         }
         catch (error) {
           ctx.logger?.warn('Failed to extract request metadata:', error)
-          context.requestMeta = {} // Set empty object to avoid undefined checks
+          context.requestMeta = context.requestMeta ?? {} // Set empty object to avoid undefined checks
         }
       })
 

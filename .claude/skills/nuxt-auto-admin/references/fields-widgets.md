@@ -6,25 +6,32 @@ Defines a single form field in `formFields.create` or `formFields.edit`:
 
 ```ts
 interface FieldConfig {
-  name: string                         // Drizzle column name
+  name: string                         // Drizzle column name (property key)
   label?: string                       // Display label (auto-generated if omitted)
   widget?: WidgetType                  // Auto-detected from column type if omitted
-  required?: boolean
-  readonly?: boolean
+  required?: boolean                   // Blocks an empty submit
+  readonly?: boolean                   // Shown, left out of the request
   help?: string                        // Help text below the field
   placeholder?: string
   options?: WidgetOptions              // Widget-specific configuration
-  validation?: any                     // Additional validation rules
-  condition?: (formData: any) => boolean  // Show/hide based on other field values
 }
 ```
+
+`formFields` lives in `nuxt.config`, which reaches the app as JSON: functions (a `condition`) and `RegExp`s set
+there are lost, and a field `validation` key is not read. Validation is the API's — a refused save shows the API's
+error message.
+
+`formFields` **replaces** the generated forms: always give `create` (the create form and import dialog use it;
+`edit` falls back to it). Fields the caller may not write (`fields[x].write`) are made read-only automatically.
 
 ---
 
 ## Widget Types
 
+Nine widgets exist:
+
 ```ts
-type WidgetType =
+type Widget =
   | 'TextInput'
   | 'NumberInput'
   | 'TextareaInput'
@@ -34,16 +41,11 @@ type WidgetType =
   | 'PasswordInput'
   | 'RelationSelect'
   | 'MultiRelationSelect'
-  | 'FileUpload'
-  | 'ImageUpload'
-  | 'RichTextEditor'
-  | 'MarkdownEditor'
-  | 'CodeEditor'
-  | 'ColorPicker'
-  | 'JsonEditor'
-  | 'TagsInput'
-  | 'SlugInput'
 ```
+
+The `WidgetType` type also lists `FileUpload`, `ImageUpload`, `RichTextEditor`, `MarkdownEditor`, `CodeEditor`,
+`ColorPicker`, `JsonEditor`, `TagsInput` and `SlugInput`, but they are **not implemented**: they render as
+`TextInput` with a console warning. Don't use them.
 
 ---
 
@@ -73,8 +75,8 @@ options: {
 ```ts
 options: {
   resource: string          // nuxt-auto-api resource name
-  displayField?: string     // field to show in dropdown (default: 'name' or 'title')
-  searchFields?: string[]   // fields to search when typing
+  displayField?: string     // field to show in dropdown (default: 'name')
+  searchFields?: string[]   // only the FIRST entry is used to search (default: displayField)
 }
 ```
 
@@ -82,7 +84,6 @@ options: {
 { name: 'authorId', widget: 'RelationSelect', options: {
   resource: 'users',
   displayField: 'name',
-  searchFields: ['name', 'email'],
 }}
 ```
 
@@ -93,7 +94,7 @@ options: {
   resource: string
   displayField?: string
   searchFields?: string[]
-  junctionTable?: string    // if M2M via junction
+  junctionTable?: string    // schema export name — a field with it is shown as an M2M card in the edit form
   junctionLeftKey?: string
   junctionRightKey?: string
 }
@@ -103,11 +104,13 @@ options: {
 { name: 'tags', widget: 'MultiRelationSelect', options: {
   resource: 'tags',
   displayField: 'name',
-  junctionTable: 'post_tags',
+  junctionTable: 'postTags',
   junctionLeftKey: 'postId',
   junctionRightKey: 'tagId',
 }}
 ```
+
+Relations the API's discovery reports (`m2m.relations`, or registered junctions) get cards without this.
 
 ### `NumberInput`
 
@@ -115,96 +118,51 @@ options: {
 options: { min?: number; max?: number; step?: number }
 ```
 
-### `TextInput` / `TextareaInput`
+### `TextareaInput`
 
 ```ts
-options: { maxLength?: number; minLength?: number; rows?: number }
+options: { rows?: number }   // default 4
 ```
+
+(`maxLength` / `minLength` are not applied by any widget.)
 
 ### `DateTimePicker`
 
 ```ts
-options: { format?: string; showTime?: boolean }
-```
-
-### `FileUpload` / `ImageUpload`
-
-```ts
-options: { accept?: string; maxSize?: number; multiple?: boolean }
-// e.g. accept: 'image/*', maxSize: 5_000_000
-```
-
-### `SlugInput`
-
-Auto-generates a slug from another field.
-
-```ts
-options: { generateFrom: 'title' }   // watches 'title' field and generates slug
-```
-
-### `RichTextEditor`
-
-```ts
-options: { toolbar?: string[] }
-```
-
-### `CodeEditor`
-
-```ts
-options: { language?: 'typescript' | 'json' | 'sql' | string; theme?: string }
+options: { showTime?: boolean }   // default false; `format` is not read
 ```
 
 ---
 
 ## Auto-Widget Selection
 
-When `widget` is not specified, nuxt-auto-admin maps Drizzle column types automatically:
+When `widget` is not specified (first match wins):
 
-| Column type / pattern | Widget |
+| Column / pattern | Widget |
 |-----------------------|--------|
-| FK column (`*Id`) | `RelationSelect` |
+| Foreign key | `RelationSelect` |
 | Enum column | `SelectInput` (with enum values) |
-| `password`, `*hash*`, `*secret*` | `PasswordInput` |
-| Boolean | `CheckboxInput` |
+| Name contains `password` | `PasswordInput` |
+| Boolean, or integer named `is…` | `CheckboxInput` |
 | Integer/numeric | `NumberInput` |
-| Date/timestamp | `DateTimePicker` |
-| Large text (TEXT, `*content*`, `*body*`, `*description*`) | `TextareaInput` |
-| JSON/jsonb | `JsonEditor` |
-| Default | `TextInput` |
+| Date/timestamp, or name ending `At` / `Date` | `DateTimePicker` |
+| TEXT, or name containing `description`, `content`, `body`, `bio`, `notes` | `TextareaInput` |
+| Anything else (JSON included) | `TextInput` |
+
+Generated forms leave out the primary key, `createdAt`, `updatedAt` and `deletedAt`; on edit, columns ending in
+`Id` (except `userId`) are read-only.
 
 ---
 
-## Conditional Fields
-
-Show or hide a field based on other form values:
-
-```ts
-formFields: {
-  create: [
-    { name: 'type', widget: 'SelectInput',
-      options: { options: [
-        { label: 'Article', value: 'article' },
-        { label: 'Video', value: 'video' },
-      ]}},
-    { name: 'videoUrl', widget: 'TextInput',
-      condition: (data) => data.type === 'video' },
-    { name: 'readingTime', widget: 'NumberInput',
-      condition: (data) => data.type === 'article' },
-  ]
-}
-```
-
----
-
-## Hidden & Readonly Fields
+## Hidden Fields
 
 ```ts
 resources: {
   posts: {
     hiddenFields: ['deletedAt', 'internalScore'],   // excluded from list + form
-    readonlyFields: ['createdAt', 'updatedAt', 'slug'],  // shown but not editable
   }
 }
 ```
 
-Common auto-hidden fields: primary key (unless it's the only identifier), standard audit timestamps when `readonlyFields` applies.
+The API's own hidden fields (registration `hiddenFields`, `autoApi.hiddenFields`) are hidden in the admin too.
+For read-only fields use `readonly: true` in `formFields` (`readonlyFields` on a resource is not read).

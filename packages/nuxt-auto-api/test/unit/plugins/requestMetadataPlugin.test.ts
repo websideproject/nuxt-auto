@@ -156,6 +156,23 @@ describe('requestMetadataPlugin', () => {
       )
       expect(mockContext.requestMeta).toEqual({})
     })
+
+    it('keeps keys another extender already put on requestMeta', async () => {
+      const plugin = createRequestMetadataPlugin({ extract: () => ({ ip: '9.9.9.9' }) })
+      const { ctx, extendContextFn } = createMockPluginContext()
+
+      await plugin.runtimeSetup!(ctx)
+
+      const extender = extendContextFn.mock.calls[0]![0]
+      const mockContext = {
+        event: createMockEvent(),
+        requestMeta: { billing: { planId: 'pro' } },
+      } as unknown as HandlerContext
+
+      await extender(mockContext)
+
+      expect(mockContext.requestMeta).toEqual({ billing: { planId: 'pro' }, ip: '9.9.9.9' })
+    })
   })
 
   describe('Auto-Population', () => {

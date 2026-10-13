@@ -99,7 +99,7 @@ Auto API Features
   Plugin System
 
   #description
-  Extend the request pipeline with plugins for rate limiting, request metadata, soft deletes, caching, and more. Build your own custom plugins easily.
+  Extend the request pipeline with plugins for rate limiting, request metadata, caching, audit logs, webhooks, and more. Build your own custom plugins easily.
   :::
 
   :::u-page-feature
@@ -121,7 +121,7 @@ Auto API Features
   Type-Safe Frontend
 
   #description
-  Auto-generated composables with TanStack Query integration. Full TypeScript inference from your schemas to frontend components.
+  Auto-imported composables with TanStack Query integration, typed with your row types (`useAutoApiList<Post>('posts')`).
   :::
 
   :::u-page-feature
@@ -160,7 +160,7 @@ Auto Admin Features
   Rich Form Widgets
 
   #description
-  Text, number, textarea, checkbox, select, date/time picker, relation select, rich text editor, markdown editor, code editor, JSON editor, file/image upload, color picker, tags input, and slug generator.
+  Text, number, textarea, checkbox, select, date/time picker, password, relation select and multi-relation select — picked from each column's type.
   :::
 
   :::u-page-feature
@@ -193,7 +193,7 @@ Auto Admin Features
   Fully Customizable
 
   #description
-  Custom branding, logos, colors, theming with Nuxt UI, custom pages for specialized admin functionality, and granular resource configuration.
+  Custom title and logo, colors through Nuxt UI's app config, custom pages and actions, and per-resource configuration.
   :::
 
   :::u-page-feature
@@ -255,11 +255,39 @@ export const users = sqliteTable('users', {
 })
 ```
 
-**That's it!** You now have:
+```typescript
+// modules/base/index.ts — register the table as a resource
+import { defineNuxtModule, createResolver } from '@nuxt/kit'
+import { createModuleImport } from '@websideproject/nuxt-auto-api'
 
-- ✅ REST API at `/api/users` with full CRUD operations
+export default defineNuxtModule({
+  setup(_options, nuxt) {
+    const { resolve } = createResolver(import.meta.url)
+    nuxt.hook('autoApi:registerSchema', (registry) => {
+      registry.register('users', {
+        schema: createModuleImport(resolve('../../server/database/schema'), 'users'),
+        authorization: createModuleImport(resolve('./auth'), 'usersAuth'),
+      })
+    })
+  },
+})
+```
+
+```typescript
+// modules/base/auth.ts — anything undeclared is refused
+import type { ResourceAuthConfig } from '@websideproject/nuxt-auto-api'
+
+export const usersAuth: ResourceAuthConfig = {
+  permissions: { read: ctx => !!ctx.user, create: 'admin', update: 'admin', delete: 'admin' },
+}
+```
+
+Add `'./modules/base'` to `modules` and initialize the database in a server plugin
+([Quick Start](/getting-started/quick-start) has every step). Then you have:
+
+- ✅ REST API at `/api/users` with full CRUD operations, refused to anyone your rules don't allow
 - ✅ Admin panel at `/admin` with user management interface
-- ✅ Type-safe frontend composables (`useAutoApiList`, `useAutoApiMutation`)
+- ✅ Frontend composables (`useAutoApiList`, `useAutoApiMutation`)
 
 ::u-button
 ---

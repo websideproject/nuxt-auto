@@ -391,7 +391,6 @@ setup(_options, nuxt) {
           icon: 'i-heroicons-document-text',
           group: 'Content',
           listFields: ['title', 'status', 'createdAt'],
-          readonlyFields: ['createdAt', 'updatedAt', 'slug'],
         },
         // Spread host config LAST so it can override your defaults
         ...((nuxt.options as any).autoAdmin.resources ?? {}),
