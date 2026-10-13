@@ -19,7 +19,8 @@ Here are the available types and scopes:
 - revert (reverts a previous commit) 🔄
 
 The type sets the PR's label and the version bump: `breaking`, or a `!` after the type (`feat!:`), is a minor
-release while the packages are 0.x; every other type — `feat` included — is a patch. The release
+release while the packages are 0.x; every other type — `feat` included — is a patch. A `release: minor` or
+`release: major` label, added by hand to any PR in the release, makes the whole release that size. The release
 notes are grouped by package, from area labels (`area: api`, `area: admin`, `area: playground`, `area: docs`) that
 follow the changed paths.
 
