@@ -12,6 +12,16 @@ export interface AutoApiOptions {
   prefix?: string
 
   /**
+   * The TanStack Query client layer: the `useAutoApi*`, `useM2M*` and `usePermissions` composables and the
+   * plugin that installs their `QueryClient` (with SSR hydration). Needs `@tanstack/vue-query` installed.
+   *
+   * `false` serves the REST API only: no plugin, no vue-query in the client bundle. `useAutoApiFetch` and
+   * `useAutoApiPath` stay auto-imported for calling the API with `useFetch` / `$fetch`.
+   * @default true
+   */
+  vueQuery?: boolean
+
+  /**
    * Not read by the module — the engine is the second argument of `initializeDatabase(db, engine)` in your
    * server plugin. Kept so existing configs still type-check.
    * @deprecated

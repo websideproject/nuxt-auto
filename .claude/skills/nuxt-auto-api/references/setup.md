@@ -8,9 +8,14 @@ export default defineNuxtConfig({
   modules: ['@websideproject/nuxt-auto-api'],
   autoApi: {
     prefix: '/api',            // default
+    vueQuery: true,            // default — the useAutoApi* composables; needs `@tanstack/vue-query` installed
   },
 })
 ```
+
+`@tanstack/vue-query` is an optional peer dependency. `vueQuery: false` = REST API only: no query-client plugin, no
+vue-query in the client bundle, only `useAutoApiPath` / `useAutoApiFetch` auto-imported. The build fails with a
+message if `vueQuery` is on and the package is missing, and nuxt-auto-admin fails it if `vueQuery` is `false`.
 
 ```ts
 // server/plugins/database.ts — REQUIRED: hand auto-api the Drizzle instance and name the engine

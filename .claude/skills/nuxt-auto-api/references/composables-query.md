@@ -2,6 +2,8 @@
 
 All query composables use **TanStack Query (Vue Query)** under the hood and are auto-imported. They cache responses and revalidate automatically.
 
+`@tanstack/vue-query` is an optional peer dependency: the app installs it. With `autoApi: { vueQuery: false }` none of these composables exist (no plugin, no vue-query in the bundle) — only `useAutoApiPath()` and `useAutoApiFetch()` are auto-imported, for `useFetch(path('posts'))`. The admin panel requires `vueQuery` on.
+
 ---
 
 ## `useAutoApiList<T>` — Fetch a list

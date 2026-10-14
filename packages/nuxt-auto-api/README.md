@@ -5,8 +5,8 @@
 [![license](https://img.shields.io/github/license/websideproject/nuxt-auto?color=black)](https://github.com/websideproject/nuxt-auto/blob/main/LICENSE)
 
 Schema-driven REST APIs for Nuxt. Register a Drizzle table, declare who may do what, and get list / get /
-create / update / delete, bulk, aggregations, many-to-many and permission endpoints — plus TanStack Query
-composables for the client.
+create / update / delete, bulk, aggregations, many-to-many and permission endpoints — plus optional TanStack
+Query composables for the client.
 
 - **Secure by default** — every operation is denied until you declare who may perform it
 - **Row visibility everywhere** — tenant scoping, `listFilter`, soft delete and `objectLevel` apply to every
@@ -22,6 +22,7 @@ composables for the client.
 ```bash
 npx nuxt module add @websideproject/nuxt-auto-api
 npm install drizzle-orm better-sqlite3   # Drizzle + your database's driver; auto-api uses this same Drizzle
+npm install @tanstack/vue-query          # for the client composables — or set `autoApi.vueQuery: false`
 ```
 
 ## Quick start

@@ -34,4 +34,35 @@ describe('module setup', () => {
       await nuxt.close()
     }
   }, 120_000)
+
+  // What the client gets, read back from the hooks the kit helpers register on.
+  async function clientWiring(autoApi: Record<string, unknown> = {}) {
+    const nuxt = await loadNuxt({
+      cwd: fileURLToPath(new URL('./fixtures/basic', import.meta.url)),
+      ready: true,
+      overrides: { _prepare: true, autoApi } as any,
+    })
+    try {
+      const dirs: string[] = []
+      const imports: Array<{ name: string, from: string }> = []
+      await nuxt.callHook('imports:dirs', dirs)
+      await nuxt.callHook('imports:extend', imports as any)
+      return {
+        plugin: nuxt.options.plugins.some(p => (typeof p === 'string' ? p : p.src).includes('tanstack-query')),
+        composablesDir: dirs.some(d => d.endsWith('runtime/composables')),
+        imports: imports.filter(i => i.from.includes('runtime/composables')).map(i => i.name).sort(),
+      }
+    }
+    finally {
+      await nuxt.close()
+    }
+  }
+
+  it('installs the vue-query plugin and every composable by default', async () => {
+    expect(await clientWiring()).toEqual({ plugin: true, composablesDir: true, imports: [] })
+  }, 120_000)
+
+  it('with vueQuery: false, adds no plugin and auto-imports only the fetch helpers', async () => {
+    expect(await clientWiring({ vueQuery: false })).toEqual({ plugin: false, composablesDir: false, imports: ['useAutoApiFetch', 'useAutoApiPath'] })
+  }, 120_000)
 })

@@ -29,6 +29,7 @@
     "@nuxt/hints": "1.0.0-alpha.6",
     "@nuxt/ui": "^4.4.0",
     "@scalar/nuxt": "0.5.60",
+    "@tanstack/vue-query": "^5.92.9",
     "@websideproject/nuxt-auto-admin": "workspace:*",
     "@websideproject/nuxt-auto-api": "workspace:*",
     "better-sqlite3": "^12.6.2",

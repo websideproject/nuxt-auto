@@ -41,6 +41,7 @@
         "@nuxt/hints": "1.0.0-alpha.6",
         "@nuxt/ui": "^4.4.0",
         "@scalar/nuxt": "0.5.60",
+        "@tanstack/vue-query": "^5.92.9",
         "@websideproject/nuxt-auto-admin": "workspace:*",
         "@websideproject/nuxt-auto-api": "workspace:*",
         "better-sqlite3": "^12.6.2",
@@ -79,7 +80,7 @@
     },
     "packages/nuxt-auto-admin": {
       "name": "@websideproject/nuxt-auto-admin",
-      "version": "0.0.11",
+      "version": "0.1.0",
       "dependencies": {
         "@iconify-json/heroicons": "^1.2.3",
         "@nuxt/kit": "^4.3.0",
@@ -90,6 +91,7 @@
         "@nuxt/module-builder": "^1.0.2",
         "@nuxt/schema": "^4.3.0",
         "@nuxt/test-utils": "^3.23.0",
+        "@tanstack/vue-query": "^5.92.9",
         "@types/better-sqlite3": "^7.6.8",
         "@types/node": "latest",
         "@websideproject/nuxt-auto-api": "workspace:*",
@@ -102,6 +104,7 @@
       },
       "peerDependencies": {
         "@nuxt/ui": "^4.0.0",
+        "@tanstack/vue-query": "^5.0.0",
         "@websideproject/nuxt-auto-api": "workspace:*",
         "h3": "^1.15.0 || ^2.0.0-0",
         "tailwindcss": "^4.0.0",
@@ -112,10 +115,9 @@
     },
     "packages/nuxt-auto-api": {
       "name": "@websideproject/nuxt-auto-api",
-      "version": "0.0.11",
+      "version": "0.1.0",
       "dependencies": {
         "@nuxt/kit": "^4.3.0",
-        "@tanstack/vue-query": "^5.0.0",
         "drizzle-zod": "^0.8.3",
         "zod": "^4.3.6",
       },
@@ -126,6 +128,7 @@
         "@nuxt/schema": "^4.3.0",
         "@nuxt/test-utils": "^3.23.0",
         "@planetscale/database": "^1.19.0",
+        "@tanstack/vue-query": "^5.92.9",
         "@types/better-sqlite3": "^7.6.8",
         "@types/node": "^26.2.0",
         "better-sqlite3": "^12.8.0",
@@ -139,10 +142,12 @@
         "typescript": "^5.9.3",
       },
       "peerDependencies": {
+        "@tanstack/vue-query": "^5.0.0",
         "drizzle-orm": "^0.45.1",
         "h3": "^1.15.0 || ^2.0.0-0",
       },
       "optionalPeers": [
+        "@tanstack/vue-query",
         "h3",
       ],
     },
@@ -3480,11 +3485,11 @@
 
     "@websideproject/nuxt-auto-admin/@nuxt/kit": ["@nuxt/kit@4.3.1", "", { "dependencies": { "c12": "^3.3.3", "consola": "^3.4.2", "defu": "^6.1.4", "destr": "^2.0.5", "errx": "^0.1.0", "exsolve": "^1.0.8", "ignore": "^7.0.5", "jiti": "^2.6.1", "klona": "^2.0.6", "mlly": "^1.8.0", "ohash": "^2.0.11", "pathe": "^2.0.3", "pkg-types": "^2.3.0", "rc9": "^3.0.0", "scule": "^1.3.0", "semver": "^7.7.4", "tinyglobby": "^0.2.15", "ufo": "^1.6.3", "unctx": "^2.5.0", "untyped": "^2.0.0" } }, "sha512-UjBFt72dnpc+83BV3OIbCT0YHLevJtgJCHpxMX0YRKWLDhhbcDdUse87GtsQBrjvOzK7WUNUYLDS/hQLYev5rA=="],
 
-    "@websideproject/nuxt-auto-admin/@types/node": ["@types/node@26.6.3", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-dsqMQQoeTLqu9wynDD00q573mNzso3IdQOAfHRJqLCcmCFPoGo9A1bDpUcv/9tnKpErQWv9uKeGfl37EIS02Yg=="],
+    "@websideproject/nuxt-auto-admin/@types/node": ["@types/node@26.6.5", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg=="],
 
     "@websideproject/nuxt-auto-api/@nuxt/kit": ["@nuxt/kit@4.3.1", "", { "dependencies": { "c12": "^3.3.3", "consola": "^3.4.2", "defu": "^6.1.4", "destr": "^2.0.5", "errx": "^0.1.0", "exsolve": "^1.0.8", "ignore": "^7.0.5", "jiti": "^2.6.1", "klona": "^2.0.6", "mlly": "^1.8.0", "ohash": "^2.0.11", "pathe": "^2.0.3", "pkg-types": "^2.3.0", "rc9": "^3.0.0", "scule": "^1.3.0", "semver": "^7.7.4", "tinyglobby": "^0.2.15", "ufo": "^1.6.3", "unctx": "^2.5.0", "untyped": "^2.0.0" } }, "sha512-UjBFt72dnpc+83BV3OIbCT0YHLevJtgJCHpxMX0YRKWLDhhbcDdUse87GtsQBrjvOzK7WUNUYLDS/hQLYev5rA=="],
 
-    "@websideproject/nuxt-auto-api/@types/node": ["@types/node@26.6.3", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-dsqMQQoeTLqu9wynDD00q573mNzso3IdQOAfHRJqLCcmCFPoGo9A1bDpUcv/9tnKpErQWv9uKeGfl37EIS02Yg=="],
+    "@websideproject/nuxt-auto-api/@types/node": ["@types/node@26.6.5", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg=="],
 
     "ai/@ai-sdk/gateway": ["@ai-sdk/gateway@3.0.32", "", { "dependencies": { "@ai-sdk/provider": "3.0.7", "@ai-sdk/provider-utils": "4.0.13", "@vercel/oidc": "3.1.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-7clZRr07P9rpur39t1RrbIe7x8jmwnwUWI8tZs+BvAfX3NFgdSVGGIaT7bTz2pb08jmLXzTSDbrOTqAQ7uBkBQ=="],
 

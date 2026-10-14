@@ -1,6 +1,8 @@
-import { defineNuxtModule, createResolver, addServerHandler, addServerImportsDir, addServerImports, addTemplate, addTypeTemplate, addPlugin, addImportsDir, useLogger, resolvePath } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerHandler, addServerImportsDir, addServerImports, addTemplate, addTypeTemplate, addPlugin, addImports, addImportsDir, useLogger, resolvePath, tryResolveModule } from '@nuxt/kit'
 import { existsSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { PUBLIC_SERVER_UTILS } from './runtime/server/publicServerUtils'
+import { VUE_QUERY_FREE_COMPOSABLES } from './runtime/vueQueryFreeComposables'
 import type { AutoApiOptions, ResourceRegistration, AutoApiPlugin } from './runtime/types'
 import type { PluginBuildContext } from './runtime/types/plugin'
 import { inlinePluginSource, secretLikeOptions } from './utils/inlinePlugins'
@@ -21,6 +23,7 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {
     prefix: '/api',
+    vueQuery: true,
     pagination: {
       defaultLimit: 20,
       maxLimit: 100,
@@ -29,11 +32,19 @@ export default defineNuxtModule<ModuleOptions>({
   async setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
 
-    // Add TanStack Query plugin for frontend
-    addPlugin(resolver.resolve('./runtime/plugins/tanstack-query'))
-
-    // Add composables for auto-import
-    addImportsDir(resolver.resolve('./runtime/composables'))
+    // Client composables. `@tanstack/vue-query` is an optional peer: with `vueQuery: false` the app serves the REST
+    // API only — no QueryClient plugin, no vue-query in the client bundle — and keeps the two fetch helpers.
+    if (options.vueQuery !== false) {
+      const found = await tryResolveModule('@tanstack/vue-query', [import.meta.url, pathToFileURL(`${nuxt.options.rootDir}/`).href])
+      if (!found) {
+        throw new Error('[nuxt-auto-api] The useAutoApi* composables need @tanstack/vue-query: install it (`npm i @tanstack/vue-query`), or set `autoApi.vueQuery: false` to serve the REST API only.')
+      }
+      addPlugin(resolver.resolve('./runtime/plugins/tanstack-query'))
+      addImportsDir(resolver.resolve('./runtime/composables'))
+    }
+    else {
+      addImports(VUE_QUERY_FREE_COMPOSABLES.map(({ name, file }) => ({ name, from: resolver.resolve(`./runtime/composables/${file}`) })))
+    }
 
     // Server auto-imports: exactly the public API (`@websideproject/nuxt-auto-api/utils`). Internal helpers
     // are never auto-imported, so they cannot collide with the app's or another module's names.

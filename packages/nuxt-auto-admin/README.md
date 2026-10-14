@@ -23,7 +23,7 @@ sees exactly what the API allows them.
 npx nuxt module add @websideproject/nuxt-auto-admin
 ```
 
-It needs `@websideproject/nuxt-auto-api` (set up with resources) and `@nuxt/ui`.
+It needs `@websideproject/nuxt-auto-api` (set up with resources), `@nuxt/ui` and `@tanstack/vue-query`.
 
 ## Quick start
 
