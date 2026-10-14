@@ -89,6 +89,10 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.hook('modules:done', async () => {
       // nuxt-auto-api's options are final by now (its inline plugins added their routes during its setup).
       const apiConfig = (nuxt.options.runtimeConfig as Record<string, any>).autoApi
+      // Every admin page reads and writes through the TanStack composables nuxt-auto-api leaves out without it.
+      if (apiConfig?.vueQuery === false) {
+        throw new Error('[nuxt-auto-admin] The admin panel needs nuxt-auto-api\'s composables: remove `autoApi.vueQuery: false` (and install @tanstack/vue-query).')
+      }
       publicConfig.api = adminApiInfo(apiConfig, (nuxt.options.runtimeConfig as Record<string, any>).autoApiPluginRoutes)
 
       const capturedResources = capturedRegistry?.getAll() ?? []

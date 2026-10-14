@@ -1,7 +1,7 @@
 {
   "name": "@websideproject/nuxt-auto-api",
   "version": "0.1.0",
-  "description": "Secure REST APIs for Nuxt from your Drizzle schema: deny-by-default authorization, multi-tenancy, validation, soft delete, M2M and TanStack Query composables",
+  "description": "Secure REST APIs for Nuxt from your Drizzle schema: deny-by-default authorization, multi-tenancy, validation, soft delete, M2M and optional TanStack Query composables",
   "homepage": "https://websideproject.com/docs/nuxt-auto",
   "repository": {
     "type": "git",
@@ -97,15 +97,18 @@
   },
   "dependencies": {
     "@nuxt/kit": "^4.3.0",
-    "@tanstack/vue-query": "^5.0.0",
     "drizzle-zod": "^0.8.3",
     "zod": "^4.3.6"
   },
   "peerDependencies": {
+    "@tanstack/vue-query": "^5.0.0",
     "drizzle-orm": "^0.45.1",
     "h3": "^1.15.0 || ^2.0.0-0"
   },
   "peerDependenciesMeta": {
+    "@tanstack/vue-query": {
+      "optional": true
+    },
     "h3": {
       "optional": true
     }
@@ -117,6 +120,7 @@
     "@nuxt/schema": "^4.3.0",
     "@nuxt/test-utils": "^3.23.0",
     "@planetscale/database": "^1.19.0",
+    "@tanstack/vue-query": "^5.92.9",
     "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^26.2.0",
     "better-sqlite3": "^12.8.0",

@@ -6,6 +6,8 @@ export default defineNuxtConfig({
 
   autoApi: {
     prefix: '/api',
+    // REST only: no client composables, no @tanstack/vue-query.
+    vueQuery: false,
     database: {
       client: 'better-sqlite3'
     },
