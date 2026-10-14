@@ -334,6 +334,23 @@ describe('Bulk Operations Integration', () => {
       expect(post.title).toBe(posts[0].title) // Original title
     })
 
+    it('a duplicate unique value rolls the batch back and is reported as a 409 naming the item and field', async () => {
+      const context = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'tags',
+        operation: 'bulk',
+        query: {},
+        validated: { body: { items: [{ name: 'fresh' }, { name: 'fresh' }] } },
+      })
+
+      const error: any = await bulkCreateHandler(context as any).catch(e => e)
+      expect(error.statusCode).toBe(409)
+      expect(error.message).toBe('Bulk operation failed (rolled back)')
+      expect(error.data.errors).toEqual([{ index: 1, error: 'A record with this name already exists', statusCode: 409 }])
+      expect(sqlite.prepare('SELECT count(*) AS n FROM tags WHERE name = ?').get('fresh').n).toBe(0)
+    })
+
     it('writes nothing when an item fails its checks — on D1 too, which has no transactions', async () => {
       const posts = testData.posts
       const { createD1Adapter } = await import('../../src/runtime/server/database/adapters/d1')

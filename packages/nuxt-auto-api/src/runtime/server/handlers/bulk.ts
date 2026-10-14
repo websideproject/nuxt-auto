@@ -13,6 +13,7 @@ import { findAuthorizedRow } from '../utils/rowAccess'
 import { insertReturningQuery, updateReturningQuery } from '../utils/returning'
 import { serializeResponse } from '../utils/serializeResponse'
 import { primaryKeyColumn, primaryKeyName } from '../utils/table'
+import { conflictFromUniqueViolation } from '../utils/uniqueViolation'
 import { prepareCreateData } from './create'
 import { prepareUpdateData, withUpdatedAt } from './update'
 
@@ -66,6 +67,9 @@ async function runBatch<T>(
   const results: T[] = []
   const errors: BulkItemError[] = []
 
+  // A duplicate unique value is reported as the conflict it is (409, naming the field), like a single write.
+  const table = context.schema?.[context.resource]
+
   if (!transactional) {
     for (let i = 0; i < count; i++) {
       try {
@@ -73,7 +77,7 @@ async function runBatch<T>(
         results.push(await item.finish(await atomicWritesFor(context, item.writes)))
       }
       catch (error) {
-        errors.push(itemError(i, error, idOf(i)))
+        errors.push(itemError(i, conflictFromUniqueViolation(error, table), idOf(i)))
       }
     }
     return { results, errors }
@@ -98,10 +102,11 @@ async function runBatch<T>(
   catch (error: any) {
     // The item is known when the engine ran the statements one by one; a D1 batch fails as a whole.
     const index = typeof error?.writeIndex === 'number' ? owner[error.writeIndex] : undefined
+    const reported = conflictFromUniqueViolation(error, table) as any
     throw createError({
-      statusCode: 400,
+      statusCode: reported === error ? 400 : 409,
       message: 'Bulk operation failed (rolled back)',
-      data: { errors: [index !== undefined ? itemError(index, error, idOf(index)) : { error: clientMessage(error) }] },
+      data: { errors: [index !== undefined ? itemError(index, reported, idOf(index)) : { error: clientMessage(reported), statusCode: reported?.statusCode }] },
     })
   }
 
