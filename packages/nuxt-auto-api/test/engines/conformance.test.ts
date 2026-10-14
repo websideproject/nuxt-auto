@@ -300,6 +300,31 @@ for (const spec of ENGINES) {
       await expect(updateHandler(ctx('projects', { operation: 'update', params: { id: String(theirs.id) }, body: { name: 'x' }, ...as('org-a') }))).rejects.toMatchObject({ statusCode: 404 })
     })
 
+    it('tenant scoping: a write cannot reference another organization\'s row', async () => {
+      const auth = { projects: { permissions: { read: true, create: true } }, tasks: { permissions: { read: true, create: true, update: true } } }
+      const as = (org: string, all = false) => ({ auth, tenant: { id: org, field: 'organizationId', canAccessAllTenants: all }, autoApi: { multiTenancy: { enabled: true, tenantIdField: 'organizationId' } } } as any)
+      const mine: any = (await createHandler(ctx('projects', { operation: 'create', body: { name: 'mine' }, ...as('org-a') }))).data
+      const theirs: any = (await createHandler(ctx('projects', { operation: 'create', body: { name: 'theirs' }, ...as('org-b') }))).data
+
+      const task: any = (await createHandler(ctx('tasks', { operation: 'create', body: { projectId: mine.id, title: 'ok' }, ...as('org-a') }))).data
+      expect(task.projectId).toBe(mine.id)
+
+      // another tenant's project is answered like a project that does not exist
+      for (const projectId of [theirs.id, 999999]) {
+        const error: any = await createHandler(ctx('tasks', { operation: 'create', body: { projectId, title: 'x' }, ...as('org-a') })).catch(e => e)
+        expect(error).toMatchObject({ statusCode: 400, message: `projectId: projects ${projectId} not found`, data: { errors: [{ path: ['projectId'], message: `projects ${projectId} not found` }] } })
+      }
+      await expect(updateHandler(ctx('tasks', { operation: 'update', params: { id: String(task.id) }, body: { projectId: theirs.id }, ...as('org-a') })))
+        .rejects.toMatchObject({ statusCode: 400 })
+      await expect(bulkCreateHandler(ctx('tasks', { operation: 'bulk', body: { items: [{ projectId: mine.id, title: 'a' }, { projectId: theirs.id, title: 'b' }] }, ...as('org-a') })))
+        .rejects.toMatchObject({ statusCode: 400, data: { errors: [{ index: 1, error: `projectId: projects ${theirs.id} not found` }] } })
+      expect((await rows('tasks')).map((r: any) => r.projectId)).toEqual([mine.id])
+
+      // a caller who may access every tenant may link across them
+      const staff: any = (await createHandler(ctx('tasks', { operation: 'create', body: { projectId: theirs.id, title: 'staff' }, ...as('org-a', true) }))).data
+      expect(staff.projectId).toBe(theirs.id)
+    })
+
     it('update stamps updatedAt as a real date', async () => {
       const p = await project()
       const before = Date.now() - 2000
