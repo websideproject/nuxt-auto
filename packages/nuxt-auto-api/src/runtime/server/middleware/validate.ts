@@ -9,15 +9,22 @@ function validationError(issues: any[]): never {
   throw createError({ statusCode: 400, message: 'Validation error', data: { errors: issues } })
 }
 
-async function parse(schema: z.ZodType<any> | undefined, value: any, pathPrefix: Array<string | number> = []) {
-  if (!schema) return value
+/** The parsed value, or the issues (paths prefixed) when `value` does not match. */
+async function check(schema: z.ZodType<any> | undefined, value: any, pathPrefix: Array<string | number> = []): Promise<{ data?: any, issues?: any[] }> {
+  if (!schema) return { data: value }
   try {
-    return await schema.parseAsync(value)
+    return { data: await schema.parseAsync(value) }
   }
   catch (error: any) {
     if (!isZodError(error)) throw error
-    validationError(error.issues.map((i: any) => ({ ...i, path: [...pathPrefix, ...i.path] })))
+    return { issues: error.issues.map((i: any) => ({ ...i, path: [...pathPrefix, ...i.path] })) }
   }
+}
+
+async function parse(schema: z.ZodType<any> | undefined, value: any, pathPrefix: Array<string | number> = []) {
+  const { data, issues } = await check(schema, value, pathPrefix)
+  if (issues) validationError(issues)
+  return data
 }
 
 /**
@@ -73,22 +80,31 @@ export function createValidationMiddleware(schemas?: ValidationSchema | (() => V
     if (!body || !Array.isArray(body.items)) {
       throw createError({ statusCode: 400, message: 'Request body must contain an "items" array' })
     }
+    // Every item is checked, and every invalid one is reported — not only the first.
     const items: any[] = []
+    const issues: any[] = []
     for (let i = 0; i < body.items.length; i++) {
       const item = body.items[i]
       if (operation === 'create') {
         if (!item || typeof item !== 'object' || Array.isArray(item)) {
-          validationError([{ path: ['items', i], message: 'Item must be an object' }])
+          issues.push({ path: ['items', i], message: 'Item must be an object' })
+          continue
         }
-        items.push(await parse(s?.create, item, ['items', i]))
+        const result = await check(s?.create, item, ['items', i])
+        if (result.issues) issues.push(...result.issues)
+        else items.push(result.data)
       }
       else {
         if (!item || item.id === undefined || item.id === null || !item.data || typeof item.data !== 'object') {
-          validationError([{ path: ['items', i], message: 'Item must be { id, data }' }])
+          issues.push({ path: ['items', i], message: 'Item must be { id, data }' })
+          continue
         }
-        items.push({ id: item.id, data: await parse(s?.update, item.data, ['items', i, 'data']) })
+        const result = await check(s?.update, item.data, ['items', i, 'data'])
+        if (result.issues) issues.push(...result.issues)
+        else items.push({ id: item.id, data: result.data })
       }
     }
+    if (issues.length) validationError(issues)
     context.validated.body = { items }
   }
 }

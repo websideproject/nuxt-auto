@@ -58,6 +58,25 @@ describe('Validation Middleware', () => {
       expect(readBody, 'the body is not even read').not.toHaveBeenCalled()
     })
 
+    it('bulk: every invalid item is reported, not only the first', async () => {
+      const schemas = { create: z.object({ title: z.string().min(3) }), update: z.object({ title: z.string().min(3) }) }
+      const { readBody } = await import('h3')
+      const middleware = createValidationMiddleware(schemas)
+
+      vi.mocked(readBody).mockResolvedValueOnce({ items: [{ title: 'ok!' }, { title: 'x' }, 'nope', { title: 'y' }] })
+      const create = createMockContext({ event: createMockH3Event(), operation: 'create', query: {} })
+      ;(create as any).bulk = true
+      const error: any = await middleware(create as any).catch(e => e)
+      expect(error.statusCode).toBe(400)
+      expect(error.data.errors.map((i: any) => i.path)).toEqual([['items', 1, 'title'], ['items', 2], ['items', 3, 'title']])
+
+      vi.mocked(readBody).mockResolvedValueOnce({ items: [{ id: 1, data: { title: 'a' } }, { id: 2 }, { id: 3, data: { title: 'fine' } }] })
+      const update = createMockContext({ event: createMockH3Event(), operation: 'update', query: {} })
+      ;(update as any).bulk = true
+      const updateError: any = await middleware(update as any).catch(e => e)
+      expect(updateError.data.errors.map((i: any) => i.path)).toEqual([['items', 0, 'data', 'title'], ['items', 1]])
+    })
+
     it('should validate body for create operation', async () => {
       const schemas = {
         create: z.object({
