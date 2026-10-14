@@ -185,9 +185,12 @@ for (const spec of ENGINES) {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const error: any = await bulkCreateHandler(ctx('tags', { operation: 'bulk', body: { items: [{ name: 'fresh-1' }, { name: 'fresh-2' }, { name: 'taken' }] } })).catch(e => e)
       spy.mockRestore()
-      // a duplicate unique value: the conflict (409, naming the field), on every engine
+      // a duplicate unique value: the conflict (409), on every engine — naming the field where the engine's error
+      // does (MySQL's names the index instead)
       expect(error.statusCode).toBe(409)
-      expect(JSON.stringify(error.data)).toContain('A record with this name already exists')
+      expect(JSON.stringify(error.data)).toContain(['mysql', 'planetscale'].includes(spec.engine)
+        ? 'A record with these values already exists'
+        : 'A record with this name already exists')
       // the database's message (SQL, bound values of every item) stays on the server
       expect(JSON.stringify(error.data)).not.toMatch(/insert|fresh-1|params/i)
       expect((await rows('tags')).map((r: any) => r.name)).toEqual(['taken'])

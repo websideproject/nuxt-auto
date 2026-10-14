@@ -7,7 +7,8 @@ import { getTableColumns } from 'drizzle-orm'
  *
  *  - SQLite / D1 / libSQL: `UNIQUE constraint failed: articles.slug` (composite: `t.a, t.b`)
  *  - PostgreSQL: code `23505`, detail `Key (slug)=(hello) already exists.`
- *  - MySQL: `ER_DUP_ENTRY` (1062) — the message names the index, not its columns, so no columns
+ *  - MySQL / PlanetScale: `ER_DUP_ENTRY` (1062; PlanetScale's driver says so only in its message,
+ *    `Duplicate entry '…' for key '…' (errno 1062)`) — the message names the index, not its columns, so no columns
  */
 export function uniqueViolationColumns(error: unknown): string[] | null {
   for (let e: any = error, depth = 0; e && depth < 5; e = e.cause, depth++) {
@@ -19,7 +20,7 @@ export function uniqueViolationColumns(error: unknown): string[] | null {
       const key = String(e.detail ?? '').match(/Key \(([^)]+)\)=/)
       return key ? key[1]!.split(',').map(c => c.trim().replace(/^"|"$/g, '')) : []
     }
-    if (e.code === 'ER_DUP_ENTRY' || e.errno === 1062) return []
+    if (e.code === 'ER_DUP_ENTRY' || e.errno === 1062 || /Duplicate entry .* for key /.test(message)) return []
   }
   return null
 }

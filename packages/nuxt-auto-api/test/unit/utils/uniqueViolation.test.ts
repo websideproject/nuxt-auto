@@ -62,6 +62,8 @@ describe('unique violations', () => {
     const pg = Object.assign(new Error('duplicate key value violates unique constraint "tags_name_key"'), { code: '23505', detail: 'Key (name)=(news) already exists.' })
     expect(uniqueViolationColumns(new Error('Failed query', { cause: pg }))).toEqual(['name'])
     expect(uniqueViolationColumns(Object.assign(new Error('Duplicate entry \'news\' for key \'tags.name\''), { code: 'ER_DUP_ENTRY', errno: 1062 }))).toEqual([])
+    // PlanetScale's driver: no code or errno property, only the message
+    expect(uniqueViolationColumns(new Error('Failed query', { cause: new Error('Duplicate entry \'news\' for key \'tags.tags_name_unique\' (errno 1062) (sqlstate 23000)') }))).toEqual([])
     expect((conflictFromUniqueViolation(Object.assign(new Error('dup'), { errno: 1062 }), tags) as any).message)
       .toBe('A record with these values already exists')
   })
