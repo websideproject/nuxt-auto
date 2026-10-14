@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import { loadNuxt } from '@nuxt/kit'
@@ -29,6 +30,35 @@ describe('module setup', () => {
       const registered = (nitroConfig.imports?.imports ?? []).filter((i: any) => (PUBLIC_SERVER_UTILS as readonly string[]).includes(i.name))
       expect(registered.map((i: any) => i.name).sort()).toEqual([...PUBLIC_SERVER_UTILS].sort())
       for (const i of registered) expect(existsSync(i.from), `${i.name} ← ${i.from}`).toBe(true)
+    }
+    finally {
+      await nuxt.close()
+    }
+  }, 120_000)
+
+  it('bundles the generated registry and plugins modules and the plugin files, so dev rebuilds on their edits', async () => {
+    // Nitro keeps the build dir external in dev; left there, Node loads these modules — and the resource and plugin
+    // files they import — outside the bundle, where Nitro's watcher never sees an edit.
+    const nuxt = await loadNuxt({
+      cwd: fileURLToPath(new URL('./fixtures/basic', import.meta.url)),
+      ready: true,
+      overrides: { _prepare: true, autoApi: { plugins: '~/server/autoapi-plugins' } } as any,
+    })
+    try {
+      const nitroConfig: any = { alias: {}, imports: { imports: [] }, virtual: {}, externals: { inline: [] }, plugins: [], handlers: [] }
+      for (const hook of (nuxt.hooks as any)._hooks['nitro:config'] ?? []) {
+        try {
+          await hook(nitroConfig)
+        }
+        catch {
+          // not ours
+        }
+      }
+      expect(nitroConfig.externals.inline).toEqual(expect.arrayContaining([
+        join(nuxt.options.buildDir, 'nuxt-auto-api-registry.mjs'),
+        join(nuxt.options.buildDir, 'nuxt-auto-api-plugins.mjs'),
+        join(nuxt.options.rootDir, 'server/autoapi-plugins'),
+      ]))
     }
     finally {
       await nuxt.close()
