@@ -57,16 +57,19 @@
             :data-testid="`admin-filter-${column.name}`"
             @update:model-value="set(column.name, String($event ?? ''))"
           />
+          <!-- A date input is wider than half the popover (its picker icon, and long locale formats), so a date
+               range stacks; a number range fits side by side. -->
           <div
             v-else
             class="flex gap-2"
+            :class="column.kind === 'date' ? 'flex-col' : ''"
           >
             <UInput
               :model-value="bound(column.name, 'min')"
               :type="column.kind"
               :placeholder="column.kind === 'date' ? 'From' : 'Min'"
               :aria-label="`${formatFieldLabel(column.name)} ${column.kind === 'date' ? 'from' : 'minimum'}`"
-              class="flex-1"
+              class="flex-1 min-w-0"
               :data-testid="`admin-filter-${column.name}-min`"
               @update:model-value="setBound(column.name, 'min', $event)"
             />
@@ -75,7 +78,7 @@
               :type="column.kind"
               :placeholder="column.kind === 'date' ? 'To' : 'Max'"
               :aria-label="`${formatFieldLabel(column.name)} ${column.kind === 'date' ? 'to' : 'maximum'}`"
-              class="flex-1"
+              class="flex-1 min-w-0"
               :data-testid="`admin-filter-${column.name}-max`"
               @update:model-value="setBound(column.name, 'max', $event)"
             />
