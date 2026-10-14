@@ -2,6 +2,7 @@ import { defineEventHandler } from 'h3'
 import type { H3Event } from 'h3'
 import type { HandlerContext } from '../../types'
 import { createContextFromRegistry } from './createContextFromRegistry'
+import { conflictFromUniqueViolation } from '../utils/uniqueViolation'
 
 /**
  * The request pipeline shared by every generated route:
@@ -36,7 +37,14 @@ export async function runResourcePipeline<T>(
     return context.shortCircuit.data
   }
 
-  const result = await execute(context)
+  let result: T
+  try {
+    result = await execute(context)
+  }
+  catch (error) {
+    // A duplicate unique value is the client's conflict (409), not a server error.
+    throw conflictFromUniqueViolation(error, context.schema?.[context.resource])
+  }
   context.result = result
   await runMiddleware('post-execute')
   return result

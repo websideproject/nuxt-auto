@@ -121,4 +121,18 @@ describe('nuxt-auto-api module', async () => {
       canCreate: expect.any(Boolean),
     })
   })
+
+  // ─── Database constraints ─────────────────────────────────────────────────
+
+  it('answers a duplicate unique value with 409 naming the field', async () => {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', name: 'Again' }),
+    })
+    expect(res.status).toBe(409)
+    const body: any = await res.json()
+    expect(body.message).toBe('A record with this email already exists')
+    expect(body.data.errors).toEqual([{ path: ['email'], message: 'Already exists' }])
+  })
 })
