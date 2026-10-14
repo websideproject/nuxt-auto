@@ -100,21 +100,6 @@ export default defineNuxtModule<ModuleOptions>({
     // Collect plugin file paths from community modules via hook
     const pluginFilePaths: string[] = []
 
-    // addFile'd plugin files are imported by the generated `#nuxt-auto-api-plugins` virtual module.
-    // Inline them into the Nitro bundle so esbuild applies a full TypeScript transform (enums,
-    // parameter properties, etc.) instead of a strip-only load. This runs late enough that
-    // pluginFilePaths has been populated by the autoApi:registerPlugins hook (modules:done).
-    nuxt.hook('nitro:config', (nitroConfig) => {
-      if (pluginFilePaths.length === 0) return
-      nitroConfig.externals = nitroConfig.externals || {}
-      nitroConfig.externals.inline = nitroConfig.externals.inline || []
-      for (const filePath of pluginFilePaths) {
-        if (!nitroConfig.externals.inline.includes(filePath)) {
-          nitroConfig.externals.inline.push(filePath)
-        }
-      }
-    })
-
     // Determine user plugin source
     const userPlugins = options.plugins
     const inlinePlugins: AutoApiPlugin[] = []
@@ -131,6 +116,25 @@ export default defineNuxtModule<ModuleOptions>({
       if (typeof entry === 'string') userPluginFiles.push(resolveAlias(entry))
       else inlinePlugins.push(entry)
     }
+
+    // The generated registry and plugins modules live in the build dir, which Nitro keeps external in dev: Node
+    // would load them — and the resource files and plugin files they import — on its own, outside the bundle.
+    // Inline them (and the plugin files) into the Nitro bundle, as in production: esbuild applies a full
+    // TypeScript transform (enums, parameter properties, etc.) instead of a strip-only load, and Nitro's dev
+    // watcher sees the files, so editing `server/autoapi-plugins.ts` or a resource's `auth.ts` / `hooks.ts`
+    // rebuilds the server. This runs late enough that pluginFilePaths has been populated by the
+    // autoApi:registerPlugins hook (modules:done).
+    nuxt.hook('nitro:config', (nitroConfig) => {
+      nitroConfig.externals = nitroConfig.externals || {}
+      nitroConfig.externals.inline = nitroConfig.externals.inline || []
+      const generated = ['nuxt-auto-api-registry.mjs', 'nuxt-auto-api-plugins.mjs'].map(file => resolver.resolve(nuxt.options.buildDir, file))
+      for (const filePath of [...generated, ...userPluginFiles, ...pluginFilePaths]) {
+        if (!nitroConfig.externals.inline.includes(filePath)) {
+          nitroConfig.externals.inline.push(filePath)
+        }
+      }
+    })
+
     if (inlinePlugins.some(p => p.runtimeSetup && !p.source)) {
       logger.warn('A hand-written plugin listed in nuxt.config reaches the server as source: its runtimeSetup cannot use variables from nuxt.config. Prefer a file: plugins: \'~/server/autoapi-plugins\'')
     }
