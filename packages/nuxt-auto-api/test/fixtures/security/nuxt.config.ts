@@ -17,6 +17,8 @@ export default defineNuxtConfig({
     multiTenancy: { enabled: true, tenantIdField: 'organizationId', excludedResources: ['users'] },
     // Plugins that add routes — those routes must be as protected as the generated ones.
     plugins: [
+      // A plugins file: the API token plugin, whose introspection route must exist although its build phase never runs.
+      '~/server/autoapi-plugins',
       // Listed inline with a function option: recreated on the server from its options. Applies only to requests
       // that carry the test header, so it limits nothing else here.
       createRateLimitPlugin({ max: 2, windowMs: 60_000, skip: ctx => !ctx.event.node?.req?.headers?.['x-rate-test'] }),

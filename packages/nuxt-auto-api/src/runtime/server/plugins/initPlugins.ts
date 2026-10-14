@@ -22,8 +22,9 @@ export default defineNitroPlugin(async () => {
 
   // Import plugins from virtual module (generated at build time)
   let plugins: any[] = []
+  let mod: any = {}
   try {
-    const mod = await import('#nuxt-auto-api-plugins' as string)
+    mod = await import('#nuxt-auto-api-plugins' as string)
     debug('Virtual module imported, keys:', Object.keys(mod))
     debug('mod.plugins isArray:', Array.isArray(mod.plugins), 'length:', mod.plugins?.length)
     plugins = mod.plugins || []
@@ -41,6 +42,14 @@ export default defineNitroPlugin(async () => {
   }
 
   debug(`Found ${plugins.length} plugin(s):`, plugins.map((p: any) => p?.name || '<unnamed>'))
+
+  // A plugin loaded from a plugins file reaches the server as code: its build phase (where a plugin registers
+  // routes, e.g. export or file upload) never ran. Say so instead of serving a 404 for its routes.
+  for (const plugin of Array.isArray(mod.filePlugins) ? mod.filePlugins : []) {
+    if (plugin?.buildSetup) {
+      console.warn(`[nuxt-auto-api] Plugin "${plugin.name}" is registered from a plugins file, so its build-time setup does not run and the routes it adds are not registered. List it inline in nuxt.config (autoApi.plugins) instead.`)
+    }
+  }
 
   const runtimeConfig = useRuntimeConfig()
 

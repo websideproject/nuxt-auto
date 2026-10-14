@@ -12,6 +12,7 @@ export default defineNuxtModule({
       registry.register('posts', { schema: createModuleImport(schema, 'posts'), authorization: createModuleImport(auth, 'postsAuth') })
       registry.register('labels', { schema: createModuleImport(schema, 'labels'), authorization: createModuleImport(auth, 'labelsAuth') })
       registry.register('docs', { schema: createModuleImport(schema, 'docs'), authorization: createModuleImport(auth, 'docsAuth') })
+      registry.register('apiKeys', { schema: createModuleImport(schema, 'apiKeys'), authorization: createModuleImport(auth, 'apiKeysAuth') })
       // No authorization at all → every operation is refused.
       registry.register('notes', { schema: createModuleImport(schema, 'notes') })
     })

@@ -3,7 +3,6 @@ import { createError, getHeader, readBody } from 'h3'
 import { eq } from 'drizzle-orm'
 import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
-import { registerPluginRoutes } from './pluginRoutes'
 import { addProtectedFields } from '../server/plugins/pluginRegistry'
 import type { AuthUser, HandlerContext } from '../types'
 
@@ -14,6 +13,12 @@ import type { AuthUser, HandlerContext } from '../types'
 export interface ApiTokenResourceConfig {
   /** Column that stores the hashed secret. @default 'key' */
   secretField?: string
+  /**
+   * Column for a display hint of the issued token (`sk_...a1b2`: its prefix and last 4 characters), written on
+   * create and rotate. Reads show the secret column as this hint. Without it they show only the prefix (`sk_...`):
+   * the stored value is a hash, and none of its characters belong to the token the user was given.
+   */
+  hintField?: string
   /** Foreign key linking to the user who owns this token. @default { field: 'userId', resource: 'users' } */
   userRelation?: {
     /** FK column name on the token table. @default 'userId' */
@@ -84,9 +89,9 @@ function generateRawToken(prefix: string, length: number): string {
   return prefix + randomBytes(length).toString('hex')
 }
 
-function maskToken(raw: string, visibleEnd = 4): string {
-  if (raw.length <= visibleEnd) return raw
-  return raw.slice(0, raw.indexOf('_') + 1 || 0) + '...' + raw.slice(-visibleEnd)
+/** `sk_...a1b2` — the prefix and the last 4 characters of a raw token, safe to store and show. */
+function tokenHint(raw: string, prefix: string): string {
+  return `${prefix}...${raw.slice(-4)}`
 }
 
 function parseScopes(value: unknown): string[] | null {
@@ -195,7 +200,7 @@ class TokenCache {
  * - Token rotation (`{ _rotate: true }` on update)
  * - Expiry, lastUsedAt tracking, in-memory cache
  * - Organization/team token support (sets context.tenant)
- * - Introspection endpoint (`GET /api/_token/introspect`)
+ * - Introspection endpoint (`GET /api/_token/introspect`, registered by the module — works inline and from a file)
  *
  * @example
  * ```ts
@@ -243,16 +248,16 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
     }
   }
 
+  /** A stored row as a client sees it: the secret column shows the hint, never characters of the hash. */
+  function masked(c: ReturnType<typeof cfg>, row: any): any {
+    if (!row || !row[c.secretField]) return row
+    const hint = (c.hintField && row[c.hintField]) || `${tokenPrefix}...`
+    return { ...row, [c.secretField]: hint }
+  }
+
   return pluginFromFactory('createApiTokenPlugin', [options], {
     name: 'api-token',
     version: '2.0.0',
-
-    // -------------------------------------------------------------------
-    // Build-time: register introspection endpoint
-    // -------------------------------------------------------------------
-    buildSetup(ctx) {
-      registerPluginRoutes(ctx, 'apiToken', {}, [{ path: '/_token/introspect', method: 'get', handler: 'tokenIntrospect' }])
-    },
 
     // -------------------------------------------------------------------
     // Runtime setup
@@ -489,7 +494,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
         // The hash, the owner and the organization are written by the hooks below, never by a request body:
         // declared server-owned, they are not required by the generated create schema (a client sends only
         // `name` / `scopes`) and are dropped from bodies.
-        addProtectedFields(resName, [c.secretField, c.userField, ...(c.orgField ? [c.orgField] : [])])
+        addProtectedFields(resName, [c.secretField, c.userField, ...(c.orgField ? [c.orgField] : []), ...(c.hintField ? [c.hintField] : [])])
 
         // `{ _rotate: true }` is not a column, so update validation drops it before the hooks run. Read it from
         // the raw body first (h3 caches the body, so validation still reads it).
@@ -517,6 +522,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
             // caller's — never taken from the body, where they would let anyone mint a key for someone else.
             if (!context.user) throw createError({ statusCode: 401, message: 'Authentication required to create a token' })
             const result: any = { ...data, [c.secretField]: hashed, [c.userField]: context.user.id }
+            if (c.hintField) result[c.hintField] = tokenHint(rawToken, tokenPrefix)
             if (c.orgField) result[c.orgField] = context.tenant?.id ?? null
 
             return result
@@ -531,19 +537,14 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
             return result
           },
 
-          // -- afterGet: mask the hash ---------------------------------
+          // -- afterGet / afterList: never the hash, the hint instead ----
           afterGet(result: any, _context: HandlerContext) {
-            if (!result || !result[c.secretField]) return result
-            return { ...result, [c.secretField]: maskToken(result[c.secretField]) }
+            return masked(c, result)
           },
 
-          // -- afterList: mask the hash --------------------------------
           afterList(results: any[], _context: HandlerContext) {
             if (!results) return results
-            return results.map((item) => {
-              if (!item[c.secretField]) return item
-              return { ...item, [c.secretField]: maskToken(item[c.secretField]) }
-            })
+            return results.map(item => masked(c, item))
           },
 
           // -- beforeUpdate: block secret writes, support rotation ------
@@ -559,11 +560,13 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
               const rawToken = generateRawToken(tokenPrefix, tokenLength)
               const hashed = hashToken(rawToken, hashAlgorithm)
               updated[c.secretField] = hashed
+              if (c.hintField) updated[c.hintField] = tokenHint(rawToken, tokenPrefix)
               ;(context as any)._rawToken = rawToken
             }
             else {
-              // Block direct writes to the secret field
+              // Block direct writes to the secret field (and its hint)
               Reflect.deleteProperty(updated, c.secretField)
+              if (c.hintField) Reflect.deleteProperty(updated, c.hintField)
             }
 
             return updated
@@ -579,10 +582,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
               }
               return { ...result, [c.secretField]: rawToken }
             }
-            if (result?.[c.secretField]) {
-              return { ...result, [c.secretField]: maskToken(result[c.secretField]) }
-            }
-            return result
+            return masked(c, result)
           },
 
           // -- afterDelete: invalidate cache ----------------------------
@@ -631,6 +631,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
 
           // Include non-sensitive fields
           if (record.name) result.name = record.name
+          if (c.hintField && record[c.hintField]) result.hint = record[c.hintField]
           if (c.scopeField && record[c.scopeField]) {
             result.scopes = parseScopes(record[c.scopeField])
           }

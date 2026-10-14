@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
-import { setup, $fetch } from '@nuxt/test-utils/e2e'
+import { setup, $fetch, fetch } from '@nuxt/test-utils/e2e'
 
 describe('nuxt-auto-api module', async () => {
   await setup({
@@ -24,6 +24,11 @@ describe('nuxt-auto-api module', async () => {
   it('registers GET /api/users list endpoint', async () => {
     const res = await $fetch('/api/users', { responseType: 'json' })
     expect(res).toMatchObject({ data: expect.any(Array) })
+  })
+
+  it('answers 404 for token introspection when no API token plugin is configured', async () => {
+    const res = await fetch('/api/_token/introspect')
+    expect(res.status).toBe(404)
   })
 
   // ─── CRUD operations ──────────────────────────────────────────────────────

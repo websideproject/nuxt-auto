@@ -389,6 +389,15 @@ export {
         })
       }
 
+      // Token introspection - GET /api/_token/introspect. Registered here rather than by the API token plugin,
+      // so it also exists when that plugin is registered from a plugins file (whose build phase never runs).
+      // Without the plugin the handler answers 404, as if the route did not exist.
+      addServerHandler({
+        route: `${prefix}/_token/introspect`,
+        method: 'get',
+        handler: resolver.resolve('./runtime/server/handlers/plugins/tokenIntrospect'),
+      })
+
       // Global permissions endpoint - GET /api/permissions
       // Returns permissions for all resources in a single request
       addServerHandler({
@@ -573,11 +582,12 @@ function generatePluginsVirtualModule(opts: {
 }): string {
   const imports: string[] = []
   const spreadParts: string[] = []
+  const fileParts: string[] = []
 
   // 1. User files — each default-exports an array of AutoApiPlugin (or one plugin)
   opts.userFilePaths.forEach((filePath, index) => {
     imports.push(`import _userPlugins${index} from '${ensureExtension(filePath)}'`)
-    spreadParts.push(`...(Array.isArray(_userPlugins${index}) ? _userPlugins${index} : [_userPlugins${index}])`)
+    fileParts.push(`...(Array.isArray(_userPlugins${index}) ? _userPlugins${index} : [_userPlugins${index}])`)
   })
 
   // 2. Community module file paths — each default-exports a single plugin or array
@@ -585,7 +595,7 @@ function generatePluginsVirtualModule(opts: {
     const varName = `_modPlugins${index}`
     imports.push(`import ${varName} from '${ensureExtension(filePath)}'`)
     // Normalize: if module exports a single plugin, wrap in array
-    spreadParts.push(`...(Array.isArray(${varName}) ? ${varName} : [${varName}])`)
+    fileParts.push(`...(Array.isArray(${varName}) ? ${varName} : [${varName}])`)
   })
 
   // 3. Inline plugins — built-in factories are called again with their options (see inlinePluginSource)
@@ -594,13 +604,14 @@ function generatePluginsVirtualModule(opts: {
     spreadParts.push(...opts.inlineSources)
   }
 
-  const pluginsExpr = spreadParts.length > 0
-    ? `[\n  ${spreadParts.join(',\n  ')}\n]`
-    : '[]'
+  const list = (parts: string[]) => parts.length > 0 ? `[\n  ${parts.join(',\n  ')}\n]` : '[]'
 
+  // `filePlugins` is exported on its own so the runtime can tell which plugins came from files: their build
+  // phase never runs (see initPlugins).
   return `${imports.join('\n')}
 
-export const plugins = ${pluginsExpr}
+export const filePlugins = ${list(fileParts)}
+export const plugins = [...filePlugins, ...${list(spreadParts)}]
 `
 }
 

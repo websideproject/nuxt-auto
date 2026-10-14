@@ -92,3 +92,41 @@ describe('api token requests get through validation', () => {
     expect(request._rawToken).toMatch(/^[0-9a-f]+$/)
   })
 })
+
+describe('api token hint', () => {
+  const opts = { resources: { apiKeys: { hintField: 'keyHint' } }, auth: { tokenPrefix: 'sk_' } }
+
+  it('a new token stores a hint of the issued token — its prefix and last 4 characters — and reveals the token once', async () => {
+    const { apiKeys } = await hooksFor(opts)
+    const request = { ...caller } as any
+    const data = await apiKeys.beforeCreate({ name: 'ci' }, request)
+    const raw = request._rawToken
+    expect(raw).toMatch(/^sk_[0-9a-f]+$/)
+    expect(data.keyHint).toBe(`sk_...${raw.slice(-4)}`)
+    expect(data.key).not.toContain(raw.slice(-4))
+
+    const created = await apiKeys.afterCreate({ id: 1, ...data }, request)
+    expect(created.key).toBe(raw)
+  })
+
+  it('reads show the hint in the secret column, never characters of the stored hash', async () => {
+    const { apiKeys } = await hooksFor(opts)
+    const row = { id: 1, name: 'ci', key: 'f'.repeat(64), keyHint: 'sk_...a1b2' }
+    expect(await apiKeys.afterGet(row, caller)).toMatchObject({ key: 'sk_...a1b2', keyHint: 'sk_...a1b2' })
+    expect((await apiKeys.afterList([row], caller))[0].key).toBe('sk_...a1b2')
+  })
+
+  it('without a hint column, reads show only the prefix', async () => {
+    const { apiKeys } = await hooksFor({ resources: { apiKeys: {} }, auth: { tokenPrefix: 'sk_' } })
+    expect((await apiKeys.afterGet({ id: 1, key: 'abcdef0123456789' }, caller)).key).toBe('sk_...')
+  })
+
+  it('rotation writes a new hint; a plain update cannot set one', async () => {
+    const { apiKeys } = await hooksFor(opts)
+    const request = { ...caller, _rotateToken: true } as any
+    const rotated = await apiKeys.beforeUpdate(1, {}, request)
+    expect(rotated.keyHint).toBe(`sk_...${request._rawToken.slice(-4)}`)
+
+    expect(await apiKeys.beforeUpdate(1, { name: 'x', keyHint: 'sk_...fake' }, caller)).toEqual({ name: 'x' })
+  })
+})

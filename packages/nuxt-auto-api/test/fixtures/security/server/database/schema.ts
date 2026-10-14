@@ -39,6 +39,16 @@ export const docs = sqliteTable('docs', {
   published: integer('published', { mode: 'boolean' }).notNull().default(false),
 })
 
+// API tokens (createApiTokenPlugin, registered from server/autoapi-plugins.ts)
+export const apiKeys = sqliteTable('api_keys', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  key: text('key').notNull(),
+  keyHint: text('key_hint'),
+  userId: integer('user_id').notNull().references(() => users.id),
+  scopes: text('scopes', { mode: 'json' }).$type<string[]>(),
+})
+
 export const usersRelations = relations(users, ({ many }) => ({ posts: many(posts) }))
 export const postsRelations = relations(posts, ({ one, many }) => ({
   author: one(users, { fields: [posts.userId], references: [users.id] }),
