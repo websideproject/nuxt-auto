@@ -28,3 +28,13 @@
 
 /* The whole runtime: pages and layouts carry classes too, and the app's own scan skips node_modules. */
 @source "../..";
+
+/* A control the caller cannot use reads as unavailable at a glance. Nuxt UI only dims a disabled button to 75 %,
+   which leaves a solid primary button looking enabled. Greyed out and dimmed further, on pages that render the
+   admin layout — modals and menus included, which are teleported to <body>. */
+body:has([data-auto-admin]) button:disabled,
+body:has([data-auto-admin]) a[aria-disabled="true"],
+body:has([data-auto-admin]) [role="menuitem"][data-disabled] {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
