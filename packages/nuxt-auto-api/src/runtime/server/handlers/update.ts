@@ -10,6 +10,7 @@ import { protectedFieldsFor, stripProtectedFields } from '../utils/protectedFiel
 import { updateReturning } from '../utils/returning'
 import { serializeResponse } from '../utils/serializeResponse'
 import { hasColumn, primaryKeyName } from '../utils/table'
+import { assertReferencesInTenant } from '../utils/tenantReferences'
 
 /**
  * Prepare one update body: drop server-owned columns (primary key, tenant, soft-delete, audit, createdAt)
@@ -21,6 +22,7 @@ export async function prepareUpdateData(context: HandlerContext, table: any, bod
   }
   const data = stripProtectedFields(body, protectedFieldsFor(context, context.resource, table, 'update'))
   await assertWritableFields(data, context)
+  await assertReferencesInTenant(context, table, data)
   return data
 }
 

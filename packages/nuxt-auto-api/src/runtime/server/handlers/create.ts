@@ -8,6 +8,7 @@ import { protectedFieldsFor, stripProtectedFields } from '../utils/protectedFiel
 import { insertReturning } from '../utils/returning'
 import { serializeResponse } from '../utils/serializeResponse'
 import { tenantWriteField } from '../utils/tenant'
+import { assertReferencesInTenant } from '../utils/tenantReferences'
 
 /**
  * Prepare one create body: drop server-owned columns, stamp the tenant, refuse fields the caller may not
@@ -26,6 +27,7 @@ export async function prepareCreateData(context: HandlerContext, table: any, bod
 
   // The write gate is on what the CALLER asked for — before hooks, which write on the server's behalf.
   await assertWritableFields(data, context)
+  await assertReferencesInTenant(context, table, data)
   return data
 }
 

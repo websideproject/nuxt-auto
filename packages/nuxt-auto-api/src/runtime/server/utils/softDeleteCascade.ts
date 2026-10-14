@@ -25,17 +25,18 @@ import { primaryKeyName } from './table'
 interface FkEdge {
   columns: any[] // local (child) drizzle Column objects
   foreignTable: any
+  foreignColumns: any[] // the referenced columns, in the same order
   onDelete?: string
 }
 
 /** Cross-dialect FK read: try each dialect's getTableConfig; the matching one succeeds. */
-function tableForeignKeys(table: any): FkEdge[] {
+export function tableForeignKeys(table: any): FkEdge[] {
   for (const getCfg of [sqliteTableConfig, pgTableConfig, mysqlTableConfig] as Array<(t: any) => any>) {
     try {
       const cfg: any = getCfg(table as any)
       return (cfg.foreignKeys ?? []).map((fk: any) => {
         const ref = fk.reference()
-        return { columns: ref.columns, foreignTable: ref.foreignTable, onDelete: fk.onDelete }
+        return { columns: ref.columns, foreignTable: ref.foreignTable, foreignColumns: ref.foreignColumns, onDelete: fk.onDelete }
       })
     }
     catch {
@@ -45,7 +46,7 @@ function tableForeignKeys(table: any): FkEdge[] {
   return []
 }
 
-function safeTableName(table: any): string | null {
+export function safeTableName(table: any): string | null {
   try {
     return getTableName(table)
   }
@@ -55,7 +56,7 @@ function safeTableName(table: any): string | null {
 }
 
 /** Map an FK drizzle Column back to the table's property key (for `.set({ [key]: null })`). */
-function fkColKey(table: any, col: any): string {
+export function fkColKey(table: any, col: any): string {
   for (const [key, value] of Object.entries(table)) {
     if (value === col) return key
   }
