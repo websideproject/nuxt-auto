@@ -289,9 +289,9 @@ interface BuildTimeResourceConfig {
 }
 
 /**
- * Generate admin registry virtual module
+ * Generate admin registry virtual module (exported for tests)
  */
-function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOptions, apiHidden?: { global?: string[], resources?: Record<string, string[]> }): string {
+export function generateAdminRegistry(resources: BuildTimeResource[], options: ModuleOptions, apiHidden?: { global?: string[], resources?: Record<string, string[]> }): string {
   const imports: string[] = []
   const registryEntries: string[] = []
   const schemaMapEntries: string[] = []
@@ -588,7 +588,10 @@ function buildResourceSchemaEntry(
       listFields = listFields.slice(0, 6)
     }
 
-    // Auto-generate form fields
+    // Auto-generate form fields. Hidden fields are hidden from every view, forms included; read-only fields are
+    // shown and left out of the request.
+    const hiddenFields = ${JSON.stringify(config.hiddenFields || [])}
+    const readonlyFields = ${JSON.stringify(config.readonlyFields || [])}
     const generateFormFields = (mode) => {
       const fields = []
 
@@ -597,13 +600,14 @@ function buildResourceSchemaEntry(
         if (col.isPrimaryKey) continue
         if (col.name === 'createdAt' || col.name === 'updatedAt') continue
         if (col.name === 'deletedAt') continue
+        if (hiddenFields.includes(col.name)) continue
 
         const field = {
           name: col.name,
           label: formatFieldLabel(col.name),
           widget: mapColumnTypeToWidget(col),
           required: !col.isNullable && !col.defaultValue,
-          readonly: mode === 'edit' && col.name.endsWith('Id') && col.name !== 'userId',
+          readonly: readonlyFields.includes(col.name) || (mode === 'edit' && col.name.endsWith('Id') && col.name !== 'userId'),
         }
 
         // Add widget options
@@ -646,8 +650,8 @@ function buildResourceSchemaEntry(
       primaryKey,
       listFields,
       formFields,
-      hiddenFields: ${JSON.stringify(config.hiddenFields || [])},
-      readonlyFields: ${JSON.stringify(config.readonlyFields || [])},
+      hiddenFields,
+      readonlyFields,
       group: ${config.group ? `'${config.group}'` : 'undefined'},
       order: ${config.order || 0},
       disabled: false,
