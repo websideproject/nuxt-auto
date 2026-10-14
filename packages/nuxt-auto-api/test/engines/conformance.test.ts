@@ -185,7 +185,9 @@ for (const spec of ENGINES) {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const error: any = await bulkCreateHandler(ctx('tags', { operation: 'bulk', body: { items: [{ name: 'fresh-1' }, { name: 'fresh-2' }, { name: 'taken' }] } })).catch(e => e)
       spy.mockRestore()
-      expect(error.statusCode).toBe(400)
+      // a duplicate unique value: the conflict (409, naming the field), on every engine
+      expect(error.statusCode).toBe(409)
+      expect(JSON.stringify(error.data)).toContain('A record with this name already exists')
       // the database's message (SQL, bound values of every item) stays on the server
       expect(JSON.stringify(error.data)).not.toMatch(/insert|fresh-1|params/i)
       expect((await rows('tags')).map((r: any) => r.name)).toEqual(['taken'])
@@ -194,7 +196,7 @@ for (const spec of ENGINES) {
     it('bulk update is all-or-nothing when the database rejects an item', async () => {
       const [a, b] = await tagsNamed('a', 'b')
       await expect(bulkUpdateHandler(ctx('tags', { operation: 'bulk', body: { items: [{ id: a.id, data: { name: 'renamed' } }, { id: b.id, data: { name: 'renamed' } }] } })))
-        .rejects.toMatchObject({ statusCode: 400 })
+        .rejects.toMatchObject({ statusCode: 409 })
       expect((await rows('tags')).map((r: any) => r.name).sort()).toEqual(['a', 'b'])
     })
 
