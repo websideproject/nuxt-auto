@@ -294,4 +294,27 @@ describe('security (e2e)', async () => {
     expect((await hit()).status).toBe(429)
     expect((await req('/api/docs')).status).toBe(200)
   })
+
+  describe('API tokens from a plugins file', () => {
+    it('a created token is revealed once; reads show its hint, introspection answers for it', async () => {
+      const created = await req('/api/apiKeys', { user: 'alice', method: 'POST', body: { name: 'ci', scopes: ['labels:read'] } })
+      expect(created.status).toBe(200)
+      const raw: string = created.json.data.key
+      expect(raw).toMatch(/^sk_[0-9a-f]{64}$/)
+      expect(created.json.data.keyHint).toBe(`sk_...${raw.slice(-4)}`)
+
+      const read = await req(`/api/apiKeys/${created.json.data.id}`, { user: 'alice' })
+      expect(read.json.data.key).toBe(`sk_...${raw.slice(-4)}`)
+
+      // The plugin is registered from server/autoapi-plugins.ts, where build-time setup never runs: the route
+      // exists all the same.
+      const me = await req('/api/_token/introspect', { headers: { authorization: `Bearer ${raw}` } })
+      expect(me.status).toBe(200)
+      expect(me.json.data).toMatchObject({ resource: 'apiKeys', id: created.json.data.id, name: 'ci', scopes: ['labels:read'], hint: `sk_...${raw.slice(-4)}` })
+
+      expect((await req('/api/_token/introspect')).status).toBe(401)
+      // …and the token works: labels:read through the token's own permissions.
+      expect((await req('/api/labels', { headers: { authorization: `Bearer ${raw}` } })).status).toBe(200)
+    })
+  })
 })

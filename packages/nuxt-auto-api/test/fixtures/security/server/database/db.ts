@@ -14,6 +14,8 @@ export function useDB() {
       CREATE TABLE labels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, organization_id TEXT);
       CREATE TABLE post_labels (post_id INTEGER NOT NULL, label_id INTEGER NOT NULL, PRIMARY KEY (post_id, label_id));
       CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, body TEXT NOT NULL);
+      CREATE TABLE api_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT NOT NULL, key_hint TEXT,
+        user_id INTEGER NOT NULL REFERENCES users(id), scopes TEXT);
       CREATE TABLE docs (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 0);
       INSERT INTO users (email, password, organization_id) VALUES ('alice@a.test', 'hunter2', 'org_a'), ('bob@b.test', 's3cret', 'org_b');
       INSERT INTO posts (title, organization_id, user_id, deleted_at) VALUES
