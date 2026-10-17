@@ -23,6 +23,16 @@ jobs:
         run: bun run dev:prepare
       - name: Build modules
         run: bun run build
+      # The preview job publishes these instead of building the modules a second time.
+      - name: Upload the built modules
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: modules-dist
+          path: |
+            packages/nuxt-auto-api/dist
+            packages/nuxt-auto-admin/dist
+          retention-days: 1
       # The e2e fixtures normally load src/; run them once against the BUILT module — what users install.
       - name: E2E against the built API module
         working-directory: packages/nuxt-auto-api
@@ -177,9 +187,11 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Prepare
-        run: bun run dev:prepare
-      - name: Build modules
-        run: bun run build
+      # The build job's output: the packages publish only `dist` (and README/LICENSE), and nothing runs on pack.
+      - name: Download the built modules
+        uses: actions/download-artifact@v4
+        with:
+          name: modules-dist
+          path: packages
       - name: Publish previews
         run: bunx pkg-pr-new publish --compact --no-template --peerDeps './packages/nuxt-auto-api' './packages/nuxt-auto-admin'
