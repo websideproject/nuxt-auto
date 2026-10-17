@@ -93,6 +93,71 @@ describe('api token requests get through validation', () => {
   })
 })
 
+describe('api token bearer auth', () => {
+  const apiKeys = sqliteTable('api_keys', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    key: text('key').notNull(),
+    userId: text('user_id').notNull(),
+    organizationId: text('organization_id'),
+  })
+  const authUsers = sqliteTable('auth_users', { id: text('id').primaryKey(), email: text('email'), role: text('role') })
+  const tokenRow = { id: 1, key: 'hash', userId: 'alice', organizationId: 'org-a' }
+  const userRow = { id: 'alice', email: 'alice@example.test', role: 'user,superadmin' }
+
+  async function authenticate(options: Parameters<typeof createApiTokenPlugin>[0], fullSchema: Record<string, any>) {
+    let extender: any
+    await createApiTokenPlugin(options).runtimeSetup!({
+      addHook: () => {},
+      addMiddleware: () => {},
+      addServerHandler: () => {},
+      extendContext: (fn: any) => { extender = fn },
+      logger: { info() {}, warn() {}, error() {}, debug() {} },
+    } as any)
+    // Each table answers with its one row — what a hash match / id match returns.
+    const rows = new Map<any, any>([[apiKeys, tokenRow], [authUsers, userRow]])
+    const context = {
+      event: { node: { req: { headers: { authorization: 'Bearer sk_raw' } } } },
+      schema: { apiKeys },
+      db: { _: { fullSchema }, select: () => ({ from: (t: any) => ({ where: async () => [rows.get(t)] }) }) },
+    } as any
+    await extender(context)
+    return context
+  }
+
+  it('finds the token owner in the Drizzle schema when the user table is not a resource', async () => {
+    const context = await authenticate({
+      resources: { apiKeys: { userRelation: { resource: 'auth_users' }, orgField: 'organizationId' } },
+      auth: { tokenPrefix: 'sk_' },
+      cache: { enabled: false },
+    }, { auth_users: authUsers })
+    expect(context.authMethod).toBe('api-token')
+    expect(context.user).toMatchObject({ id: 'alice', email: 'alice@example.test' })
+    expect(context.tenant).toMatchObject({ id: 'org-a', field: 'organizationId' })
+  })
+
+  it('mapUser receives the token row, so a pinned organization can reach the user', async () => {
+    const context = await authenticate({
+      resources: { apiKeys: { userRelation: { resource: 'auth_users' }, orgField: 'organizationId' } },
+      auth: { tokenPrefix: 'sk_' },
+      cache: { enabled: false },
+      mapUser: (u, t) => ({ id: u.id, email: u.email, roles: u.role.split(','), permissions: [], organizationId: t.organizationId }) as any,
+    }, { auth_users: authUsers })
+    expect(context.user).toMatchObject({ roles: ['user', 'superadmin'], organizationId: 'org-a' })
+  })
+
+  it('a user table that exists nowhere refuses the token and says why', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const context = await authenticate({
+      resources: { apiKeys: { userRelation: { resource: 'user' } } },
+      auth: { tokenPrefix: 'sk_' },
+      cache: { enabled: false },
+    }, { auth_users: authUsers })
+    expect(context.user).toBeUndefined()
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('User table "user"'))
+    error.mockRestore()
+  })
+})
+
 describe('api token hint', () => {
   const opts = { resources: { apiKeys: { hintField: 'keyHint' } }, auth: { tokenPrefix: 'sk_' } }
 
