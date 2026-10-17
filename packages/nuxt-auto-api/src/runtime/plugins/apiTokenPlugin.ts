@@ -23,7 +23,10 @@ export interface ApiTokenResourceConfig {
   userRelation?: {
     /** FK column name on the token table. @default 'userId' */
     field?: string
-    /** User resource/table name. @default 'users' */
+    /**
+     * User resource name, or the export name of a table in the schema passed to `drizzle()` — the user table
+     * usually is not a registered resource (that would expose CRUD routes for it). @default 'users'
+     */
     resource?: string
   }
   /** Column for organization/team scoping (team tokens). */
@@ -71,8 +74,11 @@ export interface ApiTokenPluginOptions {
 
   /** Debounce window for `lastUsedAt` writes. @default 60_000 (1 min) */
   lastUsedDebounceMs?: number
-  /** Map a DB user row to `AuthUser`. */
-  mapUser?: (dbRow: any) => AuthUser
+  /**
+   * Map a DB user row to `AuthUser`. The matched token row comes second, so a token pinned to an organization
+   * can put it on the user the way a session would.
+   */
+  mapUser?: (dbRow: any, tokenRow: any) => AuthUser
   /** Extract permission strings from a user row. */
   getPermissions?: (dbRow: any) => string[]
 }
@@ -360,9 +366,13 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
               if (expiresAt.getTime() < Date.now()) return
             }
 
-            // Load user
-            const userTable = context.schema[c.userResource]
-            if (!userTable) continue
+            // Load user — a registered resource, else any table in the full Drizzle schema
+            const userTable = context.schema[c.userResource] ?? (context.db as any)?._?.fullSchema?.[c.userResource]
+            if (!userTable) {
+              // A misconfiguration, not a bad token: every token in this table would be refused, so say so.
+              console.error(`[api-token] User table "${c.userResource}" (userRelation.resource of "${resName}") is neither a resource nor in the Drizzle schema — token refused`)
+              continue
+            }
 
             const userId = tokenRecord[c.userField]
             const [userRow] = await context.db
@@ -374,7 +384,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
 
             // Map user
             const user: AuthUser = mapUser
-              ? mapUser(userRow)
+              ? mapUser(userRow, tokenRecord)
               : {
                   id: userRow.id,
                   email: userRow.email,
