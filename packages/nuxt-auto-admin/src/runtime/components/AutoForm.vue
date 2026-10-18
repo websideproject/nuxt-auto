@@ -55,6 +55,7 @@
 import { ref, computed, watch } from 'vue'
 import type { FieldConfig } from '../types'
 import AutoField from './AutoField.vue'
+import { runFieldValidation } from '../utils/fieldRules'
 import { clientFieldError } from '../utils/fieldValidation'
 
 const props = defineProps<{
@@ -181,13 +182,15 @@ async function handleSubmit() {
   errors.value = {}
   let hasErrors = false
 
-  visibleFields.value.forEach((field) => {
+  // The form's own checks (required, length), then the field's `validation` rule from admin.fields.ts
+  for (const field of visibleFields.value) {
     const error = clientFieldError(field, formData.value[field.name])
+      ?? await runFieldValidation(field, formData.value[field.name], formData.value)
     if (error) {
       errors.value[field.name] = error
       hasErrors = true
     }
-  })
+  }
 
   if (hasErrors) {
     return

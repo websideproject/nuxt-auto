@@ -17,9 +17,20 @@ interface FieldConfig {
 }
 ```
 
-`formFields` lives in `nuxt.config`, which reaches the app as JSON: functions (a `condition`) and `RegExp`s set
-there are lost, and a field `validation` key is not read. Validation is the API's — a refused save shows each Zod
-issue under its field (by `path[0]`), the message + unshown issues in an alert above the form.
+`formFields` lives in `nuxt.config`, which reaches the app as JSON: functions and `RegExp`s set there are lost.
+Field functions go in `app/admin.fields.ts` (or `autoAdmin.fields`), merged onto the field of that name in both forms:
+
+```ts
+export default defineAdminFields({
+  articles: {
+    content: { condition: form => !!form.title },               // shown while true (hidden fields keep their value)
+    slug: { validation: v => /^[a-z-]+$/.test(String(v)) || 'msg' }, // string/false = error; true/undefined = ok; may be async
+  },
+})
+```
+
+Validation is otherwise the API's — a refused save shows each Zod issue under its field (by `path[0]`), the message +
+unshown issues in an alert above the form.
 
 A configured `formFields` mode **replaces** that generated form; `edit` falls back to `create`, and a mode with
 nothing configured stays generated. Fields the caller may not write (`fields[x].write`) and `readonlyFields` are
