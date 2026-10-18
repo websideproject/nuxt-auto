@@ -134,7 +134,8 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
 
   data = await authorizeIncluded(context, data, includes)
   data = parseJsonColumns(data, context)
-  let out: any = filterHiddenFields(data, context)
+  // Included relations were stripped of their own hidden fields by authorizeIncluded
+  let out: any = filterHiddenFields(data, context, false)
   out = await filterReadableFields(out, context)
   if (q.fields) out = filterFields(out, q.fields as any)
 

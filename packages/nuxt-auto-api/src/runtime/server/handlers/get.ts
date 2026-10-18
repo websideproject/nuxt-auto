@@ -52,7 +52,8 @@ export async function getHandler(context: HandlerContext): Promise<SingleRespons
 
   data = await authorizeIncluded(context, data, includes)
   data = parseJsonColumns(data, context)
-  let out: any = filterHiddenFields(data, context)
+  // Included relations were stripped of their own hidden fields by authorizeIncluded
+  let out: any = filterHiddenFields(data, context, false)
   out = await filterReadableFields(out, context)
   if (q.fields) out = filterFields(out, q.fields as any)
   out = await executeAfterHookWithTransform('get', context, out)

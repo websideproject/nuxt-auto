@@ -2,11 +2,11 @@ import { useRuntimeConfig } from 'nitropack/runtime'
 import type { HandlerContext } from '../../types'
 
 /**
- * Get list of hidden fields for a resource
- * Merges global, per-resource config, and resource registration
- * If includeAllResources is true, gets hidden fields from all resources (for filtering nested relations)
+ * Hidden fields of the request's resource: global + `hiddenFields.resources[resource]` (nuxt.config) + the
+ * registration's `hiddenFields`. Another resource's hidden fields are not included — `?include=`d relations are
+ * stripped of their own resource's hidden fields by `authorizeIncluded`.
  */
-export function getHiddenFields(context: HandlerContext, includeAllResources = true): string[] {
+export function getHiddenFields(context: HandlerContext): string[] {
   const hiddenFields = new Set<string>()
   const runtimeConfig: any = context.runtimeConfig ?? useRuntimeConfig?.()
 
@@ -23,18 +23,9 @@ export function getHiddenFields(context: HandlerContext, includeAllResources = t
   }
 
   // Resource registration hidden fields (from registry)
-  const registryFields = context.resourceConfig?.hiddenFields
+  const registryFields = context.registry?.[context.resource]?.hiddenFields ?? context.resourceConfig?.hiddenFields
   if (registryFields && Array.isArray(registryFields)) {
     registryFields.forEach(field => hiddenFields.add(field))
-  }
-
-  // Include hidden fields from ALL resources (for filtering nested relations)
-  if (includeAllResources && context.registry) {
-    Object.values(context.registry).forEach((resourceConfig: any) => {
-      if (resourceConfig.hiddenFields && Array.isArray(resourceConfig.hiddenFields)) {
-        resourceConfig.hiddenFields.forEach((field: string) => hiddenFields.add(field))
-      }
-    })
   }
 
   return Array.from(hiddenFields)
