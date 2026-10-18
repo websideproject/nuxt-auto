@@ -1,5 +1,7 @@
 <template>
   <UFormField
+    class="admin-field"
+    :data-field="field.name"
     :name="field.name"
     :label="field.label || formatFieldLabel(field.name)"
     :required="field.required"

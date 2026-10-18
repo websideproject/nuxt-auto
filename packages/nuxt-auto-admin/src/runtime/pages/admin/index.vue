@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-8">
+  <div class="admin-page admin-dashboard space-y-8">
     <!-- Welcome Header -->
     <div>
       <h1 class="text-2xl font-semibold text-highlighted">

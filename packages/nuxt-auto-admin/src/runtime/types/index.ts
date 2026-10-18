@@ -508,17 +508,19 @@ export interface DashboardWidget {
  */
 export interface ThemeConfig {
   /**
-   * Primary color
+   * The admin's primary color, as a CSS color (`'#4f46e5'`, `'oklch(55% 0.2 270)'`): Nuxt UI's primary scale on the
+   * admin pages is mixed from it. The app's own primary color (`app.config` `ui.colors.primary`) is untouched.
    */
   primaryColor?: string
 
   /**
-   * Enable dark mode
+   * `true` shows the admin pages in dark mode, `false` in light mode, whatever the visitor picked. Unset: the
+   * visitor's color mode.
    */
   darkMode?: boolean
 
   /**
-   * Custom CSS
+   * CSS added while the admin is open — target its stable class names (`.admin-sidebar`, `.admin-table`, …).
    */
   customCss?: string
 }
