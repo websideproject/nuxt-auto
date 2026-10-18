@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { sqliteTable, text, getTableConfig as getSqliteConfig } from 'drizzle-orm/sqlite-core'
 import { pgTable, getTableConfig as getPgConfig } from 'drizzle-orm/pg-core'
-import { mysqlTable, getTableConfig as getMysqlConfig } from 'drizzle-orm/mysql-core'
+import { mysqlTable, varchar as mysqlVarchar, getTableConfig as getMysqlConfig } from 'drizzle-orm/mysql-core'
 
 import * as sqlitePresets from '../../../src/runtime/schema/sqlite'
 import * as pgPresets from '../../../src/runtime/schema/pg'
@@ -149,22 +149,67 @@ describe('schema presets — liveUnique', () => {
     expect(() => sqlitePresets.liveUnique(t, [{ name: 'slug' }, undefined], 'posts_hole')).toThrow(/empty slot/)
   })
 
-  it('mysql liveUnique warns (no filtered index support) — manual migration required', () => {
-    // Contract: MySQL has no partial indexes, so liveUnique cannot create a correct
-    // "unique among live rows" constraint. It warns and points the dev at liveUniqueMysql()
-    // (generated-column workaround in a manual migration). We only assert the warning fires.
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    mysqlPresets.liveUnique({}, {}, 'articles_slug_live')
-    expect(warn).toHaveBeenCalledOnce()
-    expect(warn.mock.calls[0]![0]).toContain('articles_slug_live')
-    warn.mockRestore()
+  it('mysql liveUniqueMysql adds a stored generated <col>_live column', () => {
+    const t = mysqlTable('articles', {
+      ...mysqlPresets.id(),
+      ...mysqlPresets.softDelete().columns,
+      ...mysqlPresets.liveUniqueMysql('slug'),
+    })
+    const col = getMysqlConfig(t).columns.find(c => c.name === 'slug_live') as any
+    expect(col).toBeDefined()
+    expect(col.generated.mode).toBe('stored')
+    expect((t as any).slugLive).toBe(col)
   })
 
-  it('mysql liveUniqueMysql warns about the manual migration step', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const out = mysqlPresets.liveUniqueMysql('slug', 'articles_slug_live')
-    expect(out).toEqual({})
-    expect(warn).toHaveBeenCalledOnce()
-    warn.mockRestore()
+  it('mysql liveUnique indexes the generated column, alone or in a composite', () => {
+    const t = mysqlTable('articles', {
+      ...mysqlPresets.id(),
+      ...mysqlPresets.tenant(),
+      ...mysqlPresets.softDelete().columns,
+      ...mysqlPresets.liveUniqueMysql('slug'),
+    }, tbl => [
+      mysqlPresets.liveUnique(tbl, tbl.slugLive, 'articles_slug_live'),
+      mysqlPresets.liveUnique(tbl, [(tbl as any).organizationId, tbl.slugLive], 'articles_org_slug_live'),
+    ])
+    expect(getMysqlConfig(t).indexes.map(i => [i.config.name, i.config.unique, i.config.columns.map((c: any) => c.name)])).toEqual([
+      ['articles_slug_live_uq', true, ['slug_live']],
+      ['articles_org_slug_live_uq', true, ['organization_id', 'slug_live']],
+    ])
+  })
+
+  it('mysql liveUnique refuses a plain column (trashed rows would collide)', () => {
+    const t = mysqlTable('articles', { slug: mysqlVarchar('slug', { length: 255 }) }, tbl => [mysqlPresets.liveUnique(tbl, tbl.slug, 'articles_slug_live')])
+    expect(() => getMysqlConfig(t)).toThrow(/liveUniqueMysql/)
+  })
+})
+
+describe('schema presets — id', () => {
+  it('serial mode gives an auto-increment integer key on every dialect', () => {
+    const s = getSqliteConfig(sqliteTable('a', sqlitePresets.id({ mode: 'serial' }))).columns[0] as any
+    expect([s.columnType, s.primary, s.autoIncrement]).toEqual(['SQLiteInteger', true, true])
+    const p = getPgConfig(pgTable('a', pgPresets.id({ mode: 'serial' }))).columns[0] as any
+    expect([p.columnType, p.primary]).toEqual(['PgSerial', true])
+    const m = getMysqlConfig(mysqlTable('a', mysqlPresets.id({ mode: 'serial' }))).columns[0] as any
+    expect([m.columnType, m.primary, m.autoIncrement]).toEqual(['MySqlInt', true, true])
+  })
+
+  it('uuid mode is the default', () => {
+    const s = getSqliteConfig(sqliteTable('a', sqlitePresets.id())).columns[0] as any
+    expect(s.columnType).toBe('SQLiteText')
+  })
+})
+
+describe('schema presets — tenant with a custom field', () => {
+  it('tenant.indexes(t, { field }) indexes that column', () => {
+    for (const [presets, table, getConfig] of [[sqlitePresets, sqliteTable, getSqliteConfig], [pgPresets, pgTable, getPgConfig], [mysqlPresets, mysqlTable, getMysqlConfig]] as const) {
+      const t = (table as any)('docs', { ...(presets as any).tenant({ field: 'workspaceId' }) }, (tbl: any) => (presets as any).tenant.indexes(tbl, { field: 'workspaceId' }))
+      const [idx] = (getConfig as any)(t).indexes
+      expect([idx.config.name, idx.config.columns.map((c: any) => c.name)]).toEqual(['docs_tenant_workspace_id_idx', ['workspace_id']])
+    }
+  })
+
+  it('names the missing field instead of indexing nothing', () => {
+    const t = sqliteTable('docs', { ...sqlitePresets.tenant({ field: 'workspaceId' }) }, tbl => sqlitePresets.tenant.indexes(tbl))
+    expect(() => getSqliteConfig(t)).toThrow(/no "organizationId" column/)
   })
 })

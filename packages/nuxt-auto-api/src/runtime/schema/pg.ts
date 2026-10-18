@@ -4,14 +4,15 @@
  * Import from `@websideproject/nuxt-auto-api/schema/pg`
  */
 
-import { timestamp, text, uuid, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core'
+import { timestamp, text, uuid, serial, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
-import { COL, nowFn, toSnakeCase, tableNameFromColumn } from './shared'
+import { COL, nowFn, toSnakeCase, tableNameFromColumn, tenantColumn, tenantIndexName } from './shared'
 import type { IdOpts, TenantOpts, SoftDeleteOpts, SoftDeletePreset, TenantPreset } from './shared'
 
 // ── id ───────────────────────────────────────────────────────────────────────
 
-export function id(_opts: IdOpts = {}): Record<string, any> {
+export function id(opts: IdOpts = {}): Record<string, any> {
+  if (opts.mode === 'serial') return { id: serial('id').primaryKey() }
   return {
     id: uuid('id').defaultRandom().primaryKey(),
   }
@@ -42,7 +43,10 @@ function tenantFn(opts: TenantOpts = {}): Record<string, any> {
   const snake = opts.field ? toSnakeCase(opts.field) : 'organization_id'
   return { [camel]: text(snake) }
 }
-tenantFn.indexes = (t: any) => [index(`${tableNameFromColumn(t.organizationId)}_tenant_org_idx`).on(t.organizationId)]
+tenantFn.indexes = (t: any, opts: TenantOpts = {}) => {
+  const column = tenantColumn(t, opts)
+  return [index(tenantIndexName(column, opts)).on(column)]
+}
 
 export const tenant = tenantFn as unknown as TenantPreset
 
