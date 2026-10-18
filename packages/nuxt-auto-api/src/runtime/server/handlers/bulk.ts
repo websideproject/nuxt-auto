@@ -4,7 +4,8 @@ import type { HandlerContext, BulkOperationResponse } from '../../types'
 import { getSoftDeleteColumn, buildSoftDeleteUpdates } from '../utils/softDelete'
 import { planCascadeSoftDelete } from '../utils/softDeleteCascade'
 import { atomicWritesFor, type Write } from '../utils/atomicWrites'
-import { executeBeforeHook, executeAfterHook } from '../utils/executeHooks'
+import { executeBeforeHook, executeAfterHook, executeAfterHookWithTransform } from '../utils/executeHooks'
+import { parseJsonColumns } from '../utils/parseJsonColumns'
 import { filterHiddenFields } from '../utils/filterHiddenFields'
 import { filterReadableFields } from '../utils/fieldPermissions'
 import { assertResourcePermission } from '../utils/permissions'
@@ -136,10 +137,8 @@ export async function bulkCreateHandler(context: HandlerContext): Promise<BulkOp
     data = await executeBeforeHook('create', context, data)
     return {
       writes: [tx => insertReturningQuery(tx, table, data)],
-      finish: async ([[created]]) => {
-        await executeAfterHook('create', context, created)
-        return created
-      },
+      // Like POST /api/[resource]: an afterCreate hook may replace the returned row.
+      finish: async ([[created]]) => executeAfterHookWithTransform('create', context, parseJsonColumns(created, context)),
     }
   })
   return respond(context, results, items.length, errors)
@@ -165,11 +164,8 @@ export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOp
     const set = Object.keys(data).length === 0 ? null : withUpdatedAt(table, data)
     return {
       writes: set ? [tx => updateReturningQuery(tx, table, id, set)] : [],
-      finish: async ([rows]) => {
-        const updated = rows?.[0] ?? existing
-        await executeAfterHook('update', context, updated)
-        return updated
-      },
+      // Like PATCH /api/[resource]/:id: an afterUpdate hook may replace the returned row.
+      finish: async ([rows]) => executeAfterHookWithTransform('update', context, parseJsonColumns(rows?.[0] ?? existing, context)),
     }
   }, i => items[i]?.id)
   return respond(context, results, items.length, errors)
