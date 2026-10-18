@@ -55,7 +55,7 @@ export type { BatchResult } from './utils/softDeleteBatch'
 export { recordRevisionIfPresent } from './utils/revisionRecord'
 
 // Database adapter
-export { initializeDatabase, getDatabaseAdapter, createAdapter } from './database'
+export { initializeDatabase, initializeDatabaseFromBinding, getDatabaseAdapter, createAdapter } from './database'
 
 // Custom endpoint helpers
 export { createEndpoint } from './utils/createEndpoint'

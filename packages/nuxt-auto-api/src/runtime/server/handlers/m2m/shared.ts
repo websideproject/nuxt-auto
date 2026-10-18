@@ -10,6 +10,18 @@ import { primaryKeyName } from '../../utils/table'
 
 export type M2MOperation = 'list' | 'sync' | 'add' | 'remove'
 
+/**
+ * Tables junction discovery scans: the registered resources plus every table of the Drizzle schema, so a
+ * junction is found without being registered (which would expose CRUD routes for it). Both ends of a junction
+ * must be resources.
+ */
+export function junctionDiscoveryTables(context: HandlerContext): { tables: Record<string, any>, resourceNames: string[] } {
+  return {
+    tables: { ...(context.db?._?.fullSchema ?? {}), ...context.schema },
+    resourceNames: Object.keys(context.schema),
+  }
+}
+
 export interface M2MSide {
   relation: string
   junction: DetectedJunction
@@ -49,8 +61,16 @@ export async function m2mPrelude(context: HandlerContext, operation: M2MOperatio
   // The junction does not have to be a registered resource (that would expose CRUD routes for it): look in
   // the full Drizzle schema too.
   const tables = { ...(context.db?._?.fullSchema ?? {}), ...schema }
-  const explicit = (context.runtimeConfig as any)?.autoApi?.m2m?.relations?.[resource]?.[relationName]
-  const junction = detectJunction(tables, resource, relationName, explicit?.junctionTable, explicit?.leftKey, explicit?.rightKey)
+  const m2mOptions = (context.runtimeConfig as any)?.autoApi?.m2m
+  const explicit = m2mOptions?.relations?.[resource]?.[relationName]
+  // With autoDetect off, only relations listed in m2m.relations exist.
+  if (!explicit && m2mOptions?.autoDetect === false) {
+    throw createError({ statusCode: 404, message: `Unknown relation '${relationName}'` })
+  }
+  const junction = detectJunction(tables, resource, relationName, explicit?.junctionTable, explicit?.leftKey, explicit?.rightKey, {
+    resourceNames: Object.keys(schema),
+    metadataColumns: explicit?.metadataColumns,
+  })
   validateJunctionConfig(junction, tables)
 
   const leftRecord = await findAuthorizedRow(context, resource, params.id)

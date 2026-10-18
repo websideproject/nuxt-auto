@@ -48,6 +48,7 @@ export default defineNuxtModule<ModuleOptions>({
       nitroConfig.alias['@websideproject/nuxt-auto-api/plugins'] = resolver.resolve('./runtime/plugins/index')
       nitroConfig.alias['@websideproject/nuxt-auto-api/database'] = resolver.resolve('./runtime/server/database/index')
       nitroConfig.alias['@websideproject/nuxt-auto-api/utils'] = resolver.resolve('./runtime/server/utils.public')
+      nitroConfig.alias['@websideproject/nuxt-auto-api/rules'] = resolver.resolve('./runtime/server/rules.public')
 
       // Trash retention: the purge task exists wherever Nitro tasks are on; `trashPurge.schedule` turns them on and
       // schedules it.
@@ -73,9 +74,13 @@ export default defineNuxtModule<ModuleOptions>({
         throw new Error(`[nuxt-auto-api] autoApi.multiTenancy.${removed} was removed: resolve the tenant on the server (set event.context.tenantId, ctx.user.${String(mt.userTenantField || mt.tenantIdField || 'organizationId')}, or ctx.tenant from a context extender). See the multi-tenancy docs.`)
       }
     }
-    for (const removed of ['hooks', 'exclude', 'include']) {
+    const replacements: Record<string, string> = {
+      hooks: ': register hooks on the resource (createModuleImport) or through a plugin',
+      extensions: ': list the plugins in autoApi.plugins (createRateLimitExtension is now createRateLimitPlugin, same options)',
+    }
+    for (const removed of ['hooks', 'exclude', 'include', 'extensions']) {
       if (removed in (options as Record<string, unknown>)) {
-        throw new Error(`[nuxt-auto-api] autoApi.${removed} was removed${removed === 'hooks' ? ': register hooks on the resource (createModuleImport) or through a plugin' : ''}.`)
+        throw new Error(`[nuxt-auto-api] autoApi.${removed} was removed${replacements[removed] ?? ''}.`)
       }
     }
 

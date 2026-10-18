@@ -18,6 +18,7 @@ import { m2mListHandler } from '../../src/runtime/server/handlers/m2m/list'
 import { permissionsHandler } from '../../src/runtime/server/handlers/permissions'
 import { searchCondition } from '../../src/runtime/plugins/searchPlugin'
 import { createRevisionPlugin } from '../../src/runtime/plugins/revisionPlugin'
+import { recordRevisionIfPresent } from '../../src/runtime/server/utils/revisionRecord'
 import { makeContext } from '../helpers/context'
 import { ENGINES, type TestEngine } from './engines'
 
@@ -118,6 +119,27 @@ for (const spec of ENGINES) {
       const res: any = await aggregateHandler(ctx('tasks', { operation: 'aggregate', query: { aggregate: 'count', groupBy: 'done' } }))
       const counts = Object.fromEntries(res.data.map((g: any) => [String(Boolean(Number(g.group.done))), Number(g.count)]))
       expect(counts).toEqual({ true: 1, false: 2 })
+    })
+
+    it('aggregate grouped by date buckets', async () => {
+      // Monday 5 Jan and Sunday 11 Jan 2026 are one week; 3 Feb is another month.
+      await t.db.insert((t.schema.full as any).projects).values([
+        { name: 'a', updatedAt: new Date('2026-01-05T10:00:00Z') },
+        { name: 'b', updatedAt: new Date('2026-01-11T12:00:00Z') },
+        { name: 'c', updatedAt: new Date('2026-02-03T08:30:00Z') },
+      ])
+      const by = async (groupBy: string) => {
+        const res: any = await aggregateHandler(ctx('projects', { operation: 'aggregate', query: { aggregate: 'count', groupBy } }))
+        return res.data.map((g: any) => [Object.values(g.group)[0], Number(g.count)])
+      }
+      expect(await by('updatedAt:month')).toEqual([['2026-01', 2], ['2026-02', 1]])
+      expect(await by('updatedAt:week')).toEqual([['2026-01-05', 2], ['2026-02-02', 1]])
+      expect(await by('updatedAt:day')).toEqual([['2026-01-05', 1], ['2026-01-11', 1], ['2026-02-03', 1]])
+      expect(await by('updatedAt:hour')).toEqual([['2026-01-05T10', 1], ['2026-01-11T12', 1], ['2026-02-03T08', 1]])
+      expect(await by('updatedAt:year')).toEqual([['2026', 3]])
+
+      const res: any = await aggregateHandler(ctx('projects', { operation: 'aggregate', query: { aggregate: 'count', groupBy: 'updatedAt:year,name' } }))
+      expect(Object.keys(res.data[0].group).sort()).toEqual(['name', 'updatedAt_year'])
     })
 
     it('aggregates are numbers on every engine, grouped or not', async () => {
@@ -391,6 +413,20 @@ for (const spec of ENGINES) {
       expect(errors).toEqual([])
       const revs = (await rows('revisions')).sort((a: any, b: any) => a.version - b.version)
       expect(revs.map((r: any) => [r.version, r.data.name])).toEqual([[3, 'v3'], [4, 'v4']])
+    })
+
+    it('recovery paths number their revisions on every engine', async () => {
+      const p = await project('restored')
+      const errors: unknown[] = []
+      const spy = vi.spyOn(console, 'error').mockImplementation((...a) => {
+        errors.push(a)
+      })
+      const c = ctx('projects', { operation: 'update' })
+      await recordRevisionIfPresent(c, 'projects', p.id, 'restore', p)
+      await recordRevisionIfPresent(c, 'projects', p.id, 'restore', p)
+      spy.mockRestore()
+      expect(errors).toEqual([])
+      expect((await rows('revisions')).map((r: any) => r.version).sort()).toEqual([1, 2])
     })
 
     it('per-record permissions: resource permission AND row visibility AND objectLevel, per operation', async () => {

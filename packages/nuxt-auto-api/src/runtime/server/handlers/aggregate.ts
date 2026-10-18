@@ -1,7 +1,7 @@
 import { and } from 'drizzle-orm'
 import { createError } from 'h3'
 import type { HandlerContext, AggregationResponse } from '../../types'
-import { parseAggregateParam, executeComplexAggregation, validateAggregation } from '../utils/buildAggregation'
+import { parseAggregateParam, parseGroupBy, executeComplexAggregation, validateAggregation } from '../utils/buildAggregation'
 import { buildWhereClause, parseFilterParam } from '../utils/buildWhereClause'
 import { assertQueryField, readableColumns } from '../utils/queryFields'
 import { rowScope } from '../utils/rowAccess'
@@ -9,7 +9,7 @@ import { serializeResponse } from '../utils/serializeResponse'
 import { softDeleteModeFor } from './list'
 
 /**
- * Aggregate handler - GET /api/[resource]/aggregate?aggregate=count,sum(total)&groupBy=status&filter=...
+ * Aggregate handler - GET /api/[resource]/aggregate?aggregate=count,sum(total)&groupBy=status,createdAt:month&filter=...
  *
  * Aggregates run over exactly the rows the caller could list (tenant, listFilter, soft delete). Aggregated,
  * grouped and filtered fields must be readable — `min(password)` or `groupBy=password` would otherwise
@@ -31,7 +31,7 @@ export async function aggregateHandler(context: HandlerContext): Promise<Aggrega
   const check = validateAggregation(aggregates, groupBy, context)
   if (!check.valid) throw createError({ statusCode: 400, message: check.error || 'Invalid aggregation' })
   for (const a of aggregates) if (a.field && a.field !== '*') assertQueryField(a.field, readable, 'aggregate')
-  for (const f of groupBy ?? []) assertQueryField(f, readable, 'groupBy')
+  for (const f of groupBy ?? []) assertQueryField(parseGroupBy(f).field, readable, 'groupBy')
 
   const conditions: any[] = []
   const filterWhere = buildWhereClause(parseFilterParam(q.filter), table, readable)
@@ -47,7 +47,7 @@ export async function aggregateHandler(context: HandlerContext): Promise<Aggrega
 
   const rows = await executeComplexAggregation(db, table, { aggregates, groupBy, having }, where)
 
-  const groupKeys = new Set<string>(groupBy ?? [])
+  const groupKeys = new Set<string>((groupBy ?? []).map((f: string) => parseGroupBy(f).key))
   const data = rows.map((row: any) => {
     const group: Record<string, any> = {}
     const values: Record<string, any> = {}

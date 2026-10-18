@@ -99,6 +99,12 @@ export interface AutoApiOptions {
   m2m?: M2MConfig
 
   /**
+   * Fill `createdBy` / `updatedBy` (the `audit()` schema preset) from the request user on tables that have those
+   * columns. Set `false` to leave them alone. @default true
+   */
+  auditStamps?: boolean
+
+  /**
    * Hard-delete trashed rows past their resource's `softDelete.retentionDays` on a schedule. Setting `schedule`
    * (a cron expression, e.g. `'0 3 * * *'`) turns on Nitro tasks and schedules the `auto-api:purge-trash` task;
    * without it the task is still available (`nuxi task run`) when your app enables `nitro.experimental.tasks`.
