@@ -1,4 +1,5 @@
 import { getTableColumns, getTableName } from 'drizzle-orm'
+import { fkColKey, tableForeignKeys } from '../softDeleteCascade'
 
 export interface JunctionTableInfo {
   /**
@@ -62,15 +63,18 @@ export interface M2MRelationship {
 /**
  * Detect all junction tables in the schema
  *
- * A table is considered a junction table if:
- * 1. Has exactly 2 columns that appear to be foreign keys (end with Id/_id)
- * 2. Has no standalone 'id' column
- * 3. Name follows pattern: resourceA + resourceB (supports both camelCase and snake_case)
- * 4. All other columns (if any) are metadata (sortOrder, createdAt, etc.)
+ * A table is considered a junction table if it has no standalone 'id' column and either:
+ * 1. Exactly 2 single-column foreign keys (`.references()`) to two resources — names do not matter, or
+ * 2. (no such foreign keys) exactly 2 columns that look like foreign keys (end with Id/_id) and a name that
+ *    combines the two resources (camelCase or snake_case).
+ * All other columns (if any) are metadata (sortOrder, createdAt, etc.)
+ *
+ * `schema` may hold tables that are not resources (a junction does not have to be registered); both ends of a
+ * junction must be one of `resourceNames` (default: every key of `schema`).
  */
-export function detectAllJunctionTables(schema: Record<string, any>): JunctionTableInfo[] {
+export function detectAllJunctionTables(schema: Record<string, any>, resourceNames: string[] = Object.keys(schema)): JunctionTableInfo[] {
   const junctionTables: JunctionTableInfo[] = []
-  const availableResources = Object.keys(schema)
+  const availableResources = resourceNames
 
   for (const [tableName, table] of Object.entries(schema)) {
     const junctionInfo = analyzeTableAsJunction(tableName, table, schema, availableResources)
@@ -107,21 +111,17 @@ function analyzeTableAsJunction(
       return null
     }
 
-    // Strategy 1: Use Drizzle FK references (most accurate)
-    const fkColumnsFromReferences = columnEntries.filter(([_, col]: [string, any]) => {
-      return col.references || col.foreignKeys?.length > 0
-    })
+    // Strategy 1: Drizzle foreign keys (`.references()` / `foreignKey()`), read from the table config
+    const foreignKeys = tableForeignKeys(table).filter(fk => fk.columns.length === 1)
 
-    if (fkColumnsFromReferences.length === 2) {
-      // Extract resource names from Drizzle references
-      const [leftColEntry, rightColEntry] = fkColumnsFromReferences as [[string, any], [string, any]]
-      const [leftCol, leftColData] = leftColEntry
-      const [rightCol, rightColData] = rightColEntry
-
-      const leftTarget = extractTargetFromReference(leftColData, schema, availableResources)
-      const rightTarget = extractTargetFromReference(rightColData, schema, availableResources)
+    if (foreignKeys.length === 2) {
+      const [left, right] = foreignKeys as [typeof foreignKeys[0], typeof foreignKeys[0]]
+      const leftTarget = resourceForTable(left.foreignTable, schema, availableResources)
+      const rightTarget = resourceForTable(right.foreignTable, schema, availableResources)
 
       if (leftTarget && rightTarget) {
+        const leftCol = fkColKey(table, left.columns[0])
+        const rightCol = fkColKey(table, right.columns[0])
         // Get metadata columns (all columns except the two FKs)
         const metadataColumns = columnEntries
           .filter(([name]) => name !== leftCol && name !== rightCol)
@@ -194,51 +194,25 @@ function analyzeTableAsJunction(
 }
 
 /**
- * Extract target resource name from Drizzle FK reference
- * Tries to match the referenced table against available resources
+ * The resource whose table a foreign key references: matched by table object, then by SQL table name.
  */
-function extractTargetFromReference(
-  column: any,
+function resourceForTable(
+  referencedTable: any,
   schema: Record<string, any>,
   availableResources: string[],
 ): string | null {
-  try {
-    // col.references() returns the referenced COLUMN (e.g. sampleTasks.id)
-    // We need the TABLE — accessible via column.table
-    const referencedCol = column.references?.()
-
-    if (!referencedCol) {
-      return null
-    }
-
-    // Get the parent table of the referenced column
-    const referencedTable = referencedCol?.table ?? referencedCol
-
-    // Find which resource this table belongs to by comparing table objects
-    for (const resourceName of availableResources) {
-      const resourceTable = schema[resourceName]
-      if (resourceTable === referencedTable) {
-        return resourceName
-      }
-
-      // Also try comparing table names using getTableName
-      try {
-        const refTableName = getTableName(referencedTable)
-        const resTableName = getTableName(resourceTable)
-        if (refTableName === resTableName) {
-          return resourceName
-        }
-      }
-      catch {
-        // getTableName might fail on some table types
-      }
-    }
-
-    return null
+  for (const resourceName of availableResources) {
+    if (schema[resourceName] === referencedTable) return resourceName
   }
-  catch {
-    return null
+  for (const resourceName of availableResources) {
+    try {
+      if (getTableName(schema[resourceName]) === getTableName(referencedTable)) return resourceName
+    }
+    catch {
+      // not a table
+    }
   }
+  return null
 }
 
 /**
@@ -455,8 +429,9 @@ function capitalize(str: string): string {
 export function getM2MRelationshipsForResource(
   resourceName: string,
   schema: Record<string, any>,
+  resourceNames: string[] = Object.keys(schema),
 ): M2MRelationship[] {
-  const junctionTables = detectAllJunctionTables(schema)
+  const junctionTables = detectAllJunctionTables(schema, resourceNames)
   const relationships: M2MRelationship[] = []
 
   for (const junction of junctionTables) {
@@ -485,18 +460,17 @@ export function getM2MRelationshipsForResource(
 /**
  * Get all junction table names (for filtering)
  */
-export function getAllJunctionTableNames(schema: Record<string, any>): string[] {
-  const junctionTables = detectAllJunctionTables(schema)
+export function getAllJunctionTableNames(schema: Record<string, any>, resourceNames: string[] = Object.keys(schema)): string[] {
+  const junctionTables = detectAllJunctionTables(schema, resourceNames)
   return junctionTables.map(j => j.tableName)
 }
 
 /**
  * Check if a specific table is a junction table
  */
-export function isJunctionTable(tableName: string, schema: Record<string, any>): boolean {
+export function isJunctionTable(tableName: string, schema: Record<string, any>, resourceNames: string[] = Object.keys(schema)): boolean {
   const table = schema[tableName]
   if (!table) return false
 
-  const availableResources = Object.keys(schema)
-  return analyzeTableAsJunction(tableName, table, schema, availableResources) !== null
+  return analyzeTableAsJunction(tableName, table, schema, resourceNames) !== null
 }

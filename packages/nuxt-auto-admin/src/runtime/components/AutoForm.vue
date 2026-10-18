@@ -13,6 +13,9 @@
           :model-value="formData[field.name]"
           :error="errors[field.name]"
           :disabled="disabled || mode === 'view'"
+          :form-data="formData"
+          :resource-name="resourceName"
+          :record-id="recordId"
           @update:model-value="updateField(field.name, $event)"
         />
       </div>
@@ -52,6 +55,8 @@
 import { ref, computed, watch } from 'vue'
 import type { FieldConfig } from '../types'
 import AutoField from './AutoField.vue'
+import { runFieldValidation } from '../utils/fieldRules'
+import { clientFieldError } from '../utils/fieldValidation'
 
 const props = defineProps<{
   fields: FieldConfig[]
@@ -61,6 +66,8 @@ const props = defineProps<{
   showReset?: boolean
   submitLabel?: string
   disabled?: boolean
+  resourceName?: string
+  recordId?: string | number
 }>()
 
 const emit = defineEmits<{
@@ -90,7 +97,10 @@ watch(
         else if (field.widget === 'NumberInput') {
           data[field.name] = field.options?.min || 0
         }
-        else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget ?? '')) {
+        else if (field.widget === 'TagsInput') {
+          data[field.name] = []
+        }
+        else if (['SelectInput', 'RelationSelect', 'DateTimePicker', 'JsonEditor', 'ColorPicker', 'FileUpload', 'ImageUpload'].includes(field.widget ?? '')) {
           data[field.name] = null
         }
         else {
@@ -147,7 +157,10 @@ function resetForm() {
           else if (field.widget === 'NumberInput') {
             data[field.name] = field.options?.min || 0
           }
-          else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget ?? '')) {
+          else if (field.widget === 'TagsInput') {
+            data[field.name] = []
+          }
+          else if (['SelectInput', 'RelationSelect', 'DateTimePicker', 'JsonEditor', 'ColorPicker', 'FileUpload', 'ImageUpload'].includes(field.widget ?? '')) {
             data[field.name] = null
           }
           else {
@@ -169,12 +182,15 @@ async function handleSubmit() {
   errors.value = {}
   let hasErrors = false
 
-  visibleFields.value.forEach((field) => {
-    if (field.required && !formData.value[field.name]) {
-      errors.value[field.name] = 'This field is required'
+  // The form's own checks (required, length), then the field's `validation` rule from admin.fields.ts
+  for (const field of visibleFields.value) {
+    const error = clientFieldError(field, formData.value[field.name])
+      ?? await runFieldValidation(field, formData.value[field.name], formData.value)
+    if (error) {
+      errors.value[field.name] = error
       hasErrors = true
     }
-  })
+  }
 
   if (hasErrors) {
     return

@@ -65,7 +65,7 @@ interface ResourceSchema {
   listFields: string[]
   formFields: { create: FieldConfig[]; edit: FieldConfig[] }
   hiddenFields: string[]
-  readonlyFields: string[]         // carried from config, not used by any page
+  readonlyFields: string[]         // already applied to formFields (readonly: true)
   group?: string
   order?: number
   disabled?: boolean

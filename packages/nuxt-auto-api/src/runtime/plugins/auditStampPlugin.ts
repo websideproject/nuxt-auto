@@ -4,8 +4,8 @@ import type { AutoApiPlugin } from '../types/plugin'
 /**
  * Built-in plugin that stamps `createdBy` / `updatedBy` from the request user.
  *
- * Activated automatically when a table has those columns (detected by name).
- * Does not require configuration — just add `...audit()` from the dialect preset.
+ * On by default (`autoApi.auditStamps: false` turns it off); acts on tables that have those columns (detected by
+ * name). Does not require configuration — just add `...audit()` from the dialect preset.
  *
  * Rules:
  * - `createdBy` is only set on create (null = system/task, no auth).

@@ -88,7 +88,7 @@ export default defineNuxtConfig({
         group: 'Blog',
         order: 1
         // M2M fields (categories, tags) are automatically detected and injected! 🎉
-        // Junction tables (articleCategories, articleTags) are automatically hidden! 🎉
+        // The junction tables (articleCategories, articleTags) are not resources, so they are not in the sidebar.
         // No manual configuration needed!
 
         // Optional: Override regular field widgets if desired
@@ -149,8 +149,8 @@ export default defineNuxtConfig({
         order: 1
       }
 
-      // ✅ Junction tables (articleCategories, articleTags) are automatically detected and hidden!
-      // No manual configuration needed! 🎉
+      // ✅ Junction tables (articleCategories, articleTags) are found through their foreign keys without being
+      // registered, so they never show up here. A junction you DO register is detected and hidden.
 
       // ⚠️ MANUAL JUNCTION TABLE CONFIGURATION (only needed for overrides) ⚠️
       // Uncomment these ONLY if you need to override auto-detection:
@@ -215,14 +215,9 @@ export default defineNuxtConfig({
     // ================================================================================
     // M2M (Many-to-Many) Configuration
     // ================================================================================
-    // ⚠️ IMPORTANT: Explicit configuration is STRONGLY RECOMMENDED for production!
-    // Auto-detection is experimental and fragile - it may not work with:
-    //   - Non-standard naming conventions
-    //   - Third-party database schemas
-    //   - Irregular plurals (person/people, child/children)
-    //   - Complex junction tables with business logic
-    //
-    // See docs: packages/nuxt-auto-api/docs/13.m2m-relationships.md
+    // Junctions are detected from their foreign keys (`.references()`); tables without foreign keys fall back to
+    // naming patterns. Configure a relation explicitly (junctionTable / leftKey / rightKey) when neither works,
+    // or set autoDetect: false to allow only the relations listed below.
     // ================================================================================
 
     m2m: {
@@ -230,9 +225,9 @@ export default defineNuxtConfig({
       // AUTO-DETECTION ENABLED
       // ─────────────────────────────────────────────────────────────────────────────
       // Auto-detects junction tables based on schema structure:
-      // - Tables with exactly 2 FK columns (articleId, categoryId)
       // - No standalone 'id' column (composite primary key)
-      // - Naming pattern matches resource pairs (articleCategories, articleTags)
+      // - Exactly 2 foreign keys, to two resources (article_categories → articles, categories)
+      // - The junction itself does not have to be a registered resource
 
       autoDetect: true,
 

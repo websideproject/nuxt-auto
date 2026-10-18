@@ -2,6 +2,8 @@ import { computed } from 'vue'
 import type { FieldConfig } from '../types'
 import { useAdminResource } from './useAdminResource'
 import { useAdminPermissions } from './useAdminPermissions'
+import fieldRules from '#nuxt-auto-admin-fields'
+import { withFieldRules } from '../utils/fieldRules'
 
 /**
  * Generate form configuration from resource schema
@@ -15,7 +17,7 @@ export function useResourceForm(resourceName: string, mode: 'create' | 'edit' = 
   const fields = computed<FieldConfig[]>(() => {
     if (!resource.value) return []
 
-    const formFields = resource.value.formFields[mode] || resource.value.formFields.create
+    const formFields = withFieldRules(resource.value.formFields[mode] || resource.value.formFields.create, fieldRules, resourceName)
     const fieldPerms = (permissions.value as any)?.fields ?? {}
 
     // Filter out M2M fields (MultiRelationSelect with junctionTable)
