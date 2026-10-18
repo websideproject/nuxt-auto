@@ -14,9 +14,10 @@ autoAdmin: {
 
   branding?: {
     logo?: string                      // URL to logo image
-    title?: string                     // default: 'Admin Panel' (sidebar)
+    title?: string                     // default: 'Admin Panel' (sidebar + tab: "<page> · <title>")
+    favicon?: string                   // tab icon on admin pages
   }
-  // (`branding.favicon` and `dashboard` exist in the types but are NOT read)
+  // (`dashboard` exists in the types but is NOT read)
 
   theme?: {
     primaryColor?: string            // CSS color (#4f46e5 / oklch(…)) → admin-only primary scale (color-mix shades), modals too
@@ -65,11 +66,11 @@ interface ResourceConfig {
 
   listFields?: string[]              // Columns shown in the list (default: up to 6 picked columns) — columns only, not relations
   hiddenFields?: string[]            // Fields excluded from list + form views
-  // (`readonlyFields` is in the types but NOT read — use `readonly: true` in formFields)
+  readonlyFields?: string[]          // Shown read-only (left out of the request) in every form, configured ones too
 
   formFields?: {
-    create?: FieldConfig[]           // Replaces the generated forms: always give `create`
-    edit?: FieldConfig[]             // Falls back to `create`
+    create?: FieldConfig[]           // Replaces the generated create form (left out → generated)
+    edit?: FieldConfig[]             // Falls back to `create`, then to the generated edit form
   }
 
   disabled?: boolean                 // Hide this resource from admin entirely

@@ -3,6 +3,7 @@
     class="admin-layout flex h-[var(--auto-admin-height,100dvh)] bg-muted/50 dark:bg-default overflow-hidden"
     data-auto-admin
   >
+    <AdminHead />
     <AdminTheme />
     <AdminSidebar />
 

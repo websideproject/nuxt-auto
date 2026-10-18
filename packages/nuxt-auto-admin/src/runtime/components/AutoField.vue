@@ -16,6 +16,7 @@
       :required="field.required"
       :options="field.options"
       :disabled="disabled || field.readonly"
+      v-bind="contextProps"
       @update:model-value="$emit('update:modelValue', $event)"
     />
   </UFormField>
@@ -31,6 +32,11 @@ const props = defineProps<{
   modelValue: unknown
   error?: string
   disabled?: boolean
+  /** The whole form's values (SlugInput follows `generateFrom`) */
+  formData?: Record<string, unknown>
+  /** The record the form edits (upload widgets need it) */
+  resourceName?: string
+  recordId?: string | number
 }>()
 
 defineEmits<{
@@ -48,7 +54,29 @@ const widgetComponentMap: Record<string, () => Promise<Component>> = {
   PasswordInput: () => import('./widgets/PasswordInput.vue'),
   RelationSelect: () => import('./widgets/RelationSelect.vue'),
   MultiRelationSelect: () => import('./widgets/MultiRelationSelect.vue'),
+  SlugInput: () => import('./widgets/SlugInput.vue'),
+  RichTextEditor: () => import('./widgets/RichTextEditor.vue'),
+  MarkdownEditor: () => import('./widgets/MarkdownEditor.vue'),
+  CodeEditor: () => import('./widgets/CodeEditor.vue'),
+  JsonEditor: () => import('./widgets/JsonEditor.vue'),
+  ColorPicker: () => import('./widgets/ColorPicker.vue'),
+  TagsInput: () => import('./widgets/TagsInput.vue'),
+  FileUpload: () => import('./widgets/FileUpload.vue'),
+  ImageUpload: () => import('./widgets/ImageUpload.vue'),
 }
+
+// Props only some widgets take — bound only on those, so they never fall through as HTML attributes.
+const contextProps = computed(() => {
+  switch (props.field.widget) {
+    case 'SlugInput':
+      return { formData: props.formData }
+    case 'FileUpload':
+    case 'ImageUpload':
+      return { fieldName: props.field.name, resourceName: props.resourceName, recordId: props.recordId }
+    default:
+      return {}
+  }
+})
 
 // Dynamically load widget component based on field configuration
 const widgetComponent = computed(() => {

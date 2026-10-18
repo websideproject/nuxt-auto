@@ -41,6 +41,10 @@
       "types": "./dist/runtime/server/utils.public.d.ts",
       "import": "./dist/runtime/server/utils.public.js"
     },
+    "./rules": {
+      "types": "./dist/runtime/server/rules.public.d.ts",
+      "import": "./dist/runtime/server/rules.public.js"
+    },
     "./plugins": {
       "types": "./dist/runtime/plugins/index.d.ts",
       "import": "./dist/runtime/plugins/index.js"
