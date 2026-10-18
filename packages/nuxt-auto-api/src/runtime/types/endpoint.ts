@@ -65,4 +65,10 @@ export interface EndpointOptions<TBody = any, TQuery = any, TResponse = any> {
   transform?: (data: TResponse, context: EndpointContext<TBody, TQuery>) => any
   /** Response format: 'auto' wraps in { data }, 'raw' passes through */
   responseFormat?: ResponseFormat
+  /**
+   * Remove hidden fields (`hiddenFields`, anywhere in the payload) and the fields the caller may not read
+   * (`fields[x].read`, on the returned row or rows) from the handler's result, as the generated routes do.
+   * @default true for a resource-bound endpoint, false for a standalone one
+   */
+  filterResponse?: boolean
 }
