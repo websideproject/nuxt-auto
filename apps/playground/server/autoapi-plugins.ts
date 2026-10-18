@@ -1,4 +1,4 @@
-import { createRateLimitPlugin, createRequestMetadataPlugin, createApiTokenPlugin, defineAutoApiPlugin } from '@websideproject/nuxt-auto-api/plugins'
+import { createRateLimitPlugin, createRequestMetadataPlugin, createApiTokenPlugin, createAuditStampPlugin, defineAutoApiPlugin } from '@websideproject/nuxt-auto-api/plugins'
 import { createHash } from 'node:crypto'
 
 /**
@@ -41,6 +41,9 @@ const requestFingerprintPlugin = defineAutoApiPlugin({
 
 export default [
   requestFingerprintPlugin,
+
+  // Fills createdBy / updatedBy (the audit() preset — notes use createdBy as the owner)
+  createAuditStampPlugin(),
 
   createRateLimitPlugin({
     windowMs: 60000,

@@ -1,8 +1,10 @@
+import { eq } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 import { useDB } from './db'
 import { users, posts, comments } from './schema'
 import { articles, categories, tags, articleCategories, articleTags } from '../../modules/blog/schema'
 import { apiKeys } from '../../modules/api-tokens/schema'
+import { notes } from '../../modules/recipes/schema'
 
 // Every timestamp is fixed, so the seeded rows render the same on every run — the screenshot suite
 // (test/visual.spec.ts) depends on it. Row N of a table is N hours after SEEDED_AT; tables without an
@@ -27,6 +29,7 @@ export async function seed() {
   await db.delete(comments)
   await db.delete(posts)
   await db.delete(apiKeys)
+  await db.delete(notes)
   await db.delete(users)
 
   // Create users with specific IDs matching demo auth
@@ -294,6 +297,25 @@ export async function seed() {
   console.log('    Admin (unrestricted):         sk_test_admin_unrestricted')
   console.log('    Editor (articles r/w):        sk_test_editor_articles')
   console.log('    User (read-only):             sk_test_user_readonly')
+
+  // Private notes (recipes demo): each user sees only their own; one of the editor's is in the trash
+  const owned = (userId: number, rows: Array<{ id: string, title: string, body: string }>) =>
+    rows.map(row => ({ ...row, createdBy: String(userId), updatedBy: String(userId) }))
+  await db.insert(notes).values(stamp([
+    ...owned(1, [
+      { id: '00000000-0000-4000-8000-000000000001', title: 'Review the editor applications', body: 'Two pending since Monday.' },
+      { id: '00000000-0000-4000-8000-000000000002', title: 'Rotate the API keys', body: 'The test tokens expire at the end of the month.' }
+    ]),
+    ...owned(2, [
+      { id: '00000000-0000-4000-8000-000000000003', title: 'Article ideas', body: 'Soft delete in practice; M2M without registering junctions.' },
+      { id: '00000000-0000-4000-8000-000000000004', title: 'Old outline', body: 'Superseded by the article ideas.' }
+    ]),
+    ...owned(3, [
+      { id: '00000000-0000-4000-8000-000000000005', title: 'Reading list', body: 'Drizzle relations docs.' }
+    ])
+  ], 3))
+  await db.update(notes).set({ deletedAt: new Date(SEEDED_AT + 4 * 86_400_000), deletedBy: '2', deletionId: '00000000-0000-4000-8000-0000000000aa' })
+    .where(eq(notes.id, '00000000-0000-4000-8000-000000000004'))
 
   console.log('Seeding completed!')
 }
