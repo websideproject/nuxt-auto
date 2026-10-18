@@ -18,6 +18,7 @@ import { m2mListHandler } from '../../src/runtime/server/handlers/m2m/list'
 import { permissionsHandler } from '../../src/runtime/server/handlers/permissions'
 import { searchCondition } from '../../src/runtime/plugins/searchPlugin'
 import { createRevisionPlugin } from '../../src/runtime/plugins/revisionPlugin'
+import { recordRevisionIfPresent } from '../../src/runtime/server/utils/revisionRecord'
 import { makeContext } from '../helpers/context'
 import { ENGINES, type TestEngine } from './engines'
 
@@ -391,6 +392,20 @@ for (const spec of ENGINES) {
       expect(errors).toEqual([])
       const revs = (await rows('revisions')).sort((a: any, b: any) => a.version - b.version)
       expect(revs.map((r: any) => [r.version, r.data.name])).toEqual([[3, 'v3'], [4, 'v4']])
+    })
+
+    it('recovery paths number their revisions on every engine', async () => {
+      const p = await project('restored')
+      const errors: unknown[] = []
+      const spy = vi.spyOn(console, 'error').mockImplementation((...a) => {
+        errors.push(a)
+      })
+      const c = ctx('projects', { operation: 'update' })
+      await recordRevisionIfPresent(c, 'projects', p.id, 'restore', p)
+      await recordRevisionIfPresent(c, 'projects', p.id, 'restore', p)
+      spy.mockRestore()
+      expect(errors).toEqual([])
+      expect((await rows('revisions')).map((r: any) => r.version).sort()).toEqual([1, 2])
     })
 
     it('per-record permissions: resource permission AND row visibility AND objectLevel, per operation', async () => {
