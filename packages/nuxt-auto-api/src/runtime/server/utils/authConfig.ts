@@ -59,6 +59,7 @@ export function mergeAuthConfig(
       }
     }
   }
+  if (override.softDelete) merged.softDelete = { ...base.softDelete, ...override.softDelete }
   merged.objectLevel = base.objectLevel
   merged.listFilter = base.listFilter
   return merged

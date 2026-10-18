@@ -105,6 +105,15 @@ export interface AutoApiOptions {
   auditStamps?: boolean
 
   /**
+   * Hard-delete trashed rows past their resource's `softDelete.retentionDays` on a schedule. Setting `schedule`
+   * (a cron expression, e.g. `'0 3 * * *'`) turns on Nitro tasks and schedules the `auto-api:purge-trash` task;
+   * without it the task is still available (`nuxi task run`) when your app enables `nitro.experimental.tasks`.
+   */
+  trashPurge?: {
+    schedule?: string
+  }
+
+  /**
    * Log registration and plugin details at build time. @default false
    */
   debug?: boolean

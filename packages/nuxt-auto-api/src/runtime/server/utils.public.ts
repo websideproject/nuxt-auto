@@ -49,6 +49,8 @@ export {
 } from './utils/softDelete'
 export { cascadeSoftDelete } from './utils/softDeleteCascade'
 export { restoreSoftDeletedBatch, purgeSoftDeletedBatch } from './utils/softDeleteBatch'
+export { purgeExpiredTrash } from './utils/softDeleteRetention'
+export type { PurgeExpiredTrashResult } from './utils/softDeleteRetention'
 export type { BatchResult } from './utils/softDeleteBatch'
 export { recordRevisionIfPresent } from './utils/revisionRecord'
 
