@@ -59,6 +59,11 @@ export const postsAuth: ResourceAuthConfig = {
     // Authenticated users can delete (but object-level auth will restrict to own posts)
     delete: context => !!context.user
   },
+  // Named gates for custom endpoints (createEndpoint({ endpointName })): publishing is for editors and admins, on
+  // any post — /api/recipes/posts/:id/publish
+  custom: {
+    publish: { permissions: { update: ['editor', 'admin'] } }
+  },
   // Object-level: users can only edit their own posts unless they're admin
   objectLevel: async (object, context) => {
     // Allow reading all posts

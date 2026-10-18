@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as baseSchema from './schema'
 import * as blogSchema from '../../modules/blog/schema'
 import * as apiTokenSchema from '../../modules/api-tokens/schema'
+import * as recipesSchema from '../../modules/recipes/schema'
 
 let _db: ReturnType<typeof drizzle> | null = null
 
@@ -15,7 +16,8 @@ export function useDB() {
       schema: {
         ...baseSchema.schema,
         ...blogSchema,
-        ...apiTokenSchema
+        ...apiTokenSchema,
+        ...recipesSchema
       }
     })
   }

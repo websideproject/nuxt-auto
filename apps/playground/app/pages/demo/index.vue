@@ -493,6 +493,37 @@
             </div>
           </div>
         </UCard>
+
+        <!-- Recipes Demo -->
+        <UCard
+          :ui="{ body: 'p-6' }"
+        >
+          <div class="space-y-4">
+            <div class="flex items-start gap-3">
+              <UIcon
+                name="i-heroicons-beaker"
+                class="text-teal-500 mt-1"
+                size="24"
+              />
+              <div class="flex-1">
+                <h3 class="font-semibold text-lg mb-1">
+                  Recipes - Custom Endpoints & Presets
+                </h3>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+                  rowScope, a named gate, authorize + insertReturning, and a soft-deleting table made of schema presets.
+                </p>
+                <UButton
+                  to="/demo/recipes"
+                  color="neutral"
+                  variant="outline"
+                  trailing-icon="i-heroicons-arrow-right"
+                >
+                  Try Recipes Demo
+                </UButton>
+              </div>
+            </div>
+          </div>
+        </UCard>
       </div>
     </div>
   </div>

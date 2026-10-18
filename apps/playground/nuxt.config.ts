@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     './modules/base', // Registers users, posts, comments
     './modules/blog', // Registers articles, categories, tags
     './modules/api-tokens', // Registers apiKeys for token auth demo
+    './modules/recipes', // Registers notes (schema presets, soft delete) for the recipes demo
     '@websideproject/nuxt-auto-admin' // Auto-generate admin UI
   ],
 
@@ -159,6 +160,12 @@ export default defineNuxtConfig({
         displayName: 'API Keys',
         icon: 'i-heroicons-key',
         group: 'Auth',
+        order: 1
+      },
+      notes: {
+        displayName: 'Notes',
+        icon: 'i-heroicons-pencil-square',
+        group: 'Recipes',
         order: 1
       }
 
