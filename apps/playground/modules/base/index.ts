@@ -28,7 +28,9 @@ export default defineNuxtModule({
       registry.register('posts', {
         schema: createModuleImport(resolver.resolve('../../server/database/schema'), 'posts'),
         authorization: createModuleImport(resolver.resolve('./auth'), 'postsAuth'),
-        validation: createModuleImport(resolver.resolve('../../server/validation/posts'), 'postsValidation')
+        validation: createModuleImport(resolver.resolve('../../server/validation/posts'), 'postsValidation'),
+        // Lifecycle hooks, shown live on /demo/hooks
+        hooks: createModuleImport(resolver.resolve('./hooks'), 'postsHooks')
       })
 
       // Register comments

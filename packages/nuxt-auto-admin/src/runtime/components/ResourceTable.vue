@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="admin-table space-y-4">
     <!-- Toolbar: stays mounted while the list reloads, so typing a search never loses focus -->
     <div
       v-if="showToolbar"
@@ -342,7 +342,7 @@ import type { TableColumn } from '@nuxt/ui'
 import type { CellContext, HeaderContext } from '@tanstack/vue-table'
 import { refDebounced } from '@vueuse/core'
 import { formatDisplayValue, formatFieldLabel } from '../utils/fieldTypeMapping'
-import { buildListFilter, filterableColumns, parseFilterState, searchFieldsOf, serializeFilterState } from '../utils/listQuery'
+import { buildListFilter, filterableColumns, listRelations, parseFilterState, relationCellText, searchFieldsOf, serializeFilterState } from '../utils/listQuery'
 import type { FilterState } from '../utils/listQuery'
 import { apiErrorMessage, bulkItemErrors, describeItemError } from '../utils/apiErrors'
 import type { BulkItemError } from '../utils/apiErrors'
@@ -449,10 +449,13 @@ function clearQuery() {
 }
 
 // ─── List data ─────────────────────────────────────────────────────────────
+// listFields that name relations (`author`, `author.name`) are loaded with the rows
+const includes = computed(() => (resource.value ? listRelations(resource.value) : []))
 const queryParams = computed(() => ({
   page: page.value,
   limit: PAGE_SIZE,
   ...(listFilter.value ? { filter: listFilter.value } : {}),
+  ...(includes.value.length ? { include: includes.value.join(',') } : {}),
 }))
 
 // The filter needs the registry and the caller's readable fields: query once both are known.
@@ -672,6 +675,16 @@ const columns = computed<TableColumn<Record<string, unknown>>[]>(() => {
   // Add data columns based on listFields
   resource.value.listFields.forEach((fieldName) => {
     const column = resource.value!.columns.find(col => col.name === fieldName)
+
+    // Not a column: a relation (`author`, `author.name`)
+    if (!column) {
+      cols.push({
+        id: fieldName,
+        header: formatFieldLabel(fieldName.replace('.', ' ')),
+        cell: ({ row }: CellContext<Record<string, unknown>, unknown>) => relationCellText(row.original, fieldName) || '-',
+      })
+      return
+    }
 
     cols.push({
       accessorKey: fieldName,

@@ -18,24 +18,38 @@
       {{ loadError }}
     </div>
 
-    <AutoForm
-      v-else
-      :fields="fields"
-      :initial-data="initialData"
-      :mode="mode"
-      :show-cancel="showCancel"
-      :show-reset="showReset"
-      :submit-label="submitLabel"
-      :disabled="disabled"
-      @submit="handleSubmit"
-      @cancel="$emit('cancel')"
-    />
+    <template v-else>
+      <UAlert
+        v-if="saveError"
+        color="error"
+        variant="subtle"
+        icon="i-heroicons-exclamation-triangle"
+        :title="saveError.title"
+        :description="saveError.details.join('\n') || undefined"
+        class="mx-6 mt-6 whitespace-pre-line"
+      />
+      <AutoForm
+        ref="autoForm"
+        :fields="fields"
+        :initial-data="initialData"
+        :mode="mode"
+        :show-cancel="showCancel"
+        :show-reset="showReset"
+        :submit-label="submitLabel"
+        :disabled="disabled"
+        :resource-name="resourceName"
+        :record-id="mode === 'edit' ? id : undefined"
+        @submit="handleSubmit"
+        @cancel="$emit('cancel')"
+      />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import AutoForm from './AutoForm.vue'
+import { apiErrorMessage, apiFieldErrors } from '../utils/apiErrors'
 import { useAdminResource } from '../composables/useAdminResource'
 import { useResourceForm } from '../composables/useResourceForm'
 import { useAutoApiGet, useAutoApiCreate, useAutoApiUpdate } from '@websideproject/nuxt-auto-api/composables'
@@ -81,29 +95,27 @@ const initialData = computed(() => {
   return {}
 })
 
+const autoForm = useTemplateRef<InstanceType<typeof AutoForm>>('autoForm')
+const saveError = ref<{ title: string, details: string[] } | null>(null)
+
+// A refused save: the API's validation issues go under their fields; the message, and issues on fields this form
+// does not show, above the form.
+function showSaveError(error: unknown) {
+  const { fields: fieldErrors, other } = apiFieldErrors(error, fields.value.map(f => f.name))
+  if (autoForm.value) autoForm.value.errors = fieldErrors
+  saveError.value = { title: apiErrorMessage(error), details: other }
+}
+
 function handleSubmit(data: Record<string, unknown>) {
-  if (props.mode === 'edit' && props.id) {
-    updateResource(
-      { id: props.id, data },
-      {
-        onSuccess: (result) => {
-          emit('success', result)
-        },
-        onError: (error: unknown) => {
-          console.error('Failed to update:', error)
-        },
-      },
-    )
+  saveError.value = null
+  const callbacks = {
+    // The API answers `{ data: row }`; `success` carries the row (the create page opens it by its id)
+    onSuccess: (result: unknown) => {
+      emit('success', (result as { data?: unknown } | undefined)?.data ?? result)
+    },
+    onError: showSaveError,
   }
-  else {
-    createResource(data, {
-      onSuccess: (result) => {
-        emit('success', result)
-      },
-      onError: (error: unknown) => {
-        console.error('Failed to create:', error)
-      },
-    })
-  }
+  if (props.mode === 'edit' && props.id) updateResource({ id: props.id, data }, callbacks)
+  else createResource(data, callbacks)
 }
 </script>

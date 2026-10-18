@@ -5,6 +5,7 @@
     :disabled="readonly"
     :required="required"
     :rows="options?.rows || 4"
+    :maxlength="options?.maxLength"
     class="w-full"
     @update:model-value="$emit('update:modelValue', $event)"
   />

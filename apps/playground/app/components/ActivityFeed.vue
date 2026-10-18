@@ -21,7 +21,10 @@
           >
             {{ event.hook }}
           </span>
-          <span class="text-xs text-neutral-500">
+          <span
+            class="text-xs text-neutral-500"
+            data-time
+          >
             {{ formatTime(event.timestamp) }}
           </span>
         </div>

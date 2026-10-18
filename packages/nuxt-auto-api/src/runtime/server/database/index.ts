@@ -51,4 +51,5 @@ export function getDatabaseAdapter(): DatabaseAdapter {
 }
 
 export { createAdapter } from './adapters/factory'
+export { initializeDatabaseFromBinding } from './d1Binding'
 export * from './adapters/index'

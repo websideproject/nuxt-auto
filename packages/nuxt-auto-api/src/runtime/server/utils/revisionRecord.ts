@@ -25,8 +25,9 @@ export async function recordRevisionIfPresent(
       userId: context.user?.id ? String(context.user.id) : null,
       organizationId: (context.user as any)?.organizationId ?? null,
       authMethod: (context as any).authMethod ?? null,
-      version: sql`(SELECT COALESCE(MAX(${rev.version}),0)+1 FROM ${rev}
-                    WHERE ${rev.resource}=${resource} AND ${rev.recordId}=${String(recordId)})`,
+      // The max is read through a derived table: MySQL refuses a subquery on the table being inserted into.
+      version: sql`(SELECT COALESCE(MAX(v.version),0)+1 FROM (SELECT ${rev.version} AS version FROM ${rev}
+                    WHERE ${rev.resource}=${resource} AND ${rev.recordId}=${String(recordId)}) AS v)`,
     })
   }
   catch (err) {
