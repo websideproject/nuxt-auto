@@ -16,7 +16,20 @@ autoAdmin: {
     logo?: string                      // URL to logo image
     title?: string                     // default: 'Admin Panel' (sidebar)
   }
-  // (`branding.favicon`, `dashboard` and `theme` exist in the types but are NOT read — colors come from Nuxt UI's app.config)
+  // (`branding.favicon` and `theme` exist in the types but are NOT read — colors come from Nuxt UI's app.config)
+
+  dashboard?: {
+    component?: string               // path ('~/components/admin/Dashboard.vue') — replaces the dashboard page
+    widgets?: Array<{                // above the resource cards, 12-col grid
+      type: 'stat' | 'chart' | 'activity' | 'custom'
+      resource?: string; label?: string
+      aggregation?: 'count' | 'sum' | 'avg' | 'min' | 'max'; field?: string  // stat/chart (default count)
+      groupBy?: string               // chart: column or date bucket 'createdAt:month'
+      filter?: Record<string, unknown>; limit?: number   // chart bars (10) / activity rows (5)
+      component?: string; props?: Record<string, unknown>  // custom
+      span?: number                  // of 12 (stat 3, chart/activity 6, custom 12)
+    }>                               // read via the API as the user (aggregate → read permission)
+  }
 
   // Per-resource overrides (see ResourceConfig below)
   resources?: Record<string, ResourceConfig>

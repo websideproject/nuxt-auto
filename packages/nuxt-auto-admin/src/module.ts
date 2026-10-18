@@ -67,6 +67,8 @@ export default defineNuxtModule<ModuleOptions>({
       permissions: options.permissions,
       customPages: options.customPages || [],
       ...(options.ui ? { ui: options.ui } : {}),
+      // Widgets are data; component paths are bundled through #nuxt-auto-admin-dashboard instead
+      ...(options.dashboard?.widgets ? { dashboard: { widgets: options.dashboard.widgets.map(({ component: _c, ...w }) => w) } } : {}),
     }
     ;(nuxt.options.runtimeConfig.public as Record<string, unknown>).autoAdmin = publicConfig
 
@@ -146,6 +148,23 @@ export default defineNuxtModule<ModuleOptions>({
     })
     nuxt.options.alias['#nuxt-auto-admin-actions'] = join(nuxt.options.buildDir, 'nuxt-auto-admin-actions.mjs')
     if (actionsFile) nuxt.options.watch.push(actionsFile)
+
+    // Dashboard components (`dashboard.component`, custom widgets' `component`): bundled with the admin
+    const dashboardComponent = options.dashboard?.component ? await resolveAppComponent(options.dashboard.component, 'dashboard.component') : null
+    const widgetComponents: Record<number, string> = {}
+    for (const [i, widget] of (options.dashboard?.widgets ?? []).entries()) {
+      if (widget.type === 'custom' && widget.component) widgetComponents[i] = await resolveAppComponent(widget.component, `dashboard.widgets[${i}].component`)
+    }
+    addTemplate({
+      filename: 'nuxt-auto-admin-dashboard.mjs',
+      getContents: () => dashboardModule(dashboardComponent, widgetComponents),
+      write: true,
+    })
+    addTypeTemplate({
+      filename: 'types/nuxt-auto-admin-dashboard.d.ts',
+      getContents: () => `declare module '#nuxt-auto-admin-dashboard' {\n  import type { Component } from 'vue'\n  export const dashboardComponent: Component | null\n  export const widgetComponents: Record<number, Component>\n}\n`,
+    })
+    nuxt.options.alias['#nuxt-auto-admin-dashboard'] = join(nuxt.options.buildDir, 'nuxt-auto-admin-dashboard.mjs')
 
     // Add composables
     addImportsDir(resolver.resolve('./runtime/composables'))
@@ -234,6 +253,24 @@ export function assertNoAccessFunctions(options: ModuleOptions): void {
       throw new TypeError(`[nuxt-auto-admin] customPages "${page.name}": \`canAccess\` was never applied — a function in nuxt.config cannot reach the running app. Use \`permissions: ['<resource>:<action>']\`, or a route middleware on the page itself.`)
     }
   }
+}
+
+/** A dashboard component path from nuxt.config, resolved like an import (`~/`, aliases). */
+async function resolveAppComponent(path: string, option: string): Promise<string> {
+  const file = await resolvePath(path, { extensions: ['.vue', '.ts', '.js'] })
+  if (!existsSync(file)) throw new Error(`[nuxt-auto-admin] autoAdmin.${option}: ${path} not found`)
+  return file
+}
+
+/** The module that hands the dashboard its components (lazy-loaded). */
+export function dashboardModule(component: string | null, widgets: Record<number, string>): string {
+  const lazy = (file: string) => `defineAsyncComponent(() => import(${JSON.stringify(file)}))`
+  return [
+    `import { defineAsyncComponent } from 'vue'`,
+    `export const dashboardComponent = ${component ? lazy(component) : 'null'}`,
+    `export const widgetComponents = {${Object.entries(widgets).map(([i, f]) => ` ${i}: ${lazy(f)}`).join(',')} }`,
+    '',
+  ].join('\n')
 }
 
 /**

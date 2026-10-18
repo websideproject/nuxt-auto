@@ -1,5 +1,12 @@
 <template>
-  <div class="space-y-8">
+  <component
+    :is="dashboardComponent"
+    v-if="dashboardComponent"
+  />
+  <div
+    v-else
+    class="space-y-8"
+  >
     <!-- Welcome Header -->
     <div>
       <h1 class="text-2xl font-semibold text-highlighted">
@@ -10,8 +17,28 @@
       </p>
     </div>
 
+    <!-- Configured widgets (autoAdmin.dashboard.widgets) -->
+    <div
+      v-if="widgets.length"
+      class="admin-widgets"
+    >
+      <div
+        v-for="(widget, i) in widgets"
+        :key="i"
+        :style="{ '--span': widgetSpan(widget) }"
+      >
+        <AdminDashboardWidget
+          :widget="widget"
+          :index="i"
+        />
+      </div>
+    </div>
+
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div
+      v-else
+      class="grid grid-cols-1 md:grid-cols-3 gap-4"
+    >
       <UCard class="border-default/60">
         <div class="flex items-center gap-3">
           <div class="p-2.5 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
@@ -144,6 +171,10 @@ import { useRouter } from 'vue-router'
 import { useRuntimeConfig } from '#app'
 import { useAdminRegistry } from '../../composables/useAdminRegistry'
 import { useJunctionTables } from '../../composables/useM2MDetection'
+import { useAdminConfig } from '../../composables/useAdminConfig'
+import { widgetSpan } from '../../utils/dashboard'
+import { dashboardComponent } from '#nuxt-auto-admin-dashboard'
+import AdminDashboardWidget from '../../components/AdminDashboardWidget.vue'
 
 defineOptions({ name: 'AdminDashboardPage' })
 
@@ -156,7 +187,27 @@ const { allResources, isLoading } = useAdminRegistry()
 const { isJunction } = useJunctionTables()
 const resources = computed(() => allResources.value.filter(r => !isJunction(r)))
 
+const { dashboard } = useAdminConfig()
+const widgets = computed(() => dashboard.widgets ?? [])
+
 function goToResource(resourceName: string) {
   router.push(`${adminPrefix}/${resourceName}`)
 }
 </script>
+
+<style scoped>
+/* A 12-column grid from md up (each widget spans `--span` columns); one column below */
+.admin-widgets {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .admin-widgets {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .admin-widgets > div {
+    grid-column: span var(--span) / span var(--span);
+  }
+}
+</style>

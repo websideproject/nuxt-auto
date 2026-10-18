@@ -457,30 +457,44 @@ export interface ActionContext {
  */
 export interface DashboardConfig {
   /**
-   * Dashboard widgets
+   * Widgets shown on the built-in dashboard, above the resource cards, on a 12-column grid.
    */
   widgets?: DashboardWidget[]
 
   /**
-   * Custom dashboard component path
+   * A component (path, resolved like an import: `'~/components/AdminDashboard.vue'`) that replaces the dashboard.
    */
   component?: string
 }
 
 /**
- * Dashboard widget configuration
+ * A dashboard widget. Data comes from the API with the caller's permissions (`aggregate` for stat and chart,
+ * `read` for activity); a widget the caller may not see says so.
  */
 export interface DashboardWidget {
+  /**
+   * - `stat`: one number — `aggregation` (default `count`) over the resource's rows
+   * - `chart`: bars per `groupBy` value (`'status'`, or a date bucket `'createdAt:month'`), largest first
+   * - `activity`: the latest `limit` records, newest first
+   * - `custom`: your `component`, given `props`
+   */
   type: 'stat' | 'chart' | 'activity' | 'custom'
   resource?: string
   label?: string
+  /** @default 'count' */
   aggregation?: 'count' | 'sum' | 'avg' | 'min' | 'max'
+  /** The column `sum` / `avg` / `min` / `max` aggregate. */
+  field?: string
+  /** Rows counted (stat, chart) or listed (activity) — the API's `filter`. */
   filter?: Record<string, unknown>
   groupBy?: string
+  /** Bars (chart, default 10) or records (activity, default 5). */
   limit?: number
+  /** `custom`: a component path, resolved like an import. */
   component?: string
   props?: Record<string, unknown>
-  span?: number // Grid span (1-12)
+  /** Columns of the 12-column grid. @default 3 for stat, 6 for chart and activity, 12 for custom */
+  span?: number
 }
 
 /**
