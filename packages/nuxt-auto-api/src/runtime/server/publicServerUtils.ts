@@ -51,6 +51,7 @@ export const PUBLIC_SERVER_UTILS = [
   'purgeSoftDeletedBatch',
   'recordRevisionIfPresent',
   'initializeDatabase',
+  'initializeDatabaseFromBinding',
   'getDatabaseAdapter',
   'createAdapter',
   'createEndpoint',

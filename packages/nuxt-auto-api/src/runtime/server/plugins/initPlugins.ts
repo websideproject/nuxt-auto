@@ -7,7 +7,8 @@ import {
   registerPermissionEvaluator,
   markInitialized,
 } from './pluginRegistry'
-import type { PluginRuntimeContext } from '../../types/plugin'
+import type { AutoApiPlugin, PluginRuntimeContext } from '../../types/plugin'
+import { createAuditStampPlugin } from '../../plugins/auditStampPlugin'
 
 // Verbose startup tracing is opt-in (set NUXT_AUTO_API_DEBUG=1). By default only genuine
 // errors are logged — a build-only plugin (buildSetup, no runtimeSetup) being skipped at runtime
@@ -15,6 +16,15 @@ import type { PluginRuntimeContext } from '../../types/plugin'
 const DEBUG = !!process.env.NUXT_AUTO_API_DEBUG
 function debug(...args: any[]) {
   if (DEBUG) console.log('[nuxt-auto-api:initPlugins]', ...args)
+}
+
+/**
+ * The registered plugins plus the built-in ones that are on by default: the audit-stamp plugin (fills
+ * `createdBy` / `updatedBy`) unless `autoApi.auditStamps` is `false` or the app registers it itself.
+ */
+export function withDefaultPlugins(plugins: AutoApiPlugin[], config: { auditStamps?: boolean } | undefined): AutoApiPlugin[] {
+  if (config?.auditStamps === false || plugins.some(p => p?.name === 'audit-stamp')) return plugins
+  return [createAuditStampPlugin(), ...plugins]
 }
 
 export default defineNitroPlugin(async () => {
@@ -35,6 +45,9 @@ export default defineNitroPlugin(async () => {
     return
   }
 
+  const runtimeConfig = useRuntimeConfig()
+  plugins = withDefaultPlugins(plugins, runtimeConfig.autoApi as { auditStamps?: boolean } | undefined)
+
   if (plugins.length === 0) {
     debug('No plugins found, marking initialized')
     markInitialized()
@@ -50,8 +63,6 @@ export default defineNitroPlugin(async () => {
       console.warn(`[nuxt-auto-api] Plugin "${plugin.name}" is registered from a plugins file, so its build-time setup does not run and the routes it adds are not registered. List it inline in nuxt.config (autoApi.plugins) instead.`)
     }
   }
-
-  const runtimeConfig = useRuntimeConfig()
 
   for (const plugin of plugins) {
     if (!plugin) {

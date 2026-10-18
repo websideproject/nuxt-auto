@@ -1,6 +1,7 @@
 import { defineEventHandler, getRouterParam, createError } from 'h3'
 import { isJunctionTable } from '../../utils/m2m/detectJunctions'
 import { createCallerContext } from '../createContextFromRegistry'
+import { junctionDiscoveryTables } from './shared'
 
 /**
  * Check if a table is a junction table
@@ -22,17 +23,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get registry and schema
-  const { registry } = await import('#nuxt-auto-api-registry') as any
-
-  // Build schema from registry
-  const schema: Record<string, any> = {}
-  for (const [name, config] of Object.entries(registry as Record<string, any>)) {
-    schema[name] = config.schema
-  }
-
   // Check if it's a junction table
-  const isJunction = isJunctionTable(tableName, schema)
+  const { tables, resourceNames } = junctionDiscoveryTables(caller)
+  const isJunction = isJunctionTable(tableName, tables, resourceNames)
 
   return {
     table: tableName,

@@ -26,6 +26,24 @@ export function apiErrorMessage(error: unknown): string {
 }
 
 /**
+ * A refused save's validation issues (`data.errors`, each with a `path`), split into a message per form field —
+ * the first issue on each of `fieldNames` — and the rest, which belong to no field shown.
+ */
+export function apiFieldErrors(error: unknown, fieldNames: string[]): { fields: Record<string, string>, other: string[] } {
+  const errors = (error as FetchErrorLike | undefined)?.data?.data?.errors
+  const fields: Record<string, string> = {}
+  const other: string[] = []
+  if (!Array.isArray(errors)) return { fields, other }
+  for (const e of errors) {
+    if (!e || typeof e.message !== 'string') continue
+    const field = Array.isArray(e.path) ? e.path[0] : undefined
+    if (typeof field === 'string' && fieldNames.includes(field)) fields[field] ??= e.message
+    else other.push(Array.isArray(e.path) && e.path.length ? `${e.path.join('.')}: ${e.message}` : e.message)
+  }
+  return { fields, other }
+}
+
+/**
  * The failing items a bulk route names in its 400 (`data.errors`): the handler's `{ index, id?, error }`, or the
  * request validation's issues, whose `path` is `['items', <index>, <field>]`.
  */

@@ -353,7 +353,7 @@ export async function authorizeIncluded<T>(context: HandlerContext, data: T, pla
   return data
 }
 
-async function authorizeLevel(context: HandlerContext, parents: any[], nodes: IncludeNode[]): Promise<void> {
+async function authorizeLevel(context: HandlerContext, parents: any[], nodes: IncludeNode[], parentHidden: Set<string> = hiddenFieldsOf(context)): Promise<void> {
   for (const node of nodes) {
     const key = node.spec.relation
     const rows: any[] = []
@@ -379,7 +379,10 @@ async function authorizeLevel(context: HandlerContext, parents: any[], nodes: In
       keep.add(row)
     }
 
-    const strip = [...node.extraColumns, ...(await deniedReadFields(context, node.resource))]
+    // The related resource's own hidden fields; a table that is not a resource is part of its parent, so it also
+    // loses the parent's.
+    const hidden = new Set([...hiddenFieldsOf(context, node.scopeName), ...(node.resource ? [] : parentHidden)])
+    const strip = [...node.extraColumns, ...hidden, ...(await deniedReadFields(context, node.resource))]
     const survivors: any[] = []
     for (const parent of parents) {
       if (!parent || !(key in parent)) continue
@@ -393,6 +396,6 @@ async function authorizeLevel(context: HandlerContext, parents: any[], nodes: In
       }
     }
 
-    if (node.children.length) await authorizeLevel(context, survivors, node.children)
+    if (node.children.length) await authorizeLevel(context, survivors, node.children, hidden)
   }
 }
