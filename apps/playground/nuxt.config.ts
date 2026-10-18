@@ -147,6 +147,12 @@ export default defineNuxtConfig({
         icon: 'i-heroicons-key',
         group: 'Auth',
         order: 1
+      },
+      notes: {
+        displayName: 'Notes',
+        icon: 'i-heroicons-pencil-square',
+        group: 'Recipes',
+        order: 1
       }
 
       // ✅ Junction tables (articleCategories, articleTags) are automatically detected and hidden!
