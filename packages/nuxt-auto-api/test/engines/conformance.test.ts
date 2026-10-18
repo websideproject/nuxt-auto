@@ -120,6 +120,27 @@ for (const spec of ENGINES) {
       expect(counts).toEqual({ true: 1, false: 2 })
     })
 
+    it('aggregate grouped by date buckets', async () => {
+      // Monday 5 Jan and Sunday 11 Jan 2026 are one week; 3 Feb is another month.
+      await t.db.insert((t.schema.full as any).projects).values([
+        { name: 'a', updatedAt: new Date('2026-01-05T10:00:00Z') },
+        { name: 'b', updatedAt: new Date('2026-01-11T12:00:00Z') },
+        { name: 'c', updatedAt: new Date('2026-02-03T08:30:00Z') },
+      ])
+      const by = async (groupBy: string) => {
+        const res: any = await aggregateHandler(ctx('projects', { operation: 'aggregate', query: { aggregate: 'count', groupBy } }))
+        return res.data.map((g: any) => [Object.values(g.group)[0], Number(g.count)])
+      }
+      expect(await by('updatedAt:month')).toEqual([['2026-01', 2], ['2026-02', 1]])
+      expect(await by('updatedAt:week')).toEqual([['2026-01-05', 2], ['2026-02-02', 1]])
+      expect(await by('updatedAt:day')).toEqual([['2026-01-05', 1], ['2026-01-11', 1], ['2026-02-03', 1]])
+      expect(await by('updatedAt:hour')).toEqual([['2026-01-05T10', 1], ['2026-01-11T12', 1], ['2026-02-03T08', 1]])
+      expect(await by('updatedAt:year')).toEqual([['2026', 3]])
+
+      const res: any = await aggregateHandler(ctx('projects', { operation: 'aggregate', query: { aggregate: 'count', groupBy: 'updatedAt:year,name' } }))
+      expect(Object.keys(res.data[0].group).sort()).toEqual(['name', 'updatedAt_year'])
+    })
+
     it('aggregates are numbers on every engine, grouped or not', async () => {
       const a = await project('A')
       const b = await project('B')
