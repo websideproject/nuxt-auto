@@ -6,7 +6,6 @@
     :required="required"
     :rows="options?.rows || 4"
     :maxlength="options?.maxLength"
-    :minlength="options?.minLength"
     class="w-full"
     @update:model-value="$emit('update:modelValue', $event)"
   />
