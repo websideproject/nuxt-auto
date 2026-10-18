@@ -56,6 +56,8 @@ export const postsAuth: ResourceAuthConfig = {
 **Deny by default:** an undeclared operation is refused (401 anon / 403 signed in); a resource with no
 `authorization` refuses everything. `'*'` in `ctx.permissions` passes all. Rows the caller can't see (tenant,
 `listFilter`, soft delete, `objectLevel`) are 404 on every route. Unknown/hidden fields in filter/sort/fields are 400.
+Unit-test rules in plain Vitest with `import { evaluatePermission, checkPermission } from '@websideproject/nuxt-auto-api/rules'`
+(Nitro-free; `/utils` needs a `nitropack/runtime` alias stub).
 
 ```vue
 <!-- pages/posts.vue -->

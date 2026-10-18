@@ -48,6 +48,7 @@ export default defineNuxtModule<ModuleOptions>({
       nitroConfig.alias['@websideproject/nuxt-auto-api/plugins'] = resolver.resolve('./runtime/plugins/index')
       nitroConfig.alias['@websideproject/nuxt-auto-api/database'] = resolver.resolve('./runtime/server/database/index')
       nitroConfig.alias['@websideproject/nuxt-auto-api/utils'] = resolver.resolve('./runtime/server/utils.public')
+      nitroConfig.alias['@websideproject/nuxt-auto-api/rules'] = resolver.resolve('./runtime/server/rules.public')
     })
 
     const logger = useLogger('nuxt-auto-api', { level: options.debug ? 4 : 3 })
