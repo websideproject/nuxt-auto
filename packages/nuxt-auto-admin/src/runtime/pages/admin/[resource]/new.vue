@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="admin-page admin-create space-y-4">
     <!-- Page Header -->
     <div class="flex items-start gap-3">
       <UButton

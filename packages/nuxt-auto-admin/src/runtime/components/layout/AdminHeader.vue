@@ -1,5 +1,5 @@
 <template>
-  <header class="h-14 bg-default border-b border-default/60 px-4 sm:px-6 flex-shrink-0">
+  <header class="admin-header h-14 bg-default border-b border-default/60 px-4 sm:px-6 flex-shrink-0">
     <div class="h-full flex items-center justify-between">
       <!-- Breadcrumbs -->
       <nav class="flex items-center gap-1.5 text-sm min-w-0 flex-1">

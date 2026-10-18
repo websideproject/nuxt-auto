@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="admin-page admin-detail space-y-4">
     <!-- Page Header -->
     <div class="flex items-start justify-between">
       <div class="flex items-start gap-3">

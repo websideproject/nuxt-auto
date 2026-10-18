@@ -67,6 +67,7 @@ export default defineNuxtModule<ModuleOptions>({
       permissions: options.permissions,
       customPages: options.customPages || [],
       ...(options.ui ? { ui: options.ui } : {}),
+      ...(options.theme ? { theme: { primaryColor: options.theme.primaryColor, customCss: options.theme.customCss } } : {}),
     }
     ;(nuxt.options.runtimeConfig.public as Record<string, unknown>).autoAdmin = publicConfig
 
@@ -169,7 +170,9 @@ export default defineNuxtModule<ModuleOptions>({
       const adminPrefix = options.prefix || '/admin'
 
       // `autoAdmin.middleware` runs on every admin page (the app's own named middleware, e.g. 'auth').
-      const meta = { layout: 'admin', ...(middleware ? { middleware } : {}) }
+      // `theme.darkMode` forces the admin pages into dark (true) or light (false) mode — @nuxtjs/color-mode's page meta
+      const colorMode = typeof options.theme?.darkMode === 'boolean' ? (options.theme.darkMode ? 'dark' : 'light') : undefined
+      const meta = { layout: 'admin', ...(middleware ? { middleware } : {}), ...(colorMode ? { colorMode } : {}) }
       const adminPages = [
         {
           name: 'admin',

@@ -1,5 +1,6 @@
 <template>
   <UForm
+    class="admin-form"
     :state="formData"
     @submit="handleSubmit"
   >

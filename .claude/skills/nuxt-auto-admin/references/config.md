@@ -16,7 +16,15 @@ autoAdmin: {
     logo?: string                      // URL to logo image
     title?: string                     // default: 'Admin Panel' (sidebar)
   }
-  // (`branding.favicon`, `dashboard` and `theme` exist in the types but are NOT read — colors come from Nuxt UI's app.config)
+  // (`branding.favicon` and `dashboard` exist in the types but are NOT read)
+
+  theme?: {
+    primaryColor?: string            // CSS color (#4f46e5 / oklch(…)) → admin-only primary scale (color-mix shades), modals too
+    darkMode?: boolean               // true = admin pages always dark, false = always light (color-mode page meta)
+    customCss?: string               // injected while the admin is open
+  }
+  // Stable classes: admin-layout, admin-sidebar, admin-header, admin-main, admin-page (+ admin-dashboard|list|detail|create|edit),
+  // admin-table, admin-filters, admin-form, admin-field[data-field=name]; root has data-auto-admin
 
   // Per-resource overrides (see ResourceConfig below)
   resources?: Record<string, ResourceConfig>
