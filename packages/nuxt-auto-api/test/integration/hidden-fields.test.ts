@@ -354,6 +354,40 @@ describe('Hidden Fields Integration', () => {
     })
   })
 
+  describe('Hidden fields belong to their resource', () => {
+    const registry = (users: string[], posts: string[] = []) => ({
+      users: { name: 'users', schema: baseSchema.users, authorization: OPEN, hiddenFields: users },
+      posts: { name: 'posts', schema: baseSchema.posts, authorization: OPEN, hiddenFields: posts },
+    })
+    const listPosts = (reg: any, include?: string) => listHandler(createMockContext({
+      db,
+      schema: baseSchema,
+      resource: 'posts',
+      operation: 'list',
+      query: include ? { include } : {},
+      resourceConfig: reg.posts,
+      registry: reg,
+    }) as any)
+
+    it('a column hidden on one resource stays on another resource that has a column of that name', async () => {
+      const result = await listPosts(registry(['password', 'createdAt']), 'author')
+      const post = result.data.find((p: any) => p.author)
+      expect(post).toHaveProperty('createdAt')
+      expect(post.author).not.toHaveProperty('createdAt')
+      expect(post.author).not.toHaveProperty('password')
+    })
+
+    it('a table that is not a resource loses its parent\'s hidden fields', async () => {
+      const [tag] = await db.insert(baseSchema.tags).values({ name: 'vue' }).returning()
+      await db.insert(baseSchema.postTags).values({ postId: testData.posts[0].id, tagId: tag.id })
+      const result = await listPosts(registry([], ['tagId']), 'postTags')
+      const post = result.data.find((p: any) => p.postTags?.length)
+      expect(post.postTags[0]).toEqual({ postId: testData.posts[0].id })
+      await db.delete(baseSchema.postTags)
+      await db.delete(baseSchema.tags)
+    })
+  })
+
   describe('Multiple hidden fields', () => {
     it('should hide multiple fields at once', async () => {
       const context = createMockContext({
