@@ -67,11 +67,12 @@ softDelete({ by: true, batch: true, reason: true })
 - **UUID PK**: text on SQLite, uuid() on PG, varchar(36) on MySQL
 - **Timestamps**: integer(mode:timestamp) / timestamp({withTimezone}) / datetime
 - **JSON**: text(mode:json) / jsonb / json
-- **liveUnique**: `WHERE` clause on SQLite/PG; MySQL has no partial indexes → use `liveUniqueMysql()` + manual migration
+- **Serial PK** (`id({ mode: 'serial' })`): integer autoincrement / serial / int auto_increment
+- **liveUnique**: `WHERE` clause on SQLite/PG; MySQL has no partial indexes → spread `...liveUniqueMysql('slug')` (stored generated `slug_live`, property `slugLive`, NULL once trashed) and index it: `liveUnique(t, t.slugLive, name)` (composite: `[t.organizationId, t.slugLive]`). MySQL `liveUnique` throws on a non-generated column.
 
 ## Rules
 
 - Spread `sd.columns` into the table body; call `sd.indexes(t)` in the indexes array.
-- `tenant.indexes(t)` is called in the indexes array (not the columns spread).
+- `tenant.indexes(t)` is called in the indexes array (not the columns spread). With `tenant({ field: 'workspaceId' })`, pass the same: `tenant.indexes(t, { field: 'workspaceId' })` (index `<table>_tenant_workspace_id_idx`).
 - `liveUnique` returns a single index object; add it to the indexes array.
 - Safe to use in registry-loaded `schema.ts` files (package subpath — OK for the registry loader).

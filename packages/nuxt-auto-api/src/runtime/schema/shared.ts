@@ -19,7 +19,11 @@ export const nowFn = (): Date => new Date()
 
 /** Options for the `id()` preset. */
 export interface IdOpts {
-  /** @default 'uuid' */
+  /**
+   * `'uuid'`: a random UUID text key (`uuid` on Postgres, `varchar(36)` on MySQL). `'serial'`: an auto-increment
+   * integer key (SQLite `integer autoincrement`, Postgres `serial`, MySQL `int auto_increment`).
+   * @default 'uuid'
+   */
   mode?: 'uuid' | 'serial'
 }
 
@@ -48,7 +52,24 @@ export interface SoftDeletePreset {
 /** Return type of the `tenant()` preset (has both columns and index factory). */
 export interface TenantPreset {
   (opts?: TenantOpts): Record<string, any>
-  indexes: (t: any) => any[]
+  /** Index on the tenant column — pass the same `{ field }` as to `tenant()`. */
+  indexes: (t: any, opts?: TenantOpts) => any[]
+}
+
+/** The tenant column of a table, for `tenant.indexes(t, opts)`. Throws when it is missing. */
+export function tenantColumn(t: any, opts: TenantOpts = {}): any {
+  const field = opts.field ?? 'organizationId'
+  const column = t?.[field]
+  if (!column) {
+    throw new Error(`tenant.indexes(): the table has no "${field}" column — pass the field given to tenant(), e.g. tenant.indexes(t, { field: '${opts.field ?? 'workspaceId'}' }).`)
+  }
+  return column
+}
+
+/** Index name for the tenant column: `<table>_tenant_org_idx` for the default field, `<table>_tenant_<column>_idx` otherwise. */
+export function tenantIndexName(column: any, opts: TenantOpts = {}): string {
+  const table = tableNameFromColumn(column)
+  return opts.field ? `${table}_tenant_${toSnakeCase(opts.field)}_idx` : `${table}_tenant_org_idx`
 }
 
 /** Convert a camelCase field name to snake_case for the DB column. */
