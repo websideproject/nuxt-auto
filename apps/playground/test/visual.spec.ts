@@ -200,6 +200,11 @@ const API_SHOTS: Shot[] = [
       await expect(builder).toContainText('sum_id')
     }
   },
+  // groupBy on a date bucket: the seeded posts are an hour apart from 2026-01-16 09:00 UTC, so two days
+  {
+    name: 'api-date-buckets', path: '/demo/aggregations', role: 'admin', says: '2026-01-17',
+    crop: page => card(page, 'Posts Per Day')
+  },
   {
     name: 'api-bulk-operations', path: '/demo/bulk-operations', role: 'admin', says: 'Post 20',
     crop: page => card(page, 'Bulk Delete'),
