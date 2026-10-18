@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { sqliteTable, integer, text, primaryKey } from 'drizzle-orm/sqlite-core'
 import { detectJunction, validateJunctionConfig } from '../../../src/runtime/server/utils/m2m/detectJunction'
+import { detectAllJunctionTables, getM2MRelationshipsForResource } from '../../../src/runtime/server/utils/m2m/detectJunctions'
 
 // Test schema setup
 const articles = sqliteTable('articles', {
@@ -233,5 +234,61 @@ describe('validateJunctionConfig', () => {
     expect(() => {
       validateJunctionConfig(invalidJunction, testSchema)
     }).toThrow(/Metadata column nonexistentColumn not found/)
+  })
+})
+
+describe('foreign-key detection', () => {
+  const people = sqliteTable('people', { id: integer('id').primaryKey(), name: text('name') })
+  const skills = sqliteTable('skills', { id: integer('id').primaryKey(), name: text('name') })
+  // Neither the table nor the key names follow a pattern: only the foreign keys say what it links.
+  const expertise = sqliteTable('expertise', {
+    who: integer('who').notNull().references(() => people.id),
+    what: integer('what').notNull().references(() => skills.id),
+    level: integer('level'),
+  })
+  const fkSchema = { people, skills, expertise }
+
+  it('finds a junction by its foreign keys whatever its name', () => {
+    expect(detectAllJunctionTables(fkSchema)).toEqual([
+      expect.objectContaining({ tableName: 'expertise', leftResource: 'people', rightResource: 'skills', leftKey: 'who', rightKey: 'what', metadataColumns: ['level'] }),
+    ])
+  })
+
+  it('finds an unregistered junction that links two resources', () => {
+    expect(detectAllJunctionTables(fkSchema, ['people', 'skills']).map(j => j.tableName)).toEqual(['expertise'])
+    expect(getM2MRelationshipsForResource('skills', fkSchema, ['people', 'skills'])).toEqual([
+      expect.objectContaining({ relatedResource: 'people', direction: 'right' }),
+    ])
+  })
+
+  it('needs both ends to be resources', () => {
+    expect(detectAllJunctionTables(fkSchema, ['people'])).toEqual([])
+  })
+
+  it('resolves the route-side junction from foreign keys, in either direction', () => {
+    expect(detectJunction(fkSchema, 'people', 'skills', undefined, undefined, undefined, { resourceNames: ['people', 'skills'] }))
+      .toMatchObject({ tableName: 'expertise', leftKey: 'who', rightKey: 'what' })
+    expect(detectJunction(fkSchema, 'skills', 'people', undefined, undefined, undefined, { resourceNames: ['people', 'skills'] }))
+      .toMatchObject({ tableName: 'expertise', leftKey: 'what', rightKey: 'who' })
+  })
+
+  it('reads the keys of an explicit junction table from its foreign keys', () => {
+    expect(detectJunction(fkSchema, 'people', 'skills', 'expertise')).toMatchObject({ leftKey: 'who', rightKey: 'what' })
+  })
+
+  it('restricts metadata to the configured columns', () => {
+    const fkSchemaWithNote = {
+      ...fkSchema,
+      expertise: sqliteTable('expertise', {
+        who: integer('who').notNull().references(() => people.id),
+        what: integer('what').notNull().references(() => skills.id),
+        level: integer('level'),
+        internalNote: text('internal_note'),
+      }),
+    }
+    expect(detectJunction(fkSchemaWithNote, 'people', 'skills', undefined, undefined, undefined, { metadataColumns: ['level'] }).metadataColumns)
+      .toEqual(['level'])
+    expect(detectJunction(fkSchemaWithNote, 'people', 'skills', 'expertise', undefined, undefined, { metadataColumns: ['level'] }).metadataColumns)
+      .toEqual(['level'])
   })
 })

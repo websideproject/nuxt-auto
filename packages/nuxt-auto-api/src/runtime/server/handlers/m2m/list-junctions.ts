@@ -1,6 +1,7 @@
 import { createError, defineEventHandler } from 'h3'
 import { getAllJunctionTableNames } from '../../utils/m2m/detectJunctions'
 import { createCallerContext } from '../createContextFromRegistry'
+import { junctionDiscoveryTables } from './shared'
 
 /**
  * Get all junction table names
@@ -13,17 +14,9 @@ export default defineEventHandler(async (event) => {
   const caller = await createCallerContext(event)
   if (!caller.user) throw createError({ statusCode: 401, message: 'Authentication required' })
 
-  // Get registry and schema
-  const { registry } = await import('#nuxt-auto-api-registry') as any
-
-  // Build schema from registry
-  const schema: Record<string, any> = {}
-  for (const [name, config] of Object.entries(registry as Record<string, any>)) {
-    schema[name] = config.schema
-  }
-
   // Get all junction tables
-  const junctions = getAllJunctionTableNames(schema)
+  const { tables, resourceNames } = junctionDiscoveryTables(caller)
+  const junctions = getAllJunctionTableNames(tables, resourceNames)
 
   return {
     junctions,

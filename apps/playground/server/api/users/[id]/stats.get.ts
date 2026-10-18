@@ -18,12 +18,10 @@ export default createEndpoint({
       ctx.db.select({ count: count() }).from(comments).where(eq(comments.userId, user.id))
     ])
 
-    // createEndpoint returns what the handler returns: strip hidden fields (password, apiKey) and the fields the
-    // caller may not read (email), as the generated routes do
-    const visible = await filterReadableFields(filterHiddenFields(user, ctx), ctx)
-
+    // The response is filtered like GET /api/users/:id: hidden fields (password, apiKey) and the fields the caller
+    // may not read (email) are removed for you
     return {
-      ...visible,
+      ...user,
       stats: {
         postCount: postStats!.count,
         commentCount: commentStats!.count

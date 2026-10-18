@@ -64,4 +64,12 @@ describe('module setup', () => {
       await nuxt.close()
     }
   }, 120_000)
+
+  it('fails the build on a removed option instead of ignoring it', async () => {
+    await expect(loadNuxt({
+      cwd: fileURLToPath(new URL('./fixtures/basic', import.meta.url)),
+      ready: true,
+      overrides: { _prepare: true, autoApi: { extensions: [] } } as any,
+    })).rejects.toThrow(/autoApi\.extensions was removed: list the plugins in autoApi\.plugins/)
+  }, 120_000)
 })
