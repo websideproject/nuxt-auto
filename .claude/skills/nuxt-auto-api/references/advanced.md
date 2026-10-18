@@ -15,7 +15,7 @@ const { data, isLoading } = useAutoApiAggregate<AggregateResponse>(
 ```ts
 interface AggregateOptions {
   aggregate: string | string[]       // 'count', 'count(field)', 'sum(field)', 'avg(field)', 'min(field)', 'max(field)'
-  groupBy?: string | string[]
+  groupBy?: string | string[]       // columns, or date buckets '<field>:hour|day|week|month|year' → group key '<field>_<bucket>'
   having?: Record<string, any>       // on aggregate ALIASES: { count: { $gt: 5 } }
   filter?: Record<string, any>       // WHERE before aggregation (readable columns only)
 }
@@ -34,7 +34,7 @@ useAutoApiAggregate('orders', { aggregate: 'sum(amount)', groupBy: 'status' })
 
 useAutoApiAggregate('orders', {
   aggregate: ['count', 'sum(amount)', 'avg(amount)'],
-  groupBy: ['month', 'region'],
+  groupBy: ['createdAt:month', 'region'],   // group: { createdAt_month: '2024-01', region }; buckets sorted ascending
   having: { count: { $gt: 5 } },
   filter: { status: 'completed' },
 })
