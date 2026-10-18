@@ -9,7 +9,7 @@ M2M relationships are managed through junction tables. nuxt-auto-api auto-detect
 ```ts
 autoApi: {
   m2m?: {
-    autoDetect?: boolean    // default: true — discovery (/api/_m2m/*, used by the admin) also reports junctions among REGISTERED resources; routes ignore it
+    autoDetect?: boolean    // default: true — false: only relations listed below exist (routes 404 the rest, discovery reports only them)
 
     relations?: {
       // Manual config: posts.tags (junction: post_tags)
@@ -21,7 +21,7 @@ autoApi: {
           label?: 'Tags',
           help?: string,
           displayField?: 'name',        // field to show in UI
-          metadataColumns?: ['order', 'addedAt'],  // reported to the admin; routes treat every non-key column as metadata
+          metadataColumns?: ['order', 'addedAt'],  // junction columns accepted/returned as metadata (default: every non-key column)
         },
       },
     },
@@ -29,10 +29,12 @@ autoApi: {
 }
 ```
 
-Junction lookup is **by name only** (Drizzle `.references()` and `relations()` are not read):
+Junction lookup (routes and admin discovery) scans the schema passed to `drizzle()` plus the registered tables — the junction need NOT be registered (don't: that adds CRUD routes for it); both ends must be resources. A junction has no standalone `id` and:
 
-- Routes (`/api/{resource}/:id/relations/{relation}`): `junctionTable` if configured, else the schema **export name** made of both resource names (`articleCategories`, `article_categories`, `categoryArticles`, singular/plural); key columns by property name (`articleId`, `article_id`, `idArticle`). The junction must be in the schema passed to `drizzle()`; it need NOT be registered.
-- Discovery for the admin: the relations in `m2m.relations`, plus (with `autoDetect`) registered tables with no `id`, two `…Id`/`…_id` columns naming registered resources, and a name made of both. An unregistered junction is only discovered when listed in `m2m.relations`.
+1. **Foreign keys first**: exactly two single-column `.references()` / `foreignKey()` to two resources (read via each dialect's `getTableConfig`) — any table/column names.
+2. Fallback without FKs: the schema **export name** made of both resource names (`articleCategories`, `article_categories`, `categoryArticles`, singular/plural); key columns by property name (`articleId`, `article_id`, `idArticle`).
+
+`junctionTable` in `m2m.relations` always wins (keys from `leftKey`/`rightKey`, else its FKs, else names). Drizzle `relations()` are not read.
 
 ---
 

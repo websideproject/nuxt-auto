@@ -54,6 +54,13 @@ export function createFileUploadPlugin(options: FileUploadPluginOptions): AutoAp
         { path: '/:id/upload', method: 'post', handler: 'upload', resources: names },
         { path: '/:id/upload', method: 'delete', handler: 'upload', resources: names },
       ])
+      // NuxtHub's blob store, for the upload route — imported only when it is the storage
+      ctx.nuxt.hook('nitro:config', (nitroConfig) => {
+        nitroConfig.virtual = {
+          ...nitroConfig.virtual,
+          '#nuxt-auto-api-blob': storage === 'nuxthub-blob' ? 'export { blob } from \'hub:blob\'' : 'export const blob = undefined',
+        }
+      })
     },
     runtimeSetup(ctx) {
       // Cleanup files on record deletion

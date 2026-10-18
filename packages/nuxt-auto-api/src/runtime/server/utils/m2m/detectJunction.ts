@@ -1,10 +1,20 @@
-import { getTableColumns } from 'drizzle-orm'
+import { getTableColumns, getTableName } from 'drizzle-orm'
 import type { DetectedJunction } from '../../../types'
+import { fkColKey, tableForeignKeys } from '../softDeleteCascade'
+import { detectAllJunctionTables } from './detectJunctions'
+
+export interface DetectJunctionOptions {
+  /** Resources a junction may link (default: every key of `schema`). */
+  resourceNames?: string[]
+  /** Junction columns that are metadata (default: every column but the two keys). */
+  metadataColumns?: string[]
+}
 
 /**
  * Detect junction table information from schema
  *
- * Supports multiple naming patterns:
+ * A table with foreign keys (`.references()`) to both resources is found whatever its name. Without foreign
+ * keys, these naming patterns are tried:
  * - articleCategories (camelCase, singular)
  * - articlesCategories (camelCase, plural)
  * - article_categories (snake_case)
@@ -18,10 +28,31 @@ export function detectJunction(
   providedJunctionTable?: string,
   providedLeftKey?: string,
   providedRightKey?: string,
+  options: DetectJunctionOptions = {},
 ): DetectedJunction {
+  const withMetadata = (junction: DetectedJunction): DetectedJunction =>
+    options.metadataColumns ? { ...junction, metadataColumns: options.metadataColumns } : junction
+
   // If junction table is explicitly provided, use it
   if (providedJunctionTable) {
-    return detectFromTableName(schema, providedJunctionTable, leftResource, rightResource, providedLeftKey, providedRightKey)
+    return withMetadata(detectFromTableName(schema, providedJunctionTable, leftResource, rightResource, providedLeftKey, providedRightKey))
+  }
+
+  // A junction detected among the tables (by its foreign keys, or by name) that links these two resources
+  const byForeignKeys = detectAllJunctionTables(schema, options.resourceNames ?? Object.keys(schema)).find(j =>
+    (j.leftResource === leftResource && j.rightResource === rightResource)
+    || (j.leftResource === rightResource && j.rightResource === leftResource))
+  if (byForeignKeys) {
+    const reversed = byForeignKeys.leftResource !== leftResource
+    return withMetadata({
+      tableName: byForeignKeys.tableName,
+      leftResource,
+      rightResource,
+      leftKey: reversed ? byForeignKeys.rightKey : byForeignKeys.leftKey,
+      rightKey: reversed ? byForeignKeys.leftKey : byForeignKeys.rightKey,
+      metadataColumns: byForeignKeys.metadataColumns,
+      table: byForeignKeys.table,
+    })
   }
 
   // Generate singular and plural variations
@@ -55,7 +86,7 @@ export function detectJunction(
 
   for (const pattern of uniquePatterns) {
     if (schema[pattern]) {
-      return detectFromTableName(schema, pattern, leftResource, rightResource)
+      return withMetadata(detectFromTableName(schema, pattern, leftResource, rightResource))
     }
   }
 
@@ -85,8 +116,8 @@ function detectFromTableName(
   const columns = getTableColumns(table)
   const columnNames = Object.keys(columns)
 
-  // Use explicit keys when provided, otherwise auto-detect
-  const leftKey = providedLeftKey || detectForeignKey(columnNames, leftResource)
+  // Use explicit keys when provided, otherwise the foreign key to the resource's table, otherwise the name
+  const leftKey = providedLeftKey || foreignKeyTo(table, schema[leftResource]) || detectForeignKey(columnNames, leftResource)
   if (!leftKey) {
     throw new Error(
       `Could not detect left foreign key for ${leftResource} in junction table ${tableName}. `
@@ -94,7 +125,7 @@ function detectFromTableName(
     )
   }
 
-  const rightKey = providedRightKey || detectForeignKey(columnNames, rightResource)
+  const rightKey = providedRightKey || foreignKeyTo(table, schema[rightResource], leftKey) || detectForeignKey(columnNames, rightResource)
   if (!rightKey) {
     throw new Error(
       `Could not detect right foreign key for ${rightResource} in junction table ${tableName}. `
@@ -116,6 +147,27 @@ function detectFromTableName(
     metadataColumns,
     table,
   }
+}
+
+/**
+ * Property key of the junction column with a single-column foreign key to `target` (other than `exclude`).
+ */
+function foreignKeyTo(junctionTable: any, target: any, exclude?: string): string | null {
+  if (!target) return null
+  let targetName: string | null = null
+  try {
+    targetName = getTableName(target)
+  }
+  catch {
+    return null
+  }
+  for (const fk of tableForeignKeys(junctionTable)) {
+    if (fk.columns.length !== 1) continue
+    if (fk.foreignTable !== target && getTableName(fk.foreignTable) !== targetName) continue
+    const key = fkColKey(junctionTable, fk.columns[0])
+    if (key !== exclude) return key
+  }
+  return null
 }
 
 /**

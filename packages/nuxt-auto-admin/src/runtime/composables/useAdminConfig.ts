@@ -2,7 +2,7 @@ import { useRuntimeConfig } from '#app'
 import type { AdminApiInfo, ModuleOptions } from '../types'
 
 /** The admin options the module copies into `runtimeConfig.public.autoAdmin`. */
-export type AdminPublicConfig = Pick<ModuleOptions, 'prefix' | 'branding' | 'features' | 'permissions' | 'customPages' | 'ui'> & {
+export type AdminPublicConfig = Pick<ModuleOptions, 'prefix' | 'branding' | 'features' | 'permissions' | 'customPages' | 'ui' | 'theme' | 'dashboard'> & {
   api?: AdminApiInfo
 }
 
@@ -30,5 +30,7 @@ export function useAdminConfig() {
       viewMode: 'modal',
     },
     api: adminConfig.api || API_DEFAULTS,
+    theme: adminConfig.theme,
+    dashboard: adminConfig.dashboard || {},
   }
 }

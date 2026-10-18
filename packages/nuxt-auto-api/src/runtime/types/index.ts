@@ -99,6 +99,12 @@ export interface AutoApiOptions {
   m2m?: M2MConfig
 
   /**
+   * Fill `createdBy` / `updatedBy` (the `audit()` schema preset) from the request user on tables that have those
+   * columns. Set `false` to leave them alone. @default true
+   */
+  auditStamps?: boolean
+
+  /**
    * Log registration and plugin details at build time. @default false
    */
   debug?: boolean
