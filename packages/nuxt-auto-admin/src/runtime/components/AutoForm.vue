@@ -52,6 +52,7 @@
 import { ref, computed, watch } from 'vue'
 import type { FieldConfig } from '../types'
 import AutoField from './AutoField.vue'
+import { clientFieldError } from '../utils/fieldValidation'
 
 const props = defineProps<{
   fields: FieldConfig[]
@@ -170,8 +171,9 @@ async function handleSubmit() {
   let hasErrors = false
 
   visibleFields.value.forEach((field) => {
-    if (field.required && !formData.value[field.name]) {
-      errors.value[field.name] = 'This field is required'
+    const error = clientFieldError(field, formData.value[field.name])
+    if (error) {
+      errors.value[field.name] = error
       hasErrors = true
     }
   })

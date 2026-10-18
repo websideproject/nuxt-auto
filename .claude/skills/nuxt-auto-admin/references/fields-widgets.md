@@ -18,11 +18,12 @@ interface FieldConfig {
 ```
 
 `formFields` lives in `nuxt.config`, which reaches the app as JSON: functions (a `condition`) and `RegExp`s set
-there are lost, and a field `validation` key is not read. Validation is the API's — a refused save shows the API's
-error message.
+there are lost, and a field `validation` key is not read. Validation is the API's — a refused save shows each Zod
+issue under its field (by `path[0]`), the message + unshown issues in an alert above the form.
 
-`formFields` **replaces** the generated forms: always give `create` (the create form and import dialog use it;
-`edit` falls back to it). Fields the caller may not write (`fields[x].write`) are made read-only automatically.
+A configured `formFields` mode **replaces** that generated form; `edit` falls back to `create`, and a mode with
+nothing configured stays generated. Fields the caller may not write (`fields[x].write`) and `readonlyFields` are
+made read-only automatically (configured fields too).
 
 ---
 
@@ -76,7 +77,7 @@ options: {
 options: {
   resource: string          // nuxt-auto-api resource name
   displayField?: string     // field to show in dropdown (default: 'name')
-  searchFields?: string[]   // only the FIRST entry is used to search (default: displayField)
+  searchFields?: string[]   // fields to search, any may match ($or) (default: [displayField])
 }
 ```
 
@@ -124,12 +125,16 @@ options: { min?: number; max?: number; step?: number }
 options: { rows?: number }   // default 4
 ```
 
-(`maxLength` / `minLength` are not applied by any widget.)
+`TextInput` / `TextareaInput` / `PasswordInput` take `maxLength` (input stops there) and `minLength` (checked on
+submit: "At least N characters").
 
 ### `DateTimePicker`
 
 ```ts
-options: { showTime?: boolean }   // default false; `format` is not read
+options: {
+  showTime?: boolean   // default false (true when `format` has a time)
+  format?: string      // 'DD/MM/YYYY HH:mm' — tokens YYYY MM DD HH mm ss; a text input in that pattern, parsed on blur/Enter
+}
 ```
 
 ---
@@ -165,4 +170,4 @@ resources: {
 ```
 
 The API's own hidden fields (registration `hiddenFields`, `autoApi.hiddenFields`) are hidden in the admin too.
-For read-only fields use `readonly: true` in `formFields` (`readonlyFields` on a resource is not read).
+For read-only fields list them in `readonlyFields` on the resource, or set `readonly: true` in `formFields`.

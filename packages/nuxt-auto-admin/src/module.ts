@@ -636,9 +636,15 @@ function buildResourceSchemaEntry(
       return fields
     }
 
-    const formFields = ${config.formFields ? JSON.stringify(config.formFields) : 'null'} || {
-      create: generateFormFields('create'),
-      edit: generateFormFields('edit'),
+    // Configured fields replace the generated ones per mode: \`edit\` falls back to \`create\`, and a mode with
+    // nothing configured gets the generated fields. readonlyFields apply to configured fields too.
+    const configuredFields = ${config.formFields ? JSON.stringify(config.formFields) : 'null'} || {}
+    const withReadonly = fields => fields.map(f => readonlyFields.includes(f.name) ? { ...f, readonly: true } : f)
+    const formFields = {
+      create: configuredFields.create ? withReadonly(configuredFields.create) : generateFormFields('create'),
+      edit: configuredFields.edit ? withReadonly(configuredFields.edit)
+        : configuredFields.create ? withReadonly(configuredFields.create)
+        : generateFormFields('edit'),
     }
 
     return {
