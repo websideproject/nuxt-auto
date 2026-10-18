@@ -25,7 +25,7 @@
       variant="subtle"
       class="mb-6"
       title="How it works"
-      description="Hooks execute at specific points in the request lifecycle. Use before* hooks for validation/transformation, and after* hooks for logging/notifications."
+      description="The posts resource has real server hooks (modules/base/hooks.ts). Every create, update, delete and list below runs them on the server, and the feed shows what they recorded — the same happens when posts change in the admin."
     />
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -62,7 +62,7 @@
               Create Hook Demo
             </h3>
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-              beforeCreate hook transforms title to uppercase
+              beforeCreate tidies the title: trims it, collapses spaces, capitalizes the first letter
             </p>
           </template>
 
@@ -90,7 +90,7 @@
                 ✓ Post created successfully!
               </p>
               <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                Original: <code>{{ createTitle }}</code>
+                Sent: <code>{{ sentTitle }}</code>
               </p>
               <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 Transformed: <code class="font-bold">{{ createdPost.data.title }}</code>
@@ -106,7 +106,7 @@
               Update Hook Demo
             </h3>
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-              afterUpdate hook logs changes
+              beforeUpdate sees the changed fields, afterUpdate the saved post
             </p>
           </template>
 
@@ -162,7 +162,7 @@
               Delete Hook Demo
             </h3>
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-              beforeDelete hook validates permissions
+              beforeDelete runs once the authorization rules passed — throwing there would cancel the delete
             </p>
           </template>
 
@@ -210,7 +210,7 @@
               List Hook Demo
             </h3>
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-              afterList hook logs query execution
+              afterList receives the page of posts
             </p>
           </template>
 
@@ -308,49 +308,59 @@ interface ActivityEvent {
   timestamp: Date
 }
 
-const activityFeed = ref<ActivityEvent[]>([])
+// What the server hooks recorded (GET /api/demo/hook-log), plus requests the API refused
+const serverLog = ref<ActivityEvent[]>([])
+const refusals = ref<ActivityEvent[]>([])
+const activityFeed = computed(() => [...refusals.value, ...serverLog.value]
+  .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  .slice(0, 30))
 
-const addActivity = (hook: string, message: string, type: 'before' | 'after' | 'error' = 'after') => {
-  activityFeed.value.unshift({
-    hook,
-    message,
-    type,
-    timestamp: new Date()
-  })
-
-  // Keep only last 20 events
-  if (activityFeed.value.length > 20) {
-    activityFeed.value = activityFeed.value.slice(0, 20)
-  }
+async function loadLog() {
+  const res = await $fetch<{ data: Array<Omit<ActivityEvent, 'timestamp'> & { timestamp: string, user: string }> }>('/api/demo/hook-log')
+  serverLog.value = res.data.map(e => ({ ...e, message: `${e.message} (${e.user})`, timestamp: new Date(e.timestamp) }))
 }
 
-const clearActivity = () => {
-  activityFeed.value = []
+function refused(hook: string, err: { message?: string }) {
+  refusals.value.unshift({ hook, message: err.message || 'Request refused', type: 'error', timestamp: new Date() })
 }
+
+const clearActivity = async () => {
+  await $fetch('/api/demo/hook-log', { method: 'DELETE' })
+  refusals.value = []
+  serverLog.value = []
+}
+
+// Changes made elsewhere (the admin, another tab) show up too
+let timer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  loadLog()
+  timer = setInterval(loadLog, 3000)
+})
+onBeforeUnmount(() => clearInterval(timer))
 
 // Fetch posts
 const { data: posts, isLoading: postsLoading, refetch } = useAutoApiList('posts', {})
+const reload = async () => {
+  await refetch()
+  await loadLog()
+}
 
 // Create Demo
 const createTitle = ref('')
-const createdPost = ref<unknown>(null)
+const sentTitle = ref('')
+const createdPost = ref<{ data: { title: string } } | null>(null)
 
 const createMutation = useAutoApiCreate('posts', {
-  onMutate: () => {
-    addActivity('beforeCreate', `Validating and transforming title: "${createTitle.value}"`, 'before')
-  },
   onSuccess: (data) => {
     createdPost.value = data
-    addActivity('afterCreate', `Post created with ID ${data.data.id}. Title was uppercased.`, 'after')
     createTitle.value = ''
-    refetch()
+    reload()
   },
-  onError: (err) => {
-    addActivity('onError', `Failed to create post: ${err.message}`, 'error')
-  }
+  onError: err => refused('create', err)
 })
 
 const handleCreate = () => {
+  sentTitle.value = createTitle.value
   createMutation.mutate({
     title: createTitle.value,
     content: 'Demo content',
@@ -364,18 +374,12 @@ const selectedPostId = ref<number | null>(null)
 const updateTitle = ref('')
 
 const updateMutation = useAutoApiUpdate('posts', {
-  onMutate: () => {
-    addActivity('beforeUpdate', `Preparing to update post ${selectedPostId.value}`, 'before')
-  },
   onSuccess: () => {
-    addActivity('afterUpdate', `Post ${selectedPostId.value} updated successfully`, 'after')
     selectedPostId.value = null
     updateTitle.value = ''
-    refetch()
+    reload()
   },
-  onError: (err) => {
-    addActivity('onError', `Failed to update post: ${err.message}`, 'error')
-  }
+  onError: err => refused('update', err)
 })
 
 const handleUpdate = () => {
@@ -391,17 +395,11 @@ const handleUpdate = () => {
 const selectedDeleteId = ref<number | null>(null)
 
 const deleteMutation = useAutoApiDelete('posts', {
-  onMutate: () => {
-    addActivity('beforeDelete', `Validating permissions for post ${selectedDeleteId.value}`, 'before')
-  },
   onSuccess: () => {
-    addActivity('afterDelete', `Post ${selectedDeleteId.value} deleted successfully`, 'after')
     selectedDeleteId.value = null
-    refetch()
+    reload()
   },
-  onError: (err) => {
-    addActivity('onError', `Failed to delete post: ${err.message}`, 'error')
-  }
+  onError: err => refused('delete', err)
 })
 
 const handleDelete = () => {
@@ -411,12 +409,10 @@ const handleDelete = () => {
 }
 
 // List Demo
-const listResult = ref<unknown>(null)
+const listResult = ref<{ data?: unknown[] } | null>(null)
 
 const handleList = async () => {
-  addActivity('beforeList', 'Executing list query', 'before')
-  await refetch()
+  await reload()
   listResult.value = posts.value
-  addActivity('afterList', `Fetched ${posts.value?.data?.length || 0} posts`, 'after')
 }
 </script>
