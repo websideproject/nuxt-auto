@@ -95,19 +95,23 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
   const firstOffset = useCursor || objectLevel ? undefined : pagination.offset
   let data = await fetchBatch(skip + fetchLimit, firstOffset)
 
-  // objectLevel is a per-row function: keep fetching until the page is full or the data runs out.
+  // objectLevel is a per-row function: keep fetching until the page is full or the data runs out — a page is never
+  // cut short while rows remain. Batches double (up to 1000 rows) so a mostly-filtered table takes few queries;
+  // `listFilter` filters in SQL and avoids the scan.
   if (objectLevel) {
     const target = skip + fetchLimit
     const kept: any[] = []
     let batch = data
+    let batchSize = target
     let offset = (firstOffset || 0) + batch.length
-    for (let i = 0; i < 20; i++) {
+    while (true) {
       for (const row of batch) {
         if (await objectLevel(row, context)) kept.push(row)
         if (kept.length >= target) break
       }
-      if (kept.length >= target || batch.length < target) break
-      batch = await fetchBatch(target, offset)
+      if (kept.length >= target || batch.length < batchSize) break
+      batchSize = Math.min(batchSize * 2, Math.max(target, 1000))
+      batch = await fetchBatch(batchSize, offset)
       if (batch.length === 0) break
       offset += batch.length
     }
