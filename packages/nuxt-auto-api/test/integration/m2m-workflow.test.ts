@@ -231,6 +231,40 @@ describe('M2M Integration Workflow', () => {
     })
   })
 
+  describe('junction lookup', () => {
+    // Registered resources without the junction: it is found in the Drizzle schema (db._.fullSchema).
+    const { postTags: _junction, ...resources } = baseSchema as Record<string, any>
+
+    it('finds a junction that is not a registered resource', async () => {
+      const ctx = createMockContext({
+        db,
+        schema: resources,
+        registry: registryFor(resources),
+        runtimeConfig: { autoApi: {} },
+        resource: 'posts',
+        operation: 'list',
+        params: { id: testData.posts[0].id, relation: 'tags' },
+        validated: { query: {} },
+      })
+      expect((await m2mListHandler(ctx as any)).ids).toHaveLength(2)
+    })
+
+    it('with m2m.autoDetect false, only configured relations exist', async () => {
+      const ctx = (m2m: any) => m2mCtx({
+        db,
+        schema: baseSchema,
+        runtimeConfig: { autoApi: { m2m } },
+        resource: 'posts',
+        operation: 'list',
+        params: { id: testData.posts[0].id, relation: 'tags' },
+        validated: { query: {} },
+      })
+      await expect(m2mListHandler(ctx({ autoDetect: false }) as any)).rejects.toMatchObject({ statusCode: 404 })
+      const configured = { autoDetect: false, relations: { posts: { tags: { junctionTable: 'postTags', leftKey: 'postId', rightKey: 'tagId' } } } }
+      expect((await m2mListHandler(ctx(configured) as any)).ids).toHaveLength(2)
+    })
+  })
+
   // `permissions.m2m` on the LEFT resource. Both settings are keyed by relation name (the `:relation` segment).
   describe('permissions.m2m', () => {
     const READ_ONLY_TAGS = { permissions: { read: true } }

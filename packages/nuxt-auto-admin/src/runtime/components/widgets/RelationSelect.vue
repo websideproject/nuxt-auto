@@ -35,7 +35,7 @@ defineEmits<{
 // Extract foreign key resource information
 const relationResource = computed(() => props.options?.resource)
 const displayField = computed(() => props.options?.displayField || 'name')
-const searchField = computed(() => props.options?.searchFields?.[0] || displayField.value)
+const searchFields = computed(() => props.options?.searchFields?.length ? props.options.searchFields : [displayField.value])
 
 // Search term for filtering with debouncing
 const searchTerm = ref('')
@@ -45,15 +45,9 @@ const debouncedSearchTerm = refDebounced(searchTerm, 300)
 const filterParams = computed(() => {
   if (!debouncedSearchTerm.value) return undefined
 
-  // Build filter with $like operator
-  // Note: buildWhereClause adds % wildcards automatically
-  return {
-    filter: {
-      [searchField.value]: {
-        $like: debouncedSearchTerm.value,
-      },
-    },
-  }
+  // `$like` matches anywhere in the value; several search fields match any of them (`$or`)
+  const conditions = searchFields.value.map(field => ({ [field]: { $like: debouncedSearchTerm.value } }))
+  return { filter: conditions.length === 1 ? conditions[0] : { $or: conditions } }
 })
 
 // Fetch filtered list based on search

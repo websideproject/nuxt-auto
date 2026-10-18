@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="admin-page admin-list space-y-4">
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>

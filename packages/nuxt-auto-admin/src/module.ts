@@ -67,6 +67,7 @@ export default defineNuxtModule<ModuleOptions>({
       permissions: options.permissions,
       customPages: options.customPages || [],
       ...(options.ui ? { ui: options.ui } : {}),
+      ...(options.theme ? { theme: { primaryColor: options.theme.primaryColor, customCss: options.theme.customCss } } : {}),
       // Widgets are data; component paths are bundled through #nuxt-auto-admin-dashboard instead
       ...(options.dashboard?.widgets ? { dashboard: { widgets: options.dashboard.widgets.map(({ component: _c, ...w }) => w) } } : {}),
     }
@@ -149,6 +150,19 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.alias['#nuxt-auto-admin-actions'] = join(nuxt.options.buildDir, 'nuxt-auto-admin-actions.mjs')
     if (actionsFile) nuxt.options.watch.push(actionsFile)
 
+    // Field rules (`condition`, `validation`) are functions too: `admin.fields.ts` (or `autoAdmin.fields`).
+    const fieldsFile = await findAppFile(options.fields, nuxt.options.srcDir, 'admin.fields', 'fields')
+    addTemplate({
+      filename: 'nuxt-auto-admin-fields.mjs',
+      getContents: () => fieldsFile ? `export { default } from ${JSON.stringify(fieldsFile)}\n` : 'export default {}\n',
+      write: true,
+    })
+    addTypeTemplate({
+      filename: 'types/nuxt-auto-admin-fields.d.ts',
+      getContents: () => `declare module '#nuxt-auto-admin-fields' {\n  const fields: import(${JSON.stringify(resolver.resolve('./runtime/types'))}).AdminFieldRules\n  export default fields\n}\n`,
+    })
+    nuxt.options.alias['#nuxt-auto-admin-fields'] = join(nuxt.options.buildDir, 'nuxt-auto-admin-fields.mjs')
+    if (fieldsFile) nuxt.options.watch.push(fieldsFile)
     // Dashboard components (`dashboard.component`, custom widgets' `component`): bundled with the admin
     const dashboardComponent = options.dashboard?.component ? await resolveAppComponent(options.dashboard.component, 'dashboard.component') : null
     const widgetComponents: Record<number, string> = {}
@@ -188,7 +202,9 @@ export default defineNuxtModule<ModuleOptions>({
       const adminPrefix = options.prefix || '/admin'
 
       // `autoAdmin.middleware` runs on every admin page (the app's own named middleware, e.g. 'auth').
-      const meta = { layout: 'admin', ...(middleware ? { middleware } : {}) }
+      // `theme.darkMode` forces the admin pages into dark (true) or light (false) mode — @nuxtjs/color-mode's page meta
+      const colorMode = typeof options.theme?.darkMode === 'boolean' ? (options.theme.darkMode ? 'dark' : 'light') : undefined
+      const meta = { layout: 'admin', ...(middleware ? { middleware } : {}), ...(colorMode ? { colorMode } : {}) }
       const adminPages = [
         {
           name: 'admin',
@@ -278,13 +294,21 @@ export function dashboardModule(component: string | null, widgets: Record<number
  * `admin.actions.{ts,js,mjs}` in the source directory when it exists. `null` = no custom actions.
  */
 export async function findActionsFile(option: string | undefined, srcDir: string): Promise<string | null> {
+  return findAppFile(option, srcDir, 'admin.actions', 'actions')
+}
+
+/**
+ * An app file the admin bundles: the `autoAdmin.<optionName>` path (resolved like an import), else
+ * `<basename>.{ts,js,mjs}` in the source directory when it exists. `null` = none.
+ */
+export async function findAppFile(option: string | undefined, srcDir: string, basename: string, optionName: string): Promise<string | null> {
   if (option) {
     const file = await resolvePath(option, { extensions: ['.ts', '.js', '.mjs'] })
-    if (!existsSync(file)) throw new Error(`[nuxt-auto-admin] autoAdmin.actions: ${option} not found`)
+    if (!existsSync(file)) throw new Error(`[nuxt-auto-admin] autoAdmin.${optionName}: ${option} not found`)
     return file
   }
   for (const ext of ['ts', 'js', 'mjs']) {
-    const file = join(srcDir, `admin.actions.${ext}`)
+    const file = join(srcDir, `${basename}.${ext}`)
     if (existsSync(file)) return file
   }
   return null
@@ -673,9 +697,15 @@ function buildResourceSchemaEntry(
       return fields
     }
 
-    const formFields = ${config.formFields ? JSON.stringify(config.formFields) : 'null'} || {
-      create: generateFormFields('create'),
-      edit: generateFormFields('edit'),
+    // Configured fields replace the generated ones per mode: \`edit\` falls back to \`create\`, and a mode with
+    // nothing configured gets the generated fields. readonlyFields apply to configured fields too.
+    const configuredFields = ${config.formFields ? JSON.stringify(config.formFields) : 'null'} || {}
+    const withReadonly = fields => fields.map(f => readonlyFields.includes(f.name) ? { ...f, readonly: true } : f)
+    const formFields = {
+      create: configuredFields.create ? withReadonly(configuredFields.create) : generateFormFields('create'),
+      edit: configuredFields.edit ? withReadonly(configuredFields.edit)
+        : configuredFields.create ? withReadonly(configuredFields.create)
+        : generateFormFields('edit'),
     }
 
     return {

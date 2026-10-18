@@ -169,8 +169,8 @@ export const postTagsRelations = relations(postTags, ({ one }) => ({
 ```
 
 **Junction table rules for M2M auto-detection:**
-- Exactly two foreign key columns
-- Composite `primaryKey` on both FK columns
+- Exactly two foreign keys (`.references()`) to registered resources — the junction itself need not be registered
+- Composite `primaryKey` on both FK columns (no standalone `id`)
 - Any additional columns become `metadataColumns`
 
 ---

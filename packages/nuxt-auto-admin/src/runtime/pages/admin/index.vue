@@ -5,7 +5,7 @@
   />
   <div
     v-else
-    class="space-y-8"
+    class="admin-page admin-dashboard space-y-8"
   >
     <!-- Welcome Header -->
     <div>

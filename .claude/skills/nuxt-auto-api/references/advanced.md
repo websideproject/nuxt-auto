@@ -15,7 +15,7 @@ const { data, isLoading } = useAutoApiAggregate<AggregateResponse>(
 ```ts
 interface AggregateOptions {
   aggregate: string | string[]       // 'count', 'count(field)', 'sum(field)', 'avg(field)', 'min(field)', 'max(field)'
-  groupBy?: string | string[]
+  groupBy?: string | string[]       // columns, or date buckets '<field>:hour|day|week|month|year' → group key '<field>_<bucket>'
   having?: Record<string, any>       // on aggregate ALIASES: { count: { $gt: 5 } }
   filter?: Record<string, any>       // WHERE before aggregation (readable columns only)
 }
@@ -34,7 +34,7 @@ useAutoApiAggregate('orders', { aggregate: 'sum(amount)', groupBy: 'status' })
 
 useAutoApiAggregate('orders', {
   aggregate: ['count', 'sum(amount)', 'avg(amount)'],
-  groupBy: ['month', 'region'],
+  groupBy: ['createdAt:month', 'region'],   // group: { createdAt_month: '2024-01', region }; buckets sorted ascending
   having: { count: { $gt: 5 } },
   filter: { status: 'completed' },
 })
@@ -139,9 +139,8 @@ export default createEndpoint({
   handler: async (ctx) => {
     // The gate does NOT scope rows — apply the same row rules as the list:
     const rows = await ctx.db.select().from(posts).where(rowScope(ctx, 'posts', posts))
-    // Responses are NOT filtered for you: strip hidden + unreadable fields like the generated routes do
-    const visible = await filterReadableFields(filterHiddenFields(rows, ctx), ctx)
-    return ctx.queryParams.format === 'csv' ? toCsv(visible) : visible
+    // The result is filtered for you (hidden + unreadable fields), like the generated routes
+    return ctx.queryParams.format === 'csv' ? toCsv(await filterReadableFields(filterHiddenFields(rows, ctx), ctx)) : rows
   },
 })
 ```
@@ -150,8 +149,9 @@ export default createEndpoint({
 - `endpointName`: `authorization.custom[name].permissions` decides the ops it declares; undeclared ops fall back to the resource gate.
 - Standalone (no `resource`) and `getAutoApiContext(event)`: caller resolved, **nothing authorized** — gate it yourself.
 - Handlers return the payload; `responseFormat: 'auto'` (default) wraps it in `{ data }`. Never hand-wrap.
-- The response is NOT filtered: `findAuthorizedRow` / `ctx.db` return whole rows — pass them through `filterHiddenFields(rows, ctx)` and `await filterReadableFields(rows, ctx)`.
-- Resource-bound `ctx.params` holds only `id` and `relation`; read other route segments with `getRouterParam(event, …)`.
+- Resource-bound responses ARE filtered: hidden fields (anywhere in the payload) + `fields[x].read`-denied fields (on the returned row/rows) are removed — `filterResponse: false` opts out, `filterResponse: true` opts a standalone endpoint in. A Response/stream/Blob (`responseFormat: 'raw'`) is sent as is. Filter by hand only what you turn into non-JSON yourself (CSV above).
+- `ctx.params` holds every route segment (`ctx.params.slug` in `[slug].get.ts`), plus `id` / `relation`.
+- A `pre-execute` `context.shortCircuit` (cache plugin hit) skips the handler; `post-execute` sees `context.result`.
 
 ### Row access helpers
 

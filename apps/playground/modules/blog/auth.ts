@@ -109,29 +109,3 @@ export const tagsAuth: ResourceAuthConfig = {
     delete: ['editor', 'admin'] // Only editors/admins can delete
   }
 }
-
-/**
- * Authorization configuration for article-category relationships
- * - Only article authors and editors can manage
- */
-export const articleCategoriesAuth: ResourceAuthConfig = {
-  permissions: {
-    read: () => true, // Public read access
-    create: ctx => !!ctx.user, // Must be authenticated
-    delete: ctx => !!ctx.user // Must be authenticated
-  }
-  // Note: In a real app, you'd want to check if the user owns the article
-}
-
-/**
- * Authorization configuration for article-tag relationships
- * - Only article authors and editors can manage
- */
-export const articleTagsAuth: ResourceAuthConfig = {
-  permissions: {
-    read: () => true, // Public read access
-    create: ctx => !!ctx.user, // Must be authenticated
-    delete: ctx => !!ctx.user // Must be authenticated
-  }
-  // Note: In a real app, you'd want to check if the user owns the article
-}

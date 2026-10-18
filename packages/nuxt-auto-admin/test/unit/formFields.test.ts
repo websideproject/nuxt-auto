@@ -36,3 +36,24 @@ describe('generated form fields', () => {
     }
   })
 })
+
+describe('configured form fields', () => {
+  const title = { name: 'title', widget: 'TextInput' }
+  const content = { name: 'content', widget: 'TextareaInput' }
+
+  it('a mode left out gets the generated fields (edit falls back to create first)', async () => {
+    const onlyEdit = await registryFor({ formFields: { edit: [title] } })
+    expect(names(onlyEdit.posts.formFields.edit)).toEqual(['title'])
+    expect(names(onlyEdit.posts.formFields.create)).toContain('content')
+
+    const onlyCreate = await registryFor({ formFields: { create: [title, content] } })
+    expect(names(onlyCreate.posts.formFields.edit)).toEqual(['title', 'content'])
+  })
+
+  it('readonlyFields apply to configured fields', async () => {
+    const registry = await registryFor({ readonlyFields: ['title'], formFields: { create: [title, content] } })
+    for (const mode of ['create', 'edit']) {
+      expect(registry.posts.formFields[mode].map((f: any) => [f.name, !!f.readonly])).toEqual([['title', true], ['content', false]])
+    }
+  })
+})

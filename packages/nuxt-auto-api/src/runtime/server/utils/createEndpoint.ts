@@ -9,6 +9,8 @@ import type { HandlerContext } from '../../types'
 import type { MiddlewareStage } from '../../types/plugin'
 import { permissionKeyFor } from '../middleware/authz'
 import { evaluatePermission } from './permissions'
+import { filterHiddenFields } from './filterHiddenFields'
+import { filterReadableFields } from './fieldPermissions'
 
 /**
  * Create a custom API endpoint with the full auto-api pipeline.
@@ -50,6 +52,10 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       const result = await createContextFromRegistry(event, operation)
       context = result.context
       runMiddleware = result.runMiddleware
+
+      // Every route param (`[slug]`, `[orgId]`, …), not only `id` / `relation`.
+      const { __resource: _resource, ...routeParams } = (event.context.params ?? {}) as Record<string, string>
+      context.params = { ...routeParams, ...context.params }
 
       // Run middleware pipeline
       await runMiddleware('pre-auth')
@@ -151,7 +157,19 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       }
     }
 
+    const format = (data: any) => {
+      if ((options.responseFormat || 'auto') === 'auto') return serializeResponse({ data })
+      // `raw`: a Response, stream or Blob is sent as is (serializing would turn it into `{}`).
+      return data instanceof Date || isJsonData(data) || data === null || typeof data !== 'object' ? serializeResponse(data) : data
+    }
+
     await runMiddleware('pre-execute')
+
+    // A pre-execute middleware (e.g. a cache hit) answered the request: skip the handler.
+    if (context.shortCircuit) {
+      await runMiddleware('post-execute')
+      return format(context.shortCircuit.data)
+    }
 
     // Execute handler
     let result = await options.handler(endpointContext, event)
@@ -161,16 +179,24 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       result = options.transform(result, endpointContext)
     }
 
-    await runMiddleware('post-execute')
-
-    // Format response
-    const format = options.responseFormat || 'auto'
-    if (format === 'auto') {
-      return serializeResponse({ data: result })
+    // Leave out hidden fields (anywhere in the payload) and the fields the caller may not read (on the row or rows
+    // returned), as the generated routes do. Only JSON data: a Response, stream or Blob is passed through as is.
+    if ((options.filterResponse ?? !!options.resource) && isJsonData(result)) {
+      result = await filterReadableFields(filterHiddenFields(result as any, context) as any, context) as any
     }
 
-    return serializeResponse(result)
+    context.result = result
+    await runMiddleware('post-execute')
+
+    return format(result)
   })
+}
+
+function isJsonData(value: unknown): boolean {
+  if (Array.isArray(value)) return true
+  if (value === null || typeof value !== 'object') return false
+  const proto = Object.getPrototypeOf(value)
+  return proto === null || proto === Object.prototype
 }
 
 function inferOperation(event: H3Event): HandlerContext['operation'] {

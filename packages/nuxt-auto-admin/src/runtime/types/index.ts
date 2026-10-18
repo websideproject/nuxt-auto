@@ -30,6 +30,13 @@ export interface ModuleOptions {
   actions?: string
 
   /**
+   * The file that defines field rules — `condition` and `validation` functions
+   * (`export default defineAdminFields({ … })`). Defaults to `admin.fields.ts` in the app's source directory when
+   * that file exists.
+   */
+  fields?: string
+
+  /**
    * Branding configuration
    */
   branding?: {
@@ -300,15 +307,28 @@ export interface FieldConfig {
   options?: WidgetOptions
 
   /**
-   * Validation rules
+   * Checked on submit: return an error message (or `false`) to refuse the value. A function, so it comes from
+   * `admin.fields.ts` (`defineAdminFields`) — nuxt.config cannot carry one.
    */
-  validation?: Record<string, unknown>
+  validation?: FieldValidator | Record<string, unknown>
 
   /**
-   * Conditional visibility based on other field values
+   * Show the field only while this returns true. A function, so it comes from `admin.fields.ts`.
    */
   condition?: (formData: Record<string, unknown>) => boolean
 }
+
+/** A field's own check: an error message or `false` refuses the value; `true` / nothing accepts it. */
+export type FieldValidator = (value: unknown, formData: Record<string, unknown>) => string | boolean | undefined | Promise<string | boolean | undefined>
+
+/** The functions of one field, defined in `admin.fields.ts`. */
+export interface FieldRule {
+  condition?: (formData: Record<string, unknown>) => boolean
+  validation?: FieldValidator
+}
+
+/** Field rules per resource and field, as `defineAdminFields()` takes them. */
+export type AdminFieldRules = Record<string, Record<string, FieldRule>>
 
 /**
  * Available widget types
@@ -502,17 +522,19 @@ export interface DashboardWidget {
  */
 export interface ThemeConfig {
   /**
-   * Primary color
+   * The admin's primary color, as a CSS color (`'#4f46e5'`, `'oklch(55% 0.2 270)'`): Nuxt UI's primary scale on the
+   * admin pages is mixed from it. The app's own primary color (`app.config` `ui.colors.primary`) is untouched.
    */
   primaryColor?: string
 
   /**
-   * Enable dark mode
+   * `true` shows the admin pages in dark mode, `false` in light mode, whatever the visitor picked. Unset: the
+   * visitor's color mode.
    */
   darkMode?: boolean
 
   /**
-   * Custom CSS
+   * CSS added while the admin is open — target its stable class names (`.admin-sidebar`, `.admin-table`, …).
    */
   customCss?: string
 }
