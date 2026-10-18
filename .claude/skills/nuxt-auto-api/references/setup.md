@@ -98,7 +98,7 @@ type DatabaseEngine = 'better-sqlite3' | 'postgres' | 'mysql' | 'd1' | 'turso' |
 
 | Engine | Notes |
 |--------|-------|
-| `d1` | Cloudflare D1 — **no transactions**: `atomic()` is not atomic (`supportsTransactions: false`) |
+| `d1` | Cloudflare D1 — **no transactions**: `atomic()` is not atomic (`supportsTransactions: false`). Init: `export default initializeDatabaseFromBinding('DB', { schema })` as a server plugin (bindings exist per request; it initializes on the first one) |
 | `better-sqlite3` | Local SQLite — `atomic()` uses `BEGIN IMMEDIATE` |
 | `postgres` | `db.transaction()` |
 | `mysql` / `planetscale` | `db.transaction()`; no RETURNING — rows are read back (`insertReturning`) |

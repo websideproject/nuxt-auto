@@ -33,8 +33,8 @@ import type { HandlerContext, ResourceAuthConfig } from '../../types'
  * on the server's own behalf (tenancy injection, derived totals, evidence-dropping) and must not be gated
  * by what the caller may write — the point of the gate is what the CALLER asked for.
  *
- * **`fields` is per resource, never a union of names.** Unlike `hiddenFields`, which strips a flat set of
- * names across every resource, a field permission belongs to the resource that declared it: `content` is
+ * **`fields` is per resource, never a union of names.** Like `hiddenFields`, a field permission belongs to the
+ * resource that declared it: `content` is
  * denied on `yjsDocuments` and is ordinary text on four other tables, and `error`, `metadata` and
  * `scheduledFor` collide the same way. A union would blank columns nobody restricted.
  *
