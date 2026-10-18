@@ -168,6 +168,48 @@
         </div>
       </UCard>
 
+      <!-- GroupBy date bucket -->
+      <UCard>
+        <template #header>
+          <h2 class="text-xl font-semibold">
+            Posts Per Day
+          </h2>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            GET <code class="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">/api/posts/aggregate?aggregate=count&groupBy=createdAt:day</code>
+          </p>
+        </template>
+
+        <div v-if="dayGroupLoading">
+          <USkeleton class="h-64" />
+        </div>
+
+        <div
+          v-else-if="dayGroupError"
+          class="text-red-600"
+        >
+          Error: {{ dayGroupError }}
+        </div>
+
+        <div
+          v-else
+          class="space-y-4"
+        >
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            A date column cut into buckets (<code>hour</code>, <code>day</code>, <code>week</code>, <code>month</code>,
+            <code>year</code>), returned in date order:
+          </p>
+
+          <AggregationChart :data="dayGroupChartData" />
+
+          <div class="mt-4">
+            <p class="text-sm font-medium mb-2">
+              Raw Data:
+            </p>
+            <ApiResponse :data="dayGroupData" />
+          </div>
+        </div>
+      </UCard>
+
       <!-- Interactive Builder -->
       <UCard>
         <template #header>
@@ -315,6 +357,23 @@ const {
 const userGroupChartData = computed(() => {
   return (userGroupData.value?.data ?? []).map(row => ({
     label: `User ${row.group?.userId}`,
+    value: Number(row.count)
+  }))
+})
+
+// GroupBy a date bucket: the group comes back as `createdAt_day` ('2026-01-16')
+const {
+  data: dayGroupData,
+  isLoading: dayGroupLoading,
+  error: dayGroupError
+} = useAutoApiAggregate('posts', {
+  aggregate: 'count',
+  groupBy: 'createdAt:day'
+})
+
+const dayGroupChartData = computed(() => {
+  return (dayGroupData.value?.data ?? []).map(row => ({
+    label: String(row.group?.createdAt_day),
     value: Number(row.count)
   }))
 })
