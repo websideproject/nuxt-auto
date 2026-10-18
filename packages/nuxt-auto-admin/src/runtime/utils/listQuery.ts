@@ -153,3 +153,36 @@ export function serializeFilterState(filters: FilterState): string | undefined {
   }
   return Object.keys(out).length ? JSON.stringify(out) : undefined
 }
+
+/**
+ * `listFields` entries that are not columns are relations: `author` (shown by its name/title/email/…) or
+ * `author.name` (one field of it). The relations to `include=` in the list request.
+ */
+export function listRelations(resource: Pick<ResourceSchema, 'listFields' | 'columns'>): string[] {
+  const columns = new Set(resource.columns.map(c => c.name))
+  const relations = resource.listFields.filter(f => !columns.has(f)).map(f => f.split('.')[0]!)
+  return [...new Set(relations)]
+}
+
+const LABEL_FIELDS = ['name', 'title', 'displayName', 'label', 'email', 'slug', 'id']
+
+/** One related record as text: the chosen field, else its first label-like field. */
+function relatedLabel(record: unknown, field?: string): string {
+  if (record === null || record === undefined) return ''
+  if (typeof record !== 'object') return String(record)
+  const r = record as Record<string, unknown>
+  const key = field ?? LABEL_FIELDS.find(k => r[k] !== undefined && r[k] !== null)
+  const value = key ? r[key] : undefined
+  return value === undefined || value === null ? '' : String(value)
+}
+
+/** The text of a relation list field (`author` or `author.name`) for a row; to-many relations are joined. */
+export function relationCellText(row: Record<string, unknown>, listField: string, max = 3): string {
+  const [relation, field] = listField.split('.') as [string, string | undefined]
+  const value = row[relation]
+  if (Array.isArray(value)) {
+    const labels = value.map(v => relatedLabel(v, field)).filter(Boolean)
+    return labels.length > max ? `${labels.slice(0, max).join(', ')} +${labels.length - max}` : labels.join(', ')
+  }
+  return relatedLabel(value, field)
+}
