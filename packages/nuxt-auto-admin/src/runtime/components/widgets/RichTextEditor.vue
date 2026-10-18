@@ -10,6 +10,7 @@
       :content-type="contentType"
       :placeholder="placeholder"
       :editable="!readonly"
+      :ui="{ base: 'sm:px-0 *:my-3' }"
       class="min-h-40 px-3 py-2"
       @update:model-value="$emit('update:modelValue', $event)"
     >
