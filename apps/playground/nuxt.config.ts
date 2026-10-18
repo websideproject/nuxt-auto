@@ -41,6 +41,17 @@ export default defineNuxtConfig({
 
   autoAdmin: {
     prefix: '/admin',
+    // Dashboard widgets: numbers, bars and the latest records, read through the API with the caller's permissions
+    dashboard: {
+      widgets: [
+        { type: 'stat', resource: 'articles', label: 'Articles' },
+        { type: 'stat', resource: 'articles', label: 'Published', filter: { published: true } },
+        { type: 'stat', resource: 'posts', label: 'Posts' },
+        { type: 'stat', resource: 'comments', label: 'Comments' },
+        { type: 'chart', resource: 'posts', label: 'Posts per author', groupBy: 'userId' },
+        { type: 'activity', resource: 'articles', label: 'Latest articles' }
+      ]
+    },
     branding: {
       title: 'Auto Admin Demo',
       logo: '/logo-auto-admin.svg',
