@@ -83,6 +83,8 @@ export default defineNuxtConfig({
       },
       posts: {
         displayName: 'Posts',
+        // `author.name` is a relation: the list includes `author` and shows its name
+        listFields: ['id', 'title', 'author.name', 'published', 'createdAt'],
         icon: 'i-heroicons-document-text',
         group: 'Base Resources',
         order: 2

@@ -126,7 +126,7 @@ interface ResourceConfig {
   order?: number                   // Sort order within the group
   type?: 'resource' | 'junction'  // 'junction' = hidden from sidebar
 
-  listFields?: string[]            // Which columns appear in the table view (columns, not relations)
+  listFields?: string[]            // Which columns appear in the table view ('author.name' = a relation's field, included)
   hiddenFields?: string[]          // Excluded from list AND form
 
   formFields?: {

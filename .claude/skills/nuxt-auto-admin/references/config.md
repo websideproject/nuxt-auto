@@ -76,7 +76,8 @@ interface ResourceConfig {
   displayName?: string               // Human-readable name shown in sidebar and headers
   icon?: string                      // Iconify icon (e.g. 'i-heroicons-document-text')
 
-  listFields?: string[]              // Columns shown in the list (default: up to 6 picked columns) — columns only, not relations
+  listFields?: string[]              // Columns shown in the list (default: up to 6 picked). A non-column name is a relation:
+                                     // 'author.name' (one field) / 'author' (label field) / 'tags' (to-many, joined) → include= on the list
   hiddenFields?: string[]            // Fields excluded from list + form views
   readonlyFields?: string[]          // Shown read-only (left out of the request) in every form, configured ones too
 
