@@ -3,6 +3,7 @@
     class="flex h-[var(--auto-admin-height,100dvh)] bg-muted/50 dark:bg-default overflow-hidden"
     data-auto-admin
   >
+    <AdminHead />
     <AdminSidebar />
 
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
