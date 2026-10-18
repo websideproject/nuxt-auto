@@ -24,6 +24,20 @@ function matchesMime(type: string, patterns: string[]): boolean {
 }
 
 /**
+ * NuxtHub's blob store (`hub:blob`, NuxtHub 0.10+), or undefined. `#nuxt-auto-api-blob` re-exports it only when the
+ * plugin is configured with `storage: 'nuxthub-blob'` (see fileUploadPlugin), so apps without NuxtHub never import
+ * it. Never through `#imports`: that pulls Nitro's whole auto-import module into this route and breaks the server.
+ */
+async function nuxtHubBlob(): Promise<{ put: (name: string, data: unknown, opts: Record<string, unknown>) => Promise<{ pathname?: string, url?: string }> } | undefined> {
+  try {
+    return (await import('#nuxt-auto-api-blob' as string)).blob
+  }
+  catch {
+    return undefined
+  }
+}
+
+/**
  * POST / DELETE /api/{resource}/:id/upload — createFileUploadPlugin.
  *
  * Writing a file is an update of the record: the caller needs `update` on the resource, the row must be
@@ -73,10 +87,10 @@ export default defineEventHandler(async (event) => {
       url = `${urlPrefix}${name}`
     }
     else {
-      const { hubBlob } = await import('#imports' as any).catch(() => ({}))
-      if (!hubBlob) throw createError({ statusCode: 500, message: 'Blob storage not available' })
-      const blob = await hubBlob().put(name, file.data, { prefix: storagePath, contentType: file.type })
-      url = blob.pathname || blob.url
+      const store = await nuxtHubBlob()
+      if (!store) throw createError({ statusCode: 500, message: 'Blob storage not available: install NuxtHub (0.10 or later) with blob enabled' })
+      const blob = await store.put(name, file.data, { prefix: storagePath, contentType: file.type })
+      url = blob.pathname || blob.url || null
     }
   }
 

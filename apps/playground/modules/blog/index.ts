@@ -32,19 +32,11 @@ export default defineNuxtModule({
         authorization: createModuleImport(resolver.resolve('./auth'), 'tagsAuth')
       })
 
-      // Register article-categories junction table
-      registry.register('articleCategories', {
-        schema: createModuleImport(resolver.resolve('./schema'), 'articleCategories'),
-        authorization: createModuleImport(resolver.resolve('./auth'), 'articleCategoriesAuth')
-      })
+      // The junction tables (articleCategories, articleTags) are not registered: the M2M routes
+      // (/api/articles/:id/relations/categories) find them through their foreign keys, in the Drizzle
+      // schema the database was created with. Registering them would add CRUD routes for them.
 
-      // Register article-tags junction table
-      registry.register('articleTags', {
-        schema: createModuleImport(resolver.resolve('./schema'), 'articleTags'),
-        authorization: createModuleImport(resolver.resolve('./auth'), 'articleTagsAuth')
-      })
-
-      console.log('[blog-module] Registered 5 resources at build time')
+      console.log('[blog-module] Registered 3 resources at build time')
     })
   }
 })

@@ -405,6 +405,40 @@ describe('Bulk Operations Integration', () => {
     })
   })
 
+  describe('after-hook results', () => {
+    const withHooks = (hooks: any, body: any, operation = 'bulk') => createMockContext({
+      db,
+      schema: baseSchema,
+      resource: 'posts',
+      operation,
+      query: {},
+      resourceConfig: { name: 'posts', schema: baseSchema.posts, hooks },
+      validated: { body },
+    })
+
+    it('an afterCreate hook may replace each returned row', async () => {
+      const afterCreate = (row: any) => ({ ...row, title: row.title.toUpperCase(), extra: true })
+      const result = await bulkCreateHandler(withHooks({ afterCreate }, {
+        items: [{ title: 'a', content: 'x', userId: testData.users[0].id }, { title: 'b', content: 'y', userId: testData.users[0].id }],
+      }) as any)
+      expect(result.data.map((p: any) => [p.title, p.extra])).toEqual([['A', true], ['B', true]])
+    })
+
+    it('an afterUpdate hook may replace each returned row', async () => {
+      const afterUpdate = (row: any) => ({ ...row, edited: true })
+      const result = await bulkUpdateHandler(withHooks({ afterUpdate }, {
+        items: [{ id: testData.posts[0].id, data: { title: 'changed' } }],
+      }) as any)
+      expect(result.data).toEqual([expect.objectContaining({ title: 'changed', edited: true })])
+    })
+
+    it('an after-hook returning nothing keeps the row', async () => {
+      const afterCreate = () => undefined
+      const result = await bulkCreateHandler(withHooks({ afterCreate }, { items: [{ title: 'c', content: 'z', userId: testData.users[0].id }] }) as any)
+      expect(result.data[0]).toEqual(expect.objectContaining({ title: 'c' }))
+    })
+  })
+
   describe('Multi-tenancy support', () => {
     it('should auto-set tenant ID in bulk create', async () => {
       const user = testData.users[0]

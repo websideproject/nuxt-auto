@@ -4,6 +4,7 @@ import { getM2MRelationshipsForResource } from '../../utils/m2m/detectJunctions'
 import { createCallerContext } from '../createContextFromRegistry'
 import { getAuthConfig } from '../../utils/authConfig'
 import { assertPermission } from '../../utils/permissions'
+import { junctionDiscoveryTables } from './shared'
 
 /**
  * Detect M2M relationships for a resource
@@ -31,62 +32,54 @@ export default defineEventHandler(async (event) => {
 
   const m2mConfig = (useRuntimeConfig(event) as any).autoApi?.m2m
 
-  // Get registry and schema
-  const { registry } = await import('#nuxt-auto-api-registry') as any
-
-  // Build schema from registry
-  const schema: Record<string, any> = {}
-  for (const [name, config] of Object.entries(registry as Record<string, any>)) {
-    schema[name] = config.schema
-  }
-
   // Get explicit config for this resource
   const resourceM2MConfig = m2mConfig?.relations?.[resourceName] || {}
 
   // Check if auto-detection is enabled
   const autoDetectEnabled = m2mConfig?.autoDetect !== false
 
+  const { tables, resourceNames } = junctionDiscoveryTables(caller)
+  const autoDetected = autoDetectEnabled ? getM2MRelationshipsForResource(resourceName, tables, resourceNames) : []
+  const junctionOf = (rel: typeof autoDetected[number]) => ({
+    tableName: rel.junction.tableName,
+    leftKey: rel.junction.leftKey,
+    rightKey: rel.junction.rightKey,
+    metadataColumns: rel.junction.metadataColumns,
+  })
+
   // Start with explicit config
   const relationships: any[] = []
 
-  // Add explicitly configured relations
+  // Add explicitly configured relations. One configured with labels only takes the detected junction.
   for (const [relationName, relationConfig] of Object.entries(resourceM2MConfig as Record<string, any>)) {
+    const detected = relationConfig.junctionTable ? undefined : autoDetected.find(rel => rel.relatedResource === relationName)
     relationships.push({
       relatedResource: relationName,
-      junction: {
-        tableName: relationConfig.junctionTable,
-        leftKey: relationConfig.leftKey,
-        rightKey: relationConfig.rightKey,
-        metadataColumns: relationConfig.metadataColumns || [],
-      },
+      junction: detected
+        ? { ...junctionOf(detected), metadataColumns: relationConfig.metadataColumns || detected.junction.metadataColumns }
+        : {
+            tableName: relationConfig.junctionTable,
+            leftKey: relationConfig.leftKey,
+            rightKey: relationConfig.rightKey,
+            metadataColumns: relationConfig.metadataColumns || [],
+          },
       // Include config for admin UI
       label: relationConfig.label,
       help: relationConfig.help,
       displayField: relationConfig.displayField,
-      direction: 'left', // Assume left for explicit config
+      direction: detected?.direction ?? 'left', // Assume left for explicit config
     })
   }
 
-  // If auto-detection is enabled, add auto-detected relations
-  if (autoDetectEnabled) {
-    const autoDetected = getM2MRelationshipsForResource(resourceName, schema)
-    const explicitRelationNames = new Set(Object.keys(resourceM2MConfig))
-
-    // Add auto-detected relations that aren't explicitly configured
-    for (const rel of autoDetected) {
-      if (!explicitRelationNames.has(rel.relatedResource)) {
-        relationships.push({
-          relatedResource: rel.relatedResource,
-          junction: {
-            tableName: rel.junction.tableName,
-            leftKey: rel.junction.leftKey,
-            rightKey: rel.junction.rightKey,
-            metadataColumns: rel.junction.metadataColumns,
-          },
-          direction: rel.direction,
-          // No label/help/displayField for auto-detected (will use defaults)
-        })
-      }
+  // Add auto-detected relations that aren't explicitly configured
+  for (const rel of autoDetected) {
+    if (!(rel.relatedResource in resourceM2MConfig)) {
+      relationships.push({
+        relatedResource: rel.relatedResource,
+        junction: junctionOf(rel),
+        direction: rel.direction,
+        // No label/help/displayField for auto-detected (will use defaults)
+      })
     }
   }
 
