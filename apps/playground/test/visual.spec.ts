@@ -202,8 +202,11 @@ const API_SHOTS: Shot[] = [
   {
     name: 'api-hooks', path: '/demo/hooks', role: 'admin', says: 'Hook Activity Feed',
     act: async (page) => {
+      // The feed is the server's hook log: start it empty, and hide its times (the server's clock is not pinned)
+      await page.getByRole('button', { name: 'Clear' }).click()
       await page.getByRole('button', { name: 'Fetch Posts' }).click()
-      await expect(card(page, 'Hook Activity Feed')).not.toContainText('No events yet')
+      await expect(card(page, 'Hook Activity Feed')).toContainText('afterList')
+      await page.addStyleTag({ content: '[data-time] { visibility: hidden }' })
     }
   },
   // Scoped API tokens: the editor token may read articles, and nothing it holds no scope for. (POST is left out:
