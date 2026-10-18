@@ -14,9 +14,30 @@ autoAdmin: {
 
   branding?: {
     logo?: string                      // URL to logo image
-    title?: string                     // default: 'Admin Panel' (sidebar)
+    title?: string                     // default: 'Admin Panel' (sidebar + tab: "<page> · <title>")
+    favicon?: string                   // tab icon on admin pages
   }
-  // (`branding.favicon`, `dashboard` and `theme` exist in the types but are NOT read — colors come from Nuxt UI's app.config)
+
+  dashboard?: {
+    component?: string               // path ('~/components/admin/Dashboard.vue') — replaces the dashboard page
+    widgets?: Array<{                // above the resource cards, 12-col grid
+      type: 'stat' | 'chart' | 'activity' | 'custom'
+      resource?: string; label?: string
+      aggregation?: 'count' | 'sum' | 'avg' | 'min' | 'max'; field?: string  // stat/chart (default count)
+      groupBy?: string               // chart: column or date bucket 'createdAt:month'
+      filter?: Record<string, unknown>; limit?: number   // chart bars (10) / activity rows (5)
+      component?: string; props?: Record<string, unknown>  // custom
+      span?: number                  // of 12 (stat 3, chart/activity 6, custom 12)
+    }>                               // read via the API as the user (aggregate → read permission)
+  }
+
+  theme?: {
+    primaryColor?: string            // CSS color (#4f46e5 / oklch(…)) → admin-only primary scale (color-mix shades), modals too
+    darkMode?: boolean               // true = admin pages always dark, false = always light (color-mode page meta)
+    customCss?: string               // injected while the admin is open
+  }
+  // Stable classes: admin-layout, admin-sidebar, admin-header, admin-main, admin-page (+ admin-dashboard|list|detail|create|edit),
+  // admin-table, admin-filters, admin-form, admin-field[data-field=name]; root has data-auto-admin
 
   // Per-resource overrides (see ResourceConfig below)
   resources?: Record<string, ResourceConfig>
@@ -58,11 +79,11 @@ interface ResourceConfig {
   listFields?: string[]              // Columns shown in the list (default: up to 6 picked). A non-column name is a relation:
                                      // 'author.name' (one field) / 'author' (label field) / 'tags' (to-many, joined) → include= on the list
   hiddenFields?: string[]            // Fields excluded from list + form views
-  // (`readonlyFields` is in the types but NOT read — use `readonly: true` in formFields)
+  readonlyFields?: string[]          // Shown read-only (left out of the request) in every form, configured ones too
 
   formFields?: {
-    create?: FieldConfig[]           // Replaces the generated forms: always give `create`
-    edit?: FieldConfig[]             // Falls back to `create`
+    create?: FieldConfig[]           // Replaces the generated create form (left out → generated)
+    edit?: FieldConfig[]             // Falls back to `create`, then to the generated edit form
   }
 
   disabled?: boolean                 // Hide this resource from admin entirely

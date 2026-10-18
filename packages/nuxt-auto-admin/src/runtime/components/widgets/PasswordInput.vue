@@ -6,6 +6,7 @@
       :placeholder="placeholder || 'Enter password'"
       :disabled="readonly"
       :required="required"
+      :maxlength="options?.maxLength"
       class="w-full"
       @update:model-value="$emit('update:modelValue', $event)"
     />
@@ -32,6 +33,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import type { WidgetOptions } from '../../types'
 
 const props = defineProps<{
   modelValue?: string
@@ -39,6 +41,7 @@ const props = defineProps<{
   readonly?: boolean
   required?: boolean
   showConfirm?: boolean
+  options?: WidgetOptions
 }>()
 
 defineEmits<{

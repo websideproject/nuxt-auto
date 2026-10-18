@@ -1,6 +1,7 @@
 <template>
   <UPopover :content="{ align: 'start' }">
     <UButton
+      class="admin-filters"
       icon="i-heroicons-funnel"
       color="neutral"
       variant="outline"

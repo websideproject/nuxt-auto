@@ -30,6 +30,13 @@ export interface ModuleOptions {
   actions?: string
 
   /**
+   * The file that defines field rules — `condition` and `validation` functions
+   * (`export default defineAdminFields({ … })`). Defaults to `admin.fields.ts` in the app's source directory when
+   * that file exists.
+   */
+  fields?: string
+
+  /**
    * Branding configuration
    */
   branding?: {
@@ -300,15 +307,28 @@ export interface FieldConfig {
   options?: WidgetOptions
 
   /**
-   * Validation rules
+   * Checked on submit: return an error message (or `false`) to refuse the value. A function, so it comes from
+   * `admin.fields.ts` (`defineAdminFields`) — nuxt.config cannot carry one.
    */
-  validation?: Record<string, unknown>
+  validation?: FieldValidator | Record<string, unknown>
 
   /**
-   * Conditional visibility based on other field values
+   * Show the field only while this returns true. A function, so it comes from `admin.fields.ts`.
    */
   condition?: (formData: Record<string, unknown>) => boolean
 }
+
+/** A field's own check: an error message or `false` refuses the value; `true` / nothing accepts it. */
+export type FieldValidator = (value: unknown, formData: Record<string, unknown>) => string | boolean | undefined | Promise<string | boolean | undefined>
+
+/** The functions of one field, defined in `admin.fields.ts`. */
+export interface FieldRule {
+  condition?: (formData: Record<string, unknown>) => boolean
+  validation?: FieldValidator
+}
+
+/** Field rules per resource and field, as `defineAdminFields()` takes them. */
+export type AdminFieldRules = Record<string, Record<string, FieldRule>>
 
 /**
  * Available widget types
@@ -457,30 +477,44 @@ export interface ActionContext {
  */
 export interface DashboardConfig {
   /**
-   * Dashboard widgets
+   * Widgets shown on the built-in dashboard, above the resource cards, on a 12-column grid.
    */
   widgets?: DashboardWidget[]
 
   /**
-   * Custom dashboard component path
+   * A component (path, resolved like an import: `'~/components/AdminDashboard.vue'`) that replaces the dashboard.
    */
   component?: string
 }
 
 /**
- * Dashboard widget configuration
+ * A dashboard widget. Data comes from the API with the caller's permissions (`aggregate` for stat and chart,
+ * `read` for activity); a widget the caller may not see says so.
  */
 export interface DashboardWidget {
+  /**
+   * - `stat`: one number — `aggregation` (default `count`) over the resource's rows
+   * - `chart`: bars per `groupBy` value (`'status'`, or a date bucket `'createdAt:month'`), largest first
+   * - `activity`: the latest `limit` records, newest first
+   * - `custom`: your `component`, given `props`
+   */
   type: 'stat' | 'chart' | 'activity' | 'custom'
   resource?: string
   label?: string
+  /** @default 'count' */
   aggregation?: 'count' | 'sum' | 'avg' | 'min' | 'max'
+  /** The column `sum` / `avg` / `min` / `max` aggregate. */
+  field?: string
+  /** Rows counted (stat, chart) or listed (activity) — the API's `filter`. */
   filter?: Record<string, unknown>
   groupBy?: string
+  /** Bars (chart, default 10) or records (activity, default 5). */
   limit?: number
+  /** `custom`: a component path, resolved like an import. */
   component?: string
   props?: Record<string, unknown>
-  span?: number // Grid span (1-12)
+  /** Columns of the 12-column grid. @default 3 for stat, 6 for chart and activity, 12 for custom */
+  span?: number
 }
 
 /**
@@ -488,17 +522,19 @@ export interface DashboardWidget {
  */
 export interface ThemeConfig {
   /**
-   * Primary color
+   * The admin's primary color, as a CSS color (`'#4f46e5'`, `'oklch(55% 0.2 270)'`): Nuxt UI's primary scale on the
+   * admin pages is mixed from it. The app's own primary color (`app.config` `ui.colors.primary`) is untouched.
    */
   primaryColor?: string
 
   /**
-   * Enable dark mode
+   * `true` shows the admin pages in dark mode, `false` in light mode, whatever the visitor picked. Unset: the
+   * visitor's color mode.
    */
   darkMode?: boolean
 
   /**
-   * Custom CSS
+   * CSS added while the admin is open — target its stable class names (`.admin-sidebar`, `.admin-table`, …).
    */
   customCss?: string
 }

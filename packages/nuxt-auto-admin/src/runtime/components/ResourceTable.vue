@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="admin-table space-y-4">
     <!-- Toolbar: stays mounted while the list reloads, so typing a search never loses focus -->
     <div
       v-if="showToolbar"
