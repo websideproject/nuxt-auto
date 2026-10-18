@@ -1,4 +1,4 @@
-import { defineNitroPlugin } from 'nitropack/runtime'
+import type { NitroAppPlugin } from 'nitropack/types'
 import { createError } from 'h3'
 import { drizzle } from 'drizzle-orm/d1'
 import { initializeDatabase } from './index'
@@ -17,8 +17,10 @@ import { initializeDatabase } from './index'
  * export default initializeDatabaseFromBinding('DB', { schema })
  * ```
  */
-export function initializeDatabaseFromBinding(binding = 'DB', options: { schema?: Record<string, unknown> } = {}) {
-  return defineNitroPlugin((nitroApp) => {
+export function initializeDatabaseFromBinding(binding = 'DB', options: { schema?: Record<string, unknown> } = {}): NitroAppPlugin {
+  // A plain plugin function (what defineNitroPlugin returns), so the database module never imports Nitro's runtime:
+  // `@websideproject/nuxt-auto-api/rules` reaches it and must load in plain Node.
+  return (nitroApp) => {
     let current: unknown
     nitroApp.hooks.hook('request', (event) => {
       const d1 = (event.context as any).cloudflare?.env?.[binding]
@@ -27,5 +29,5 @@ export function initializeDatabaseFromBinding(binding = 'DB', options: { schema?
       initializeDatabase(drizzle(d1, { schema: options.schema }), 'd1')
       current = d1
     })
-  })
+  }
 }
