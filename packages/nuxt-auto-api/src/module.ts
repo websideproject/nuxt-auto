@@ -48,6 +48,19 @@ export default defineNuxtModule<ModuleOptions>({
       nitroConfig.alias['@websideproject/nuxt-auto-api/plugins'] = resolver.resolve('./runtime/plugins/index')
       nitroConfig.alias['@websideproject/nuxt-auto-api/database'] = resolver.resolve('./runtime/server/database/index')
       nitroConfig.alias['@websideproject/nuxt-auto-api/utils'] = resolver.resolve('./runtime/server/utils.public')
+
+      // Trash retention: the purge task exists wherever Nitro tasks are on; `trashPurge.schedule` turns them on and
+      // schedules it.
+      const schedule = options.trashPurge?.schedule
+      if (schedule) {
+        nitroConfig.experimental = { ...nitroConfig.experimental, tasks: true }
+        nitroConfig.scheduledTasks = { ...nitroConfig.scheduledTasks }
+        const existing = nitroConfig.scheduledTasks[schedule]
+        nitroConfig.scheduledTasks[schedule] = [...(Array.isArray(existing) ? existing : existing ? [existing] : []), 'auto-api:purge-trash']
+      }
+      if (nitroConfig.experimental?.tasks) {
+        nitroConfig.tasks = { ...nitroConfig.tasks, 'auto-api:purge-trash': { handler: resolver.resolve('./runtime/server/tasks/purgeTrash') } }
+      }
     })
 
     const logger = useLogger('nuxt-auto-api', { level: options.debug ? 4 : 3 })

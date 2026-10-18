@@ -49,6 +49,7 @@ export const PUBLIC_SERVER_UTILS = [
   'cascadeSoftDelete',
   'restoreSoftDeletedBatch',
   'purgeSoftDeletedBatch',
+  'purgeExpiredTrash',
   'recordRevisionIfPresent',
   'initializeDatabase',
   'getDatabaseAdapter',

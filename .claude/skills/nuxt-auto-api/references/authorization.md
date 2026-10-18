@@ -242,7 +242,8 @@ export const postsAuth: ResourceAuthConfig = {
 
 First-class permission keys for soft-deletable resources (same value types as read/create/update/delete;
 entitlement-gate objects work too). Optional typed `softDelete{}` block is the alternative home + holds
-`cascade`/`retentionDays`.
+`cascade`/`retentionDays` (trash older than that is hard-deleted by the `auto-api:purge-trash` Nitro task — schedule it with
+`autoApi.trashPurge: { schedule: '0 3 * * *' }`, or call `purgeExpiredTrash({ db? })` from your own task, e.g. on D1).
 
 ```ts
 export const articlesAuth: ResourceAuthConfig = {

@@ -47,6 +47,8 @@ export const usersAuth: ResourceAuthConfig = {
 
 // Posts resource - object-level authorization demo
 export const postsAuth: ResourceAuthConfig = {
+  // Trashed posts are hard-deleted 30 days later by the auto-api:purge-trash task (autoApi.trashPurge)
+  softDelete: { retentionDays: 30 },
   permissions: {
     // Anyone can read posts
     read: () => true,

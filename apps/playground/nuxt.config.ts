@@ -206,6 +206,8 @@ export default defineNuxtConfig({
     // Plugins: file exports an array of AutoApiPlugin instances
     // Full closure and import support (no serialization limitations)
     plugins: '~/server/autoapi-plugins',
+    // Purge trash past each resource's softDelete.retentionDays every night (Nitro scheduled task)
+    trashPurge: { schedule: '0 3 * * *' },
     pagination: {
       default: 'offset',
       defaultLimit: 20,
