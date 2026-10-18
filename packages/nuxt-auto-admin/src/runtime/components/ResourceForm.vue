@@ -107,8 +107,9 @@ function showSaveError(error: unknown) {
 function handleSubmit(data: Record<string, unknown>) {
   saveError.value = null
   const callbacks = {
+    // The API answers `{ data: row }`; `success` carries the row (the create page opens it by its id)
     onSuccess: (result: unknown) => {
-      emit('success', result)
+      emit('success', (result as { data?: unknown } | undefined)?.data ?? result)
     },
     onError: showSaveError,
   }
