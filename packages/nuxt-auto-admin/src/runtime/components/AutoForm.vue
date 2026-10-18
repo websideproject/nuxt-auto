@@ -13,6 +13,9 @@
           :model-value="formData[field.name]"
           :error="errors[field.name]"
           :disabled="disabled || mode === 'view'"
+          :form-data="formData"
+          :resource-name="resourceName"
+          :record-id="recordId"
           @update:model-value="updateField(field.name, $event)"
         />
       </div>
@@ -61,6 +64,8 @@ const props = defineProps<{
   showReset?: boolean
   submitLabel?: string
   disabled?: boolean
+  resourceName?: string
+  recordId?: string | number
 }>()
 
 const emit = defineEmits<{
@@ -90,7 +95,10 @@ watch(
         else if (field.widget === 'NumberInput') {
           data[field.name] = field.options?.min || 0
         }
-        else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget ?? '')) {
+        else if (field.widget === 'TagsInput') {
+          data[field.name] = []
+        }
+        else if (['SelectInput', 'RelationSelect', 'DateTimePicker', 'JsonEditor', 'ColorPicker', 'FileUpload', 'ImageUpload'].includes(field.widget ?? '')) {
           data[field.name] = null
         }
         else {
@@ -147,7 +155,10 @@ function resetForm() {
           else if (field.widget === 'NumberInput') {
             data[field.name] = field.options?.min || 0
           }
-          else if (['SelectInput', 'RelationSelect', 'DateTimePicker'].includes(field.widget ?? '')) {
+          else if (field.widget === 'TagsInput') {
+            data[field.name] = []
+          }
+          else if (['SelectInput', 'RelationSelect', 'DateTimePicker', 'JsonEditor', 'ColorPicker', 'FileUpload', 'ImageUpload'].includes(field.widget ?? '')) {
             data[field.name] = null
           }
           else {

@@ -27,6 +27,8 @@
       :show-reset="showReset"
       :submit-label="submitLabel"
       :disabled="disabled"
+      :resource-name="resourceName"
+      :record-id="mode === 'edit' ? id : undefined"
       @submit="handleSubmit"
       @cancel="$emit('cancel')"
     />

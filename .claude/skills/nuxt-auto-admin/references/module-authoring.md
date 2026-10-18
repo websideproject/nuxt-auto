@@ -153,7 +153,8 @@ Even without `formFields` config, nuxt-auto-admin introspects every registered D
 | Integer/numeric | `NumberInput` |
 | Date/timestamp, or name ending `At` / `Date` | `DateTimePicker` |
 | TEXT, `*content*`, `*body*`, `*description*`, `*bio*`, `*notes*` | `TextareaInput` |
-| Default (JSON included) | `TextInput` |
+| JSON column | `JsonEditor` |
+| Default | `TextInput` |
 
 The `formFields` config in your module is used to **override** this auto-detection — useful for:
 - Setting M2M `MultiRelationSelect` fields with `junctionTable` (when discovery doesn't report the relation)
@@ -161,7 +162,7 @@ The `formFields` config in your module is used to **override** this auto-detecti
 - Marking fields `readonly`, or leaving fields out
 - Ordering fields explicitly
 
-Only the nine implemented widgets render (see fields-widgets.md); other `WidgetType` names fall back to `TextInput`.
+Every `WidgetType` renders (see fields-widgets.md); an unknown name falls back to `TextInput`.
 
 ---
 

@@ -28,24 +28,24 @@ error message.
 
 ## Widget Types
 
-Nine widgets exist:
+All `WidgetType` names are implemented:
 
 ```ts
 type Widget =
-  | 'TextInput'
-  | 'NumberInput'
-  | 'TextareaInput'
-  | 'CheckboxInput'
-  | 'SelectInput'
-  | 'DateTimePicker'
-  | 'PasswordInput'
-  | 'RelationSelect'
-  | 'MultiRelationSelect'
+  | 'TextInput' | 'NumberInput' | 'TextareaInput' | 'CheckboxInput' | 'SelectInput' | 'DateTimePicker'
+  | 'PasswordInput' | 'RelationSelect' | 'MultiRelationSelect'
+  | 'SlugInput'       // options.generateFrom: follows that field until typed over; button regenerates
+  | 'RichTextEditor'  // UEditor, stores HTML; options.toolbar: ['bold','italic','|','heading2',…] ('|' = group)
+  | 'MarkdownEditor'  // same, stores Markdown. Both need @nuxt/ui >= 4.3 (else a textarea + console warning)
+  | 'CodeEditor'      // monospace textarea, Tab indents; options.language = label only (no highlighting), theme: 'dark'
+  | 'JsonEditor'      // pretty-printed JSON, saved only while it parses; auto for JSON columns
+  | 'ColorPicker'     // text + UColorPicker popover, '#rrggbb' (options.format: 'rgb' | 'hsl')
+  | 'TagsInput'       // UInputTags → string[] (JSON column); options.storeAs: 'string' → comma-joined; options.max
+  | 'FileUpload' | 'ImageUpload' // createFileUploadPlugin route POST/DELETE /api/{r}/:id/upload; edit form only
+                                 // (record must exist); options.accept, maxSize ('2mb', checked client-side); no `multiple`
 ```
 
-The `WidgetType` type also lists `FileUpload`, `ImageUpload`, `RichTextEditor`, `MarkdownEditor`, `CodeEditor`,
-`ColorPicker`, `JsonEditor`, `TagsInput` and `SlugInput`, but they are **not implemented**: they render as
-`TextInput` with a console warning. Don't use them.
+An unknown name falls back to `TextInput` with a console warning.
 
 ---
 
@@ -147,7 +147,8 @@ When `widget` is not specified (first match wins):
 | Integer/numeric | `NumberInput` |
 | Date/timestamp, or name ending `At` / `Date` | `DateTimePicker` |
 | TEXT, or name containing `description`, `content`, `body`, `bio`, `notes` | `TextareaInput` |
-| Anything else (JSON included) | `TextInput` |
+| JSON column | `JsonEditor` |
+| Anything else | `TextInput` |
 
 Generated forms leave out the primary key, `createdAt`, `updatedAt` and `deletedAt`; on edit, columns ending in
 `Id` (except `userId`) are read-only.
