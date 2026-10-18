@@ -202,7 +202,8 @@ const API_SHOTS: Shot[] = [
   {
     name: 'api-hooks', path: '/demo/hooks', role: 'admin', says: 'Hook Activity Feed',
     act: async (page) => {
-      // The feed is the server's hook log: start it empty, and hide its times (the server's clock is not pinned)
+      // The feed is this browser's slice of the server's hook log: start a new one, and hide its times (the server's
+      // clock is not pinned)
       await page.getByRole('button', { name: 'Clear' }).click()
       await page.getByRole('button', { name: 'Fetch Posts' }).click()
       await expect(card(page, 'Hook Activity Feed')).toContainText('afterList')

@@ -4,7 +4,8 @@ import type { ResourceHooks } from '../../../packages/nuxt-auto-api/src/runtime/
 
 /**
  * Lifecycle hooks of `posts`, shown live on /demo/hooks. Each call is written to an in-memory log of the server
- * process (`GET /api/demo/hook-log` reads it) — enough for a demo; a real app would log or send events.
+ * process (`GET /api/demo/hook-log` reads it) — enough for a demo; a real app would log or send events. Entries carry
+ * the browser's `hook-feed` cookie, so each browser sees the calls its own requests caused.
  */
 export interface HookLogEntry {
   hook: string
@@ -12,22 +13,34 @@ export interface HookLogEntry {
   type: 'before' | 'after' | 'error'
   timestamp: string
   user: string
+  feed?: string
 }
 
 declare global {
   var __playgroundHookLog: HookLogEntry[] | undefined
 }
 
-function log(hook: string, message: string, context: { user?: { name?: string, id?: unknown } | null }) {
+interface LogContext {
+  user?: { name?: string, id?: unknown } | null
+  event?: { node?: { req?: { headers?: Record<string, string | string[] | undefined> } } }
+}
+
+function feedOf(context: LogContext): string | undefined {
+  const cookie = context.event?.node?.req?.headers?.cookie
+  return /(?:^|;\s*)hook-feed=([^;]+)/.exec(Array.isArray(cookie) ? cookie.join('; ') : cookie ?? '')?.[1]
+}
+
+function log(hook: string, message: string, context: LogContext) {
   const entries = (globalThis.__playgroundHookLog ??= [])
   entries.unshift({
+    feed: feedOf(context),
     hook,
     message,
     type: hook.startsWith('before') ? 'before' : 'after',
     timestamp: new Date().toISOString(),
     user: context.user?.name ?? (context.user?.id != null ? `user ${context.user.id}` : 'anonymous')
   })
-  entries.length = Math.min(entries.length, 50)
+  entries.length = Math.min(entries.length, 200)
 }
 
 export const postsHooks: ResourceHooks = {

@@ -324,8 +324,16 @@ function refused(hook: string, err: { message?: string }) {
   refusals.value.unshift({ hook, message: err.message || 'Request refused', type: 'error', timestamp: new Date() })
 }
 
-const clearActivity = async () => {
-  await $fetch('/api/demo/hook-log', { method: 'DELETE' })
+// The feed shows the hook calls of this browser's requests (the server tags them with this cookie). Clearing starts
+// a new feed.
+const feedId = useCookie<string | null>('hook-feed', { sameSite: 'lax' })
+const newFeed = () => {
+  feedId.value = Math.random().toString(36).slice(2)
+}
+if (import.meta.client && !feedId.value) newFeed()
+
+const clearActivity = () => {
+  newFeed()
   refusals.value = []
   serverLog.value = []
 }
