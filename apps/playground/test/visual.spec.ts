@@ -149,6 +149,16 @@ const ADMIN_SHOTS: Shot[] = [
   },
   { name: 'admin-detail', path: '/admin/articles/1', role: 'admin', says: 'getting-started-nuxt-4' },
   { name: 'admin-create', path: '/admin/articles/new', role: 'admin', says: 'Author Id' },
+  // A field rule from app/admin.fields.ts refusing the slug on submit: nothing is sent
+  {
+    name: 'admin-field-rules', path: '/admin/articles/new', role: 'admin', says: 'Author Id',
+    act: async (page) => {
+      await page.getByRole('textbox', { name: 'Title' }).fill('Field rules in the admin')
+      await page.getByRole('textbox', { name: 'Slug' }).fill('Field Rules!')
+      await page.getByRole('button', { name: 'Create' }).click()
+      await expect(page.getByText('Lowercase letters, digits and single dashes')).toBeVisible()
+    }
+  },
   { name: 'admin-edit', path: '/admin/articles/1/edit', role: 'admin', says: 'TypeScript, Nuxt', height: 1340 }
 ]
 
@@ -210,6 +220,10 @@ const API_SHOTS: Shot[] = [
       await page.addStyleTag({ content: '[data-time] { visibility: hidden }' })
     }
   },
+  // The cookbook running: endpoints inside the API's rules, and the notes table made of the schema presets. The
+  // editor has one note in the trash.
+  { name: 'api-recipes', path: '/demo/recipes', role: 'editor', says: 'Old outline' },
+  { name: 'api-trash', path: '/demo/recipes', role: 'editor', says: 'Old outline', crop: page => card(page, 'Schema presets and the trash — notes') },
   // Scoped API tokens: the editor token may read articles, and nothing it holds no scope for. (POST is left out:
   // the editor token may create articles, so that test would write.)
   {
