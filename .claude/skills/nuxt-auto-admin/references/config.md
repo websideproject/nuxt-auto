@@ -14,9 +14,10 @@ autoAdmin: {
 
   branding?: {
     logo?: string                      // URL to logo image
-    title?: string                     // default: 'Admin Panel' (sidebar)
+    title?: string                     // default: 'Admin Panel' (sidebar + tab: "<page> · <title>")
+    favicon?: string                   // tab icon on admin pages
   }
-  // (`branding.favicon`, `dashboard` and `theme` exist in the types but are NOT read — colors come from Nuxt UI's app.config)
+  // (`dashboard` and `theme` exist in the types but are NOT read — colors come from Nuxt UI's app.config)
 
   // Per-resource overrides (see ResourceConfig below)
   resources?: Record<string, ResourceConfig>

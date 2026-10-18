@@ -43,7 +43,8 @@ export default defineNuxtConfig({
     prefix: '/admin',
     branding: {
       title: 'Auto Admin Demo',
-      logo: '/logo-auto-admin.svg'
+      logo: '/logo-auto-admin.svg',
+      favicon: '/logo-auto-admin.svg'
     },
     permissions: {
       // 'disable' = show buttons/sidebar items but disable them (default)
