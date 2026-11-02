@@ -27,7 +27,9 @@ follow the changed paths.
 ### Scopes
 - docs (the documentation)
 - playground (the playground)
-- module (the module)
+- module (the module, either package)
+- api (nuxt-auto-api)
+- admin (nuxt-auto-admin)
 -->
 
 ### 🔗 Linked issue

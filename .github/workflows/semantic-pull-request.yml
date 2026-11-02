@@ -25,6 +25,8 @@ jobs:
             docs
             playground
             module
+            api
+            admin
           types: |
             breaking
             feat
