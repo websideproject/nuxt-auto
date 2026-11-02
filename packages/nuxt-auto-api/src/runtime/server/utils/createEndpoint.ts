@@ -56,6 +56,7 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       // Every route param (`[slug]`, `[orgId]`, …), not only `id` / `relation`.
       const { __resource: _resource, ...routeParams } = (event.context.params ?? {}) as Record<string, string>
       context.params = { ...routeParams, ...context.params }
+      if (options.endpointName) context.endpointName = options.endpointName
 
       // Run middleware pipeline
       await runMiddleware('pre-auth')
