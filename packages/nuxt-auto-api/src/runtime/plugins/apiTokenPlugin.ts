@@ -79,8 +79,16 @@ export interface ApiTokenPluginOptions {
    * can put it on the user the way a session would.
    */
   mapUser?: (dbRow: any, tokenRow: any) => AuthUser
-  /** Extract permission strings from a user row. */
-  getPermissions?: (dbRow: any) => string[]
+  /**
+   * The token owner's permission strings. Receives their user row, the token row and the request context, with
+   * `context.user` and the token's tenant already set, and may be async: where roles live in the database (an
+   * organization's custom roles), read them here through `context.db`. Runs on every request, a cached token's
+   * too, so a changed role counts at once; the rows it receives may be up to the cache's TTL old.
+   *
+   * The result is then narrowed by the token's scopes (`narrowByScopes`): a token never holds a permission its
+   * person lacks, and holds only what its scopes cover.
+   */
+  getPermissions?: (dbRow: any, tokenRow: any, context: HandlerContext) => string[] | Promise<string[]>
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +106,30 @@ function generateRawToken(prefix: string, length: number): string {
 /** `sk_...a1b2` — the prefix and the last 4 characters of a raw token, safe to store and show. */
 function tokenHint(raw: string, prefix: string): string {
   return `${prefix}...${raw.slice(-4)}`
+}
+
+/**
+ * Whether a token scope covers a permission string: `*`, the string itself, `<resource>:*` or `*:<capability>`.
+ * Strings without a `:` (role-style, `admin`) are covered only by `*` or themselves.
+ */
+export function scopeCovers(scope: string, permission: string): boolean {
+  if (scope === '*' || scope === permission) return true
+  const i = permission.indexOf(':')
+  if (i < 0) return false
+  return scope === `${permission.slice(0, i)}:*` || scope === `*:${permission.slice(i + 1)}`
+}
+
+/**
+ * A token's permissions: its person's strings, narrowed to what its scopes cover. No scopes (or `*`): the person's
+ * strings unchanged. A person holding `*` gets the token's concrete scopes (`posts:read`), not `*`.
+ */
+export function narrowByScopes(held: string[], scopes: string[] | null | undefined): string[] {
+  if (!scopes || scopes.includes('*')) return held
+  const kept = held.filter(p => scopes.some(s => scopeCovers(s, p)))
+  if (held.includes('*')) {
+    for (const s of scopes) if (!s.includes('*') && !kept.includes(s)) kept.push(s)
+  }
+  return kept
 }
 
 function parseScopes(value: unknown): string[] | null {
@@ -123,7 +155,9 @@ interface CachedToken {
   resource: string
   recordId: string | number
   user: AuthUser
-  permissions: string[]
+  /** The owner's and the token's rows, for `getPermissions` on each request. */
+  userRow: any
+  tokenRow: any
   scopes: string[] | null
   orgId: string | number | null
   expiresAt: Date | null
@@ -275,6 +309,12 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
       // Debounce tracker for lastUsedAt writes
       const lastUsedTimestamps = new Map<string, number>() // "resource:id" → epoch
 
+      /** The person's strings (on every request: a changed role counts at once), narrowed by the token's scopes. */
+      async function permissionsFor(context: HandlerContext, user: AuthUser, userRow: any, tokenRow: any, scopes: string[] | null): Promise<string[]> {
+        const held = getPermissions ? await getPermissions(userRow, tokenRow, context) : (user.permissions || [])
+        return narrowByScopes(held, scopes)
+      }
+
       // ---------------------------------------------------------------
       // A. Context extender — Bearer token authentication
       // ---------------------------------------------------------------
@@ -315,7 +355,6 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
 
               console.log(`[api-token] Cache hit — user=${cached.user.email || cached.user.id} scopes=${JSON.stringify(cached.scopes)}`)
               context.user = cached.user
-              context.permissions = cached.permissions
               ;(context as any)._tokenScopes = cached.scopes
               context.authMethod = 'api-token'
 
@@ -329,6 +368,7 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
                   canAccessAllTenants: false,
                 }
               }
+              context.permissions = await permissionsFor(context, cached.user, cached.userRow, cached.tokenRow, cached.scopes)
 
               // Fire-and-forget lastUsedAt update
               updateLastUsed(context, cached.resource, cached.recordId)
@@ -393,20 +433,13 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
                   ...userRow,
                 }
 
-            const permissions = getPermissions
-              ? getPermissions(userRow)
-              : (user.permissions || [])
-
             const scopes = c.scopeField ? parseScopes(tokenRecord[c.scopeField]) : null
             const orgId = c.orgField ? tokenRecord[c.orgField] ?? null : null
             const expiresAt = c.expiresField && tokenRecord[c.expiresField]
               ? new Date(tokenRecord[c.expiresField])
               : null
 
-            console.log(`[api-token] Authenticated: user=${user.email || user.id} role=${(user as any).role} scopes=${JSON.stringify(scopes)} permissions=${JSON.stringify(permissions)}`)
-
             context.user = user
-            context.permissions = permissions
             ;(context as any)._tokenScopes = scopes
             context.authMethod = 'api-token'
 
@@ -419,6 +452,8 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
                 canAccessAllTenants: false,
               }
             }
+            context.permissions = await permissionsFor(context, user, userRow, tokenRecord, scopes)
+            console.log(`[api-token] Authenticated: user=${user.email || user.id} scopes=${JSON.stringify(scopes)} permissions=${JSON.stringify(context.permissions)}`)
 
             // Cache the result
             if (cache) {
@@ -427,7 +462,8 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
                 resource: resName,
                 recordId: tokenRecord.id,
                 user,
-                permissions,
+                userRow,
+                tokenRow: tokenRecord,
                 scopes,
                 orgId,
                 expiresAt,
@@ -474,14 +510,13 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
 
             const resource = context.resource
 
-            // Check if any scope matches
+            // A scope for the operation, or for the endpoint's named gate (`studioReleases:cut`).
             const allowed = scopes.some(s =>
-              s === `${resource}:${op}`
-              || s === `${resource}:*`
-              || s === `*:${op}`,
+              scopeCovers(s, `${resource}:${op}`)
+              || (!!context.endpointName && scopeCovers(s, `${resource}:${context.endpointName}`)),
             )
 
-            console.log(`[api-token:scope] ${resource}:${op} — scopes=${JSON.stringify(scopes)} — ${allowed ? 'ALLOWED' : 'DENIED'}`)
+            console.log(`[api-token:scope] ${resource}:${op}${context.endpointName ? ` (${context.endpointName})` : ''} — scopes=${JSON.stringify(scopes)} — ${allowed ? 'ALLOWED' : 'DENIED'}`)
 
             if (!allowed) {
               throw createError({

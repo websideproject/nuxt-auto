@@ -33,6 +33,12 @@ Default (no mapUser): `{ id, email, roles, permissions, organizationId: session.
 better-auth's `member` row: `auth.api.getActiveMember({ headers })` per request, or cache a `{orgId: role}` map on
 the user (`additionalFields`) and read it in `mapUser` (zero queries).
 
+`getPermissions(user, session, ctx)` may be async and gets the context (`ctx.user` already mapped, `ctx.db`): resolve
+org roles (built-in from code, custom from better-auth's `organizationRole`) to `<resource>:<capability>` strings
+there, once, and let resources name capabilities. The api-token plugin's `getPermissions(userRow, tokenRow, ctx)` is
+the same for a key's owner; it runs on every request (cache hits too) and its result is NARROWED by the key's scopes
+(`narrowByScopes`): a key never holds more than its person. A named endpoint also passes a `resource:endpointName` scope.
+
 ## Declarative policies (permission objects)
 
 A permission may be a plain object; a registered evaluator decides it (return `undefined` = "not mine"; unclaimed =

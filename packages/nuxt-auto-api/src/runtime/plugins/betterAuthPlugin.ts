@@ -1,6 +1,6 @@
 import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin, ContextExtender } from '../types/plugin'
-import type { AuthUser } from '../types'
+import type { AuthUser, HandlerContext } from '../types'
 
 export interface BetterAuthPluginOptions {
   /**
@@ -16,10 +16,14 @@ export interface BetterAuthPluginOptions {
    */
   mapUser?: (betterAuthUser: any, session: any) => AuthUser
   /**
-   * Extract permissions (the strings `permissions: { read: 'posts:read' }` matches) from the user/session.
-   * If not provided, reads `user.permissions`.
+   * The caller's permission strings (what `permissions: { read: 'posts:read' }` matches). If not provided, reads
+   * `user.permissions`.
+   *
+   * May be async, and receives the request context, with `context.user` already set to the mapped user: where roles
+   * live in the database (an organization's custom roles), read them here through `context.db`, for the active
+   * organization (`context.user.organizationId`). Runs on every request; cache what is costly to read.
    */
-  getPermissions?: (user: any, session: any) => string[]
+  getPermissions?: (user: any, session: any, context: HandlerContext) => string[] | Promise<string[]>
 }
 
 /**
@@ -80,13 +84,11 @@ export function createBetterAuthPlugin(options: BetterAuthPluginOptions = {}): A
               organizationId: sessionData.session?.activeOrganizationId ?? sessionData.user.organizationId ?? null,
             }
 
-        // Extract permissions
-        const permissions = getPermissions
-          ? getPermissions(sessionData.user, sessionData.session)
-          : (user.permissions || [])
-
+        // The user first, so getPermissions can read it (its organization) from the context.
         context.user = user
-        context.permissions = permissions
+        context.permissions = getPermissions
+          ? await getPermissions(sessionData.user, sessionData.session, context)
+          : (user.permissions || [])
       }
 
       ctx.extendContext(extender)

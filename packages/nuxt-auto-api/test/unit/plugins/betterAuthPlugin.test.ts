@@ -37,6 +37,18 @@ describe('createBetterAuthPlugin', () => {
     expect(ctx.permissions).toEqual(['editor@org_1'])
   })
 
+  it('awaits an async getPermissions, which receives the request context with the mapped user already on it', async () => {
+    const db = { roles: { org_1: { editor: ['posts:write', 'posts:publish'] } } }
+    const ctx = await run(createBetterAuthPlugin({
+      getSession: async () => session,
+      getPermissions: async (u, _s, context: any) => {
+        await Promise.resolve()
+        return context.db.roles[context.user.organizationId][u.role]
+      },
+    }), {}, { db })
+    expect(ctx.permissions).toEqual(['posts:write', 'posts:publish'])
+  })
+
   it('leaves an anonymous request anonymous, and never overrides a user another plugin set', async () => {
     expect((await run(createBetterAuthPlugin({ getSession: async () => null }), {})).user).toBeNull()
     const existing = { id: 'token-user' }

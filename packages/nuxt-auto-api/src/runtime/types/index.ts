@@ -444,6 +444,12 @@ export interface HandlerContext {
   authMethod?: string
 
   /**
+   * The named gate of a `createEndpoint` route (`endpointName`), so a request can be matched against
+   * `<resource>:<endpointName>` (an API token's scope, a permission string). Unset on generated routes.
+   */
+  endpointName?: string
+
+  /**
    * Additional SQL filters to merge into the list handler's WHERE clause.
    * Plugins (e.g., search) push conditions here; the list handler
    * combines them with `and()`.

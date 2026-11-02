@@ -1,6 +1,6 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
-import { createApiTokenPlugin } from '../../../src/runtime/plugins/apiTokenPlugin'
+import { createApiTokenPlugin, narrowByScopes, scopeCovers } from '../../../src/runtime/plugins/apiTokenPlugin'
 import { protectedFieldsFor } from '../../../src/runtime/server/utils/protectedFields'
 import { schemasFor } from '../../../src/runtime/server/validation/schemaGenerator'
 
@@ -104,7 +104,7 @@ describe('api token bearer auth', () => {
   const tokenRow = { id: 1, key: 'hash', userId: 'alice', organizationId: 'org-a' }
   const userRow = { id: 'alice', email: 'alice@example.test', role: 'user,superadmin' }
 
-  async function authenticate(options: Parameters<typeof createApiTokenPlugin>[0], fullSchema: Record<string, any>) {
+  async function authenticate(options: Parameters<typeof createApiTokenPlugin>[0], fullSchema: Record<string, any>, token: Record<string, any> = tokenRow, times = 1) {
     let extender: any
     await createApiTokenPlugin(options).runtimeSetup!({
       addHook: () => {},
@@ -114,13 +114,13 @@ describe('api token bearer auth', () => {
       logger: { info() {}, warn() {}, error() {}, debug() {} },
     } as any)
     // Each table answers with its one row — what a hash match / id match returns.
-    const rows = new Map<any, any>([[apiKeys, tokenRow], [authUsers, userRow]])
-    const context = {
-      event: { node: { req: { headers: { authorization: 'Bearer sk_raw' } } } },
-      schema: { apiKeys },
-      db: { _: { fullSchema }, select: () => ({ from: (t: any) => ({ where: async () => [rows.get(t)] }) }) },
-    } as any
-    await extender(context)
+    const rows = new Map<any, any>([[apiKeys, token], [authUsers, userRow]])
+    const db = { _: { fullSchema }, select: () => ({ from: (t: any) => ({ where: async () => [rows.get(t)] }) }) }
+    let context: any
+    for (let i = 0; i < times; i++) {
+      context = { event: { node: { req: { headers: { authorization: 'Bearer sk_raw' } } } }, schema: { apiKeys }, db } as any
+      await extender(context)
+    }
     return context
   }
 
@@ -143,6 +143,43 @@ describe('api token bearer auth', () => {
       mapUser: (u, t) => ({ id: u.id, email: u.email, roles: u.role.split(','), permissions: [], organizationId: t.organizationId }) as any,
     }, { auth_users: authUsers })
     expect(context.user).toMatchObject({ roles: ['user', 'superadmin'], organizationId: 'org-a' })
+  })
+
+  it('getPermissions may be async and receives the user row, the token row and the context (user and tenant set)', async () => {
+    const seen: any[] = []
+    const context = await authenticate({
+      resources: { apiKeys: { userRelation: { resource: 'auth_users' }, orgField: 'organizationId' } },
+      auth: { tokenPrefix: 'sk_' },
+      cache: { enabled: false },
+      getPermissions: async (u, t, ctx) => {
+        seen.push([u.id, t.id, ctx.user?.id, ctx.tenant?.id])
+        return ['posts:read', 'posts:write']
+      },
+    }, { auth_users: authUsers })
+    expect(seen).toEqual([['alice', 1, 'alice', 'org-a']])
+    expect(context.permissions).toEqual(['posts:read', 'posts:write'])
+  })
+
+  it('narrows the person\'s permissions by the token\'s scopes', async () => {
+    const context = await authenticate({
+      resources: { apiKeys: { userRelation: { resource: 'auth_users' }, scopeField: 'scopes' } },
+      auth: { tokenPrefix: 'sk_' },
+      cache: { enabled: false },
+      getPermissions: () => ['posts:read', 'posts:write', 'posts:publish', 'admin'],
+    }, { auth_users: authUsers }, { ...tokenRow, scopes: '["posts:read","posts:publish","comments:write"]' })
+    expect(context.permissions).toEqual(['posts:read', 'posts:publish'])
+  })
+
+  it('asks getPermissions again on a cached token, so a changed role counts on the next request', async () => {
+    let calls = 0
+    // The role is taken away after the first request; the second one hits the token cache.
+    const context = await authenticate({
+      resources: { apiKeys: { userRelation: { resource: 'auth_users' } } },
+      auth: { tokenPrefix: 'sk_' },
+      getPermissions: () => (calls++ === 0 ? ['posts:write'] : []),
+    }, { auth_users: authUsers }, tokenRow, 2)
+    expect(calls).toBe(2)
+    expect(context.permissions).toEqual([])
   })
 
   it('a user table that exists nowhere refuses the token and says why', async () => {
@@ -193,5 +230,45 @@ describe('api token hint', () => {
     expect(rotated.keyHint).toBe(`sk_...${request._rawToken.slice(-4)}`)
 
     expect(await apiKeys.beforeUpdate(1, { name: 'x', keyHint: 'sk_...fake' }, caller)).toEqual({ name: 'x' })
+  })
+})
+
+describe('token scopes', () => {
+  it('a scope covers itself, its resource wildcard, its capability wildcard and *', () => {
+    expect(scopeCovers('posts:read', 'posts:read')).toBe(true)
+    expect(scopeCovers('posts:*', 'posts:publish')).toBe(true)
+    expect(scopeCovers('*:read', 'posts:read')).toBe(true)
+    expect(scopeCovers('*', 'admin')).toBe(true)
+    expect(scopeCovers('posts:read', 'posts:write')).toBe(false)
+    expect(scopeCovers('posts:*', 'admin')).toBe(false)
+  })
+
+  it('narrowing keeps only what the scopes cover, and never adds what the person lacks', () => {
+    expect(narrowByScopes(['posts:read', 'posts:write'], null)).toEqual(['posts:read', 'posts:write'])
+    expect(narrowByScopes(['posts:read', 'posts:write'], ['*'])).toEqual(['posts:read', 'posts:write'])
+    expect(narrowByScopes(['posts:read', 'posts:write'], ['*:read', 'tags:write'])).toEqual(['posts:read'])
+    expect(narrowByScopes(['posts:read'], [])).toEqual([])
+  })
+
+  it('a person holding * gets the token\'s concrete scopes, not *', () => {
+    expect(narrowByScopes(['*'], ['posts:read', 'tags:*'])).toEqual(['posts:read'])
+  })
+
+  it('the scope check accepts a scope for an endpoint\'s named gate', async () => {
+    const middleware: any[] = []
+    await createApiTokenPlugin({ resources: { apiKeys: {} } }).runtimeSetup!({
+      addHook: () => {},
+      addMiddleware: (m: any) => middleware.push(m),
+      addServerHandler: () => {},
+      extendContext: () => {},
+      logger: { info() {}, warn() {}, error() {}, debug() {} },
+    } as any)
+    const check = middleware.find(m => m.name === 'api-token-scope-check')
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const ctx = (endpointName?: string) => ({ _tokenScopes: ['releases:cut'], resource: 'releases', operation: 'update', endpointName }) as any
+    expect(() => check.handler(ctx('cut'))).not.toThrow()
+    expect(() => check.handler(ctx())).toThrow(/does not allow releases:update/)
+    expect(() => check.handler(ctx('publish'))).toThrow()
+    log.mockRestore()
   })
 })
