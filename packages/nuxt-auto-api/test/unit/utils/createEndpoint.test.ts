@@ -102,6 +102,22 @@ describe('createEndpoint', () => {
       expect(result).toEqual({ data: { user: { id: 1 } } })
     })
 
+    it('puts a declared scope on the context, for the token scope check', async () => {
+      let seen: any
+      const handler = createEndpoint({
+        resource: 'users',
+        operation: 'create',
+        scope: 'read',
+        skipAuthorization: true,
+        handler: async (ctx) => {
+          seen = ctx.endpointScope
+          return {}
+        },
+      })
+      await handler({ method: 'POST', path: '/api/users/query', context: {} } as any)
+      expect(seen).toBe('read')
+    })
+
     it('should skip authorization when requested', async () => {
       const handler = createEndpoint({
         resource: 'users',

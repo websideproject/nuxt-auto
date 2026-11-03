@@ -46,6 +46,17 @@ export interface EndpointOptions<TBody = any, TQuery = any, TResponse = any> {
    */
   endpointName?: string
   /**
+   * The capability an API token's scope must cover for this endpoint (`<resource>:<scope>`), in place of the one its
+   * `operation` implies (`list` / `get` → `read`, otherwise the operation). For an endpoint whose HTTP method and
+   * operation say "write" but which only reads, so a read-only token (`*:read`) may call it:
+   * @example
+   * ```ts
+   * createEndpoint({ resource: 'reports', operation: 'create', scope: 'read', handler: … }) // POST /api/reports/query
+   * ```
+   * A scope for the endpoint's named gate (`<resource>:<endpointName>`) still passes as well.
+   */
+  scope?: string
+  /**
    * Custom object-level authorization. Called after the middleware pipeline and Zod
    * validation, but before the handler. Return false (or throw) to reject with 403.
    *

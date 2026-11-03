@@ -57,6 +57,7 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       const { __resource: _resource, ...routeParams } = (event.context.params ?? {}) as Record<string, string>
       context.params = { ...routeParams, ...context.params }
       if (options.endpointName) context.endpointName = options.endpointName
+      if (options.scope) context.endpointScope = options.scope
 
       // Run middleware pipeline
       await runMiddleware('pre-auth')
@@ -99,6 +100,7 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       // authorized for you — gate it with `authorize`, or inside the handler. `ctx.schema` holds every
       // registered table.
       context = await createCallerContext(event, options.operation || inferOperation(event))
+      if (options.scope) context.endpointScope = options.scope
 
       // Create runMiddleware for standalone
       runMiddleware = async (stage: MiddlewareStage) => {
