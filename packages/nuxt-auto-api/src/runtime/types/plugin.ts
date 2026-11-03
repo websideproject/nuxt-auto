@@ -30,6 +30,22 @@ export interface AutoApiMiddleware {
  */
 export type ContextExtender = (context: HandlerContext) => void | Promise<void>
 
+/**
+ * The types of the services a Nitro plugin provides (`provideService`) and other code uses (`useService`). Empty here:
+ * declare yours by augmenting it from the `/plugins` entry.
+ *
+ * @example
+ * ```ts
+ * declare module '@websideproject/nuxt-auto-api/plugins' {
+ *   interface AutoApiServices {
+ *     'audit.log': (entry: { resource: string, recordId: string }) => Promise<void>
+ *   }
+ * }
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface AutoApiServices {}
+
 /** Options for `addContextExtender` / `extendContext`. */
 export interface ContextExtenderOptions {
   /** Run order, lower first. Extenders with the same order run in registration order. @default 0 */

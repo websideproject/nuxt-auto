@@ -6,6 +6,7 @@ import {
   addGlobalHook,
   registerPermissionEvaluator,
   markInitialized,
+  setNitroApp,
 } from './pluginRegistry'
 import type { AutoApiPlugin, PluginRuntimeContext } from '../../types/plugin'
 import { createAuditStampPlugin } from '../../plugins/auditStampPlugin'
@@ -27,8 +28,10 @@ export function withDefaultPlugins(plugins: AutoApiPlugin[], config: { auditStam
   return [createAuditStampPlugin(), ...plugins]
 }
 
-export default defineNitroPlugin(async () => {
+export default defineNitroPlugin(async (nitroApp: any) => {
   debug('Nitro plugin starting…')
+  // For code outside Nitro's bundle (registry-loaded hooks and authorization files): `getNitroApp()`.
+  setNitroApp(nitroApp)
 
   // Import plugins from virtual module (generated at build time)
   let plugins: any[] = []

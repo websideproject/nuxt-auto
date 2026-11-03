@@ -230,7 +230,9 @@ export const postsAuth: ResourceAuthConfig = {
 > ```
 > (Mirrors the plugin-context rule: plugins read `runtimeSetup(ctx) { ctx.runtimeConfig }`.) Likewise,
 > only `import type` or package-subpath imports are safe in these files — never extensionless relative
-> runtime imports.
+> runtime imports. To call an auto-imported util or Nitro's hooks from them, a Nitro plugin of the module
+> `provideService`s it and the file `useService`s it (`@websideproject/nuxt-auto-api/plugins`); `getNitroApp()` gives
+> the hooks. No `globalThis` seams.
 
 ---
 

@@ -237,6 +237,10 @@ export {
   getMiddlewareForStage,
   getContextExtenders,
   getPluginHooks,
+  provideService,
+  useService,
+  hasService,
+  getNitroApp,
 } from ${JSON.stringify(resolver.resolve('./runtime/server/plugins/pluginRegistry.js'))}
 `,
       write: true,
