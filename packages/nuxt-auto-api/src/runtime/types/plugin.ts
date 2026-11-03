@@ -30,6 +30,14 @@ export interface AutoApiMiddleware {
  */
 export type ContextExtender = (context: HandlerContext) => void | Promise<void>
 
+/** Options for `addContextExtender` / `extendContext`. */
+export interface ContextExtenderOptions {
+  /** Run order, lower first. Extenders with the same order run in registration order. @default 0 */
+  order?: number
+  /** A name for logs and debugging. */
+  name?: string
+}
+
 /**
  * Plugin logger interface
  */
@@ -76,8 +84,8 @@ export interface PluginRuntimeContext {
   addHook: (resource: string, hooks: import('./index').ResourceHooks) => void
   /** Register hooks that apply to all resources */
   addGlobalHook: (hooks: import('./index').ResourceHooks) => void
-  /** Register a context extender that runs on every request */
-  extendContext: (fn: ContextExtender) => void
+  /** Register a context extender that runs on every request (by `order`, lower first; see `addContextExtender`) */
+  extendContext: (fn: ContextExtender, options?: ContextExtenderOptions) => void
   /**
    * Register an evaluator for structured (object) permission values. The generic seam that lets
    * an external package add custom permission kinds (e.g. a plan/role policy descriptor) without
