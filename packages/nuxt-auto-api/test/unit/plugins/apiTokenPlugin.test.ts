@@ -280,4 +280,25 @@ describe('token scopes', () => {
     expect(() => check.handler(ctx('publish'))).toThrow()
     log.mockRestore()
   })
+
+  it('the scope check asks an endpoint\'s declared scope instead of its operation', async () => {
+    const middleware: any[] = []
+    await createApiTokenPlugin({ resources: { apiKeys: {} } }).runtimeSetup!({
+      addHook: () => {},
+      addMiddleware: (m: any) => middleware.push(m),
+      addServerHandler: () => {},
+      extendContext: () => {},
+      logger: { info() {}, warn() {}, error() {}, debug() {} },
+    } as any)
+    const check = middleware.find(m => m.name === 'api-token-scope-check')
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    // A POST that only reads: `operation: 'create', scope: 'read'`.
+    const ctx = (scopes: string[], endpointScope?: string) => ({ _tokenScopes: scopes, resource: 'reports', operation: 'create', endpointScope }) as any
+    expect(() => check.handler(ctx(['*:read'], 'read'))).not.toThrow()
+    expect(() => check.handler(ctx(['reports:read'], 'read'))).not.toThrow()
+    expect(() => check.handler(ctx(['*:read']))).toThrow(/does not allow reports:create/)
+    // The declared scope replaces the operation's: a create scope no longer opens it.
+    expect(() => check.handler(ctx(['reports:create'], 'read'))).toThrow(/does not allow reports:read/)
+    log.mockRestore()
+  })
 })

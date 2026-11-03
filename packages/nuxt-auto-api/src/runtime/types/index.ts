@@ -450,6 +450,12 @@ export interface HandlerContext {
   endpointName?: string
 
   /**
+   * The capability an API token's scope must cover on a `createEndpoint` route that declares `scope`, in place of the
+   * one its operation implies. Unset on generated routes.
+   */
+  endpointScope?: string
+
+  /**
    * Additional SQL filters to merge into the list handler's WHERE clause.
    * Plugins (e.g., search) push conditions here; the list handler
    * combines them with `and()`.

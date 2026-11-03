@@ -502,10 +502,9 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
               return
             }
 
-            // Map operations
-            const op = (context.operation === 'list' || context.operation === 'get')
-              ? 'read'
-              : context.operation
+            // The endpoint's declared scope, else the operation's (list / get → read)
+            const op = context.endpointScope
+              ?? ((context.operation === 'list' || context.operation === 'get') ? 'read' : context.operation)
 
             const resource = context.resource
 
