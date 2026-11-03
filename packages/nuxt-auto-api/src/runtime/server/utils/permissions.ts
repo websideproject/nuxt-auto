@@ -4,6 +4,7 @@ import { resolveObjectPermission } from '../middleware/resolveObjectPermission'
 import { getAuthConfig } from './authConfig'
 import { coerceId, primaryKeyColumn } from './table'
 import { getSoftDeleteColumn } from './softDelete'
+import { holdsPermission } from './permissionPatterns'
 import type {
   ResourceAuthConfig,
   HandlerContext,
@@ -48,8 +49,10 @@ export function resolvePermission(auth: ResourceAuthConfig | undefined, operatio
  *  - `{ ... }`          → a registered permission evaluator decides (fails closed when none does)
  *
  * A caller holding the `*` permission (a super-admin) passes every value except an explicit `false` —
- * including operations a resource never declared. Field-level gates pass `{ wildcard: false }`: a field
- * declared `read: () => false` is hidden from everyone.
+ * including operations a resource never declared. A held pattern — `posts:*` (everything on a resource) or
+ * `*:read` (one capability everywhere) — covers the strings it matches. Field-level gates pass
+ * `{ wildcard: false }`: neither `*` nor a held pattern applies there, so a field declared
+ * `read: () => false` is hidden from everyone.
  */
 export async function evaluatePermission(
   permission: PermissionValue | undefined | null,
@@ -64,8 +67,9 @@ export async function evaluatePermission(
   if (permission === undefined || permission === null) return false
 
   if (typeof permission === 'function') return !!(await permission(context))
-  if (typeof permission === 'string') return held.includes(permission)
-  if (Array.isArray(permission)) return permission.some(p => held.includes(p))
+  const holds = (p: string) => opts.wildcard === false ? held.includes(p) : holdsPermission(held, p)
+  if (typeof permission === 'string') return holds(permission)
+  if (Array.isArray(permission)) return permission.some(p => holds(p))
   if (typeof permission === 'object') return await resolveObjectPermission(permission as Record<string, any>, context)
   return false
 }

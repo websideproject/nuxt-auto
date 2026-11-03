@@ -1,6 +1,7 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { createApiTokenPlugin, narrowByScopes, scopeCovers } from '../../../src/runtime/plugins/apiTokenPlugin'
+import { checkPermission } from '../../../src/runtime/server/utils/permissions'
 import { protectedFieldsFor } from '../../../src/runtime/server/utils/protectedFields'
 import { schemasFor } from '../../../src/runtime/server/validation/schemaGenerator'
 
@@ -250,8 +251,16 @@ describe('token scopes', () => {
     expect(narrowByScopes(['posts:read'], [])).toEqual([])
   })
 
-  it('a person holding * gets the token\'s concrete scopes, not *', () => {
-    expect(narrowByScopes(['*'], ['posts:read', 'tags:*'])).toEqual(['posts:read'])
+  it('a person holding * gets the token\'s scopes, wildcard scopes too, not *', () => {
+    expect(narrowByScopes(['*'], ['posts:read', 'tags:*'])).toEqual(['posts:read', 'tags:*'])
+    // A read-only token of a super-admin reads everything and writes nothing (it held nothing before).
+    expect(narrowByScopes(['*'], ['*:read'])).toEqual(['*:read'])
+  })
+
+  it('…and that token reads every resource and changes none', async () => {
+    const ctx = { user: { id: 1 }, permissions: narrowByScopes(['*'], ['*:read']) } as any
+    expect(await checkPermission('read', { permissions: { read: 'posts:read' } } as any, ctx)).toBe(true)
+    expect(await checkPermission('update', { permissions: { update: 'posts:update' } } as any, ctx)).toBe(false)
   })
 
   it('the scope check accepts a scope for an endpoint\'s named gate', async () => {
