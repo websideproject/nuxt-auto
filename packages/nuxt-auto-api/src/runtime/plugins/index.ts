@@ -34,7 +34,7 @@ export { createApiTokenPlugin, narrowByScopes, scopeCovers } from './apiTokenPlu
 export type { ApiTokenPluginOptions, ApiTokenResourceConfig } from './apiTokenPlugin'
 export { createAuditStampPlugin } from './auditStampPlugin'
 export { defineAutoApiPlugin } from '../types/plugin'
-export type { AutoApiPlugin, PluginBuildContext, PluginRuntimeContext, AutoApiMiddleware, ContextExtender } from '../types/plugin'
+export type { AutoApiPlugin, PluginBuildContext, PluginRuntimeContext, AutoApiMiddleware, ContextExtender, ContextExtenderOptions } from '../types/plugin'
 export type { PermissionEvaluator, PermissionObject, PermissionFunction, HandlerContext, ResourceAuthConfig } from '../types'
 // Register a structured-permission evaluator, a per-request context extender or lifecycle hooks from
 // anywhere (e.g. a Nitro server plugin), not just the plugin runtime context. The registry is global, so

@@ -1,9 +1,11 @@
-import type { AutoApiMiddleware, ContextExtender, MiddlewareStage } from '../../types/plugin'
+import type { AutoApiMiddleware, ContextExtender, ContextExtenderOptions, MiddlewareStage } from '../../types/plugin'
 import type { ResourceHooks, HandlerContext, PermissionEvaluator } from '../../types'
 
 interface PluginRegistryState {
   middleware: AutoApiMiddleware[]
+  /** In run order (see `addContextExtender`), derived from `contextExtenderEntries`. */
   contextExtenders: ContextExtender[]
+  contextExtenderEntries?: Array<{ fn: ContextExtender, order: number, name?: string }>
   globalHooks: ResourceHooks[]
   resourceHooks: Record<string, ResourceHooks[]>
   permissionEvaluators: PermissionEvaluator[]
@@ -20,6 +22,7 @@ function getRegistry(): PluginRegistryState {
     globalThis.__autoApiPluginRegistry = {
       middleware: [],
       contextExtenders: [],
+      contextExtenderEntries: [],
       globalHooks: [],
       resourceHooks: {},
       permissionEvaluators: [],
@@ -41,10 +44,19 @@ export function addMiddleware(middleware: AutoApiMiddleware): void {
 }
 
 /**
- * Register a context extender
+ * Register a context extender: it runs on every request, before authorization, and may attach data or resolvers to the
+ * handler context. Extenders run by `order` (lower first, default `0`), and in registration order within one `order`,
+ * so one that reads what another sets can say it runs later: `addContextExtender(fn, { order: 10 })`. Nitro plugins
+ * and auto-api plugins start in an order neither controls, so an `order` is the dependable way to sequence two.
  */
-export function addContextExtender(fn: ContextExtender): void {
-  getRegistry().contextExtenders.push(fn)
+export function addContextExtender(fn: ContextExtender, options: ContextExtenderOptions = {}): void {
+  const registry = getRegistry()
+  // A registry made by an older copy of this module has no entries yet: start them from what it holds.
+  registry.contextExtenderEntries ??= registry.contextExtenders.map(f => ({ fn: f, order: 0 }))
+  registry.contextExtenderEntries.push({ fn, order: options.order ?? 0, name: options.name })
+  // Array#sort is stable: within one `order`, registration order stays.
+  registry.contextExtenderEntries.sort((a, b) => a.order - b.order)
+  registry.contextExtenders = registry.contextExtenderEntries.map(e => e.fn)
 }
 
 /**

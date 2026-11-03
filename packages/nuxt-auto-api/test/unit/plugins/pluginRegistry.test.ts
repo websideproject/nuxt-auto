@@ -123,6 +123,30 @@ describe('pluginRegistry', () => {
       expect(result[0]).toBe(fn1)
       expect(result[1]).toBe(fn2)
     })
+
+    it('runs extenders by order, lower first, registration order within one order', () => {
+      const calls: string[] = []
+      const fn = (n: string) => async () => {
+        calls.push(n)
+      }
+      const late = fn('late')
+      const early = fn('early')
+      const a = fn('a')
+      const b = fn('b')
+      addContextExtender(late, { order: 10, name: 'late' })
+      addContextExtender(a)
+      addContextExtender(early, { order: -5 })
+      addContextExtender(b)
+      expect(getContextExtenders()).toEqual([early, a, b, late])
+    })
+
+    it('keeps the extenders an older registry already holds', () => {
+      const old = async () => {}
+      globalThis.__autoApiPluginRegistry = { middleware: [], contextExtenders: [old], globalHooks: [], resourceHooks: {}, permissionEvaluators: [], protectedFields: {}, initialized: false } as any
+      const later = async () => {}
+      addContextExtender(later, { order: -1 })
+      expect(getContextExtenders()).toEqual([later, old])
+    })
   })
 
   describe('addResourceHook / addGlobalHook', () => {
