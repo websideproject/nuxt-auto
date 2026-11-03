@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { pluginFromFactory } from '../types/plugin'
 import type { AutoApiPlugin } from '../types/plugin'
 import { addProtectedFields } from '../server/plugins/pluginRegistry'
+import { patternCovers } from '../server/utils/permissionPatterns'
 import type { AuthUser, HandlerContext } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -113,21 +114,19 @@ function tokenHint(raw: string, prefix: string): string {
  * Strings without a `:` (role-style, `admin`) are covered only by `*` or themselves.
  */
 export function scopeCovers(scope: string, permission: string): boolean {
-  if (scope === '*' || scope === permission) return true
-  const i = permission.indexOf(':')
-  if (i < 0) return false
-  return scope === `${permission.slice(0, i)}:*` || scope === `*:${permission.slice(i + 1)}`
+  return patternCovers(scope, permission)
 }
 
 /**
  * A token's permissions: its person's strings, narrowed to what its scopes cover. No scopes (or `*`): the person's
- * strings unchanged. A person holding `*` gets the token's concrete scopes (`posts:read`), not `*`.
+ * strings unchanged. A person holding `*` gets the token's scopes instead of `*`, wildcard scopes included: a
+ * `*:read` token of a super-admin holds `*:read`, which covers every `<resource>:read` (see `evaluatePermission`).
  */
 export function narrowByScopes(held: string[], scopes: string[] | null | undefined): string[] {
   if (!scopes || scopes.includes('*')) return held
   const kept = held.filter(p => scopes.some(s => scopeCovers(s, p)))
   if (held.includes('*')) {
-    for (const s of scopes) if (!s.includes('*') && !kept.includes(s)) kept.push(s)
+    for (const s of scopes) if (!kept.includes(s)) kept.push(s)
   }
   return kept
 }

@@ -37,6 +37,24 @@ describe('permissions introspection', () => {
       expect(await checkPermission('update', { permissions: { update: ['admin', 'user'] } } as any, ctx)).toBe(true)
     })
 
+    it('a held pattern covers what it matches: <resource>:* and *:<capability>', async () => {
+      const reader = { ...ctx, permissions: ['*:read'] } as any
+      expect(await checkPermission('read', { permissions: { read: 'posts:read' } } as any, reader)).toBe(true)
+      expect(await checkPermission('update', { permissions: { update: 'posts:update' } } as any, reader)).toBe(false)
+      const poster = { ...ctx, permissions: ['posts:*'] } as any
+      expect(await checkPermission('update', { permissions: { update: ['tags:update', 'posts:update'] } } as any, poster)).toBe(true)
+      expect(await checkPermission('update', { permissions: { update: 'tags:update' } } as any, poster)).toBe(false)
+      // A pattern never matches a role-style string, and `false` stays absolute.
+      expect(await checkPermission('read', { permissions: { read: 'admin' } } as any, reader)).toBe(false)
+      expect(await checkPermission('read', { permissions: { read: false } } as any, poster)).toBe(false)
+    })
+
+    it('a field-level gate ignores held patterns, as it ignores *', async () => {
+      const reader = { ...ctx, permissions: ['*:read'] } as any
+      expect(await checkFieldPermission('email', 'read', { fields: { email: { read: 'users:read' } } } as any, reader)).toBe(false)
+      expect(await checkFieldPermission('email', 'read', { fields: { email: { read: 'users:read' } } } as any, { ...ctx, permissions: ['users:read'] } as any)).toBe(true)
+    })
+
     it('async function permission is awaited', async () => {
       expect(await checkPermission('delete', { permissions: { delete: async (c: any) => !!c.user } } as any, ctx)).toBe(true)
     })
