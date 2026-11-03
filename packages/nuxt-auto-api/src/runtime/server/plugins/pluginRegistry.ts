@@ -1,4 +1,4 @@
-import type { AutoApiMiddleware, ContextExtender, ContextExtenderOptions, MiddlewareStage } from '../../types/plugin'
+import type { AutoApiMiddleware, AutoApiServices, ContextExtender, ContextExtenderOptions, MiddlewareStage } from '../../types/plugin'
 import type { ResourceHooks, HandlerContext, PermissionEvaluator } from '../../types'
 
 interface PluginRegistryState {
@@ -10,6 +10,12 @@ interface PluginRegistryState {
   resourceHooks: Record<string, ResourceHooks[]>
   permissionEvaluators: PermissionEvaluator[]
   protectedFields: Record<string, string[]>
+  /** `provideService` / `useService`. Optional: a registry made by an older copy of this module has none. */
+  services?: Record<string, unknown>
+  /** Names `useService` already warned about, so each warns once. */
+  missingServices?: string[]
+  /** The Nitro app, kept by the module's own Nitro plugin (`getNitroApp`). */
+  nitroApp?: any
   initialized: boolean
 }
 
@@ -176,4 +182,68 @@ export function markInitialized(): void {
  */
 export function isInitialized(): boolean {
   return getRegistry().initialized
+}
+
+// ── Services: one typed seam between a bundled Nitro plugin and code auto-api loads itself ───────────────────────
+//
+// Files auto-api loads from the registry (a resource's `hooks` and `authorization` files, file-based plugins) sit
+// outside Nitro's bundle: Nitro's auto-imports aren't in their scope and `nitropack` may not resolve from their package.
+// A Nitro plugin, which has both, provides a function here; registry-loaded code (or anything else) uses it.
+
+/** A service name with a declared type (see `AutoApiServices`), or any other string (typed `unknown`). */
+type ServiceName = keyof AutoApiServices | (string & {})
+type ServiceOf<K> = K extends keyof AutoApiServices ? AutoApiServices[K] : unknown
+
+/**
+ * Provide a service under `name`, typically from a Nitro plugin: `provideService('audit.log', entry => …)`. Providing
+ * the same name again replaces it. Declare its type by augmenting `AutoApiServices`.
+ */
+export function provideService<K extends ServiceName>(name: K, service: ServiceOf<K>): void {
+  const registry = getRegistry()
+  registry.services ??= {}
+  registry.services[name] = service
+}
+
+/**
+ * The service provided under `name`, or `undefined` when nothing provides it. The first time a name is missing it
+ * warns once (`[nuxt-auto-api] Nothing provides the service "…"`), so a seam that's never wired is not silent.
+ * Pass `{ optional: true }` where a missing service is expected (an app without that module).
+ */
+export function useService<K extends ServiceName>(name: K, options: { optional?: boolean } = {}): ServiceOf<K> | undefined {
+  const registry = getRegistry()
+  const service = registry.services?.[name] as ServiceOf<K> | undefined
+  if (service === undefined && !options.optional) {
+    registry.missingServices ??= []
+    if (!registry.missingServices.includes(name)) {
+      registry.missingServices.push(name)
+      console.warn(`[nuxt-auto-api] Nothing provides the service "${name}". Provide it from a Nitro plugin with provideService("${name}", …), or ask for it with { optional: true }.`)
+    }
+  }
+  return service
+}
+
+/** Whether something provides `name`. Never warns. */
+export function hasService(name: ServiceName): boolean {
+  return getRegistry().services?.[name] !== undefined
+}
+
+/** Remove a service (tests, or a plugin that turns a feature off). */
+export function removeService(name: ServiceName): void {
+  const registry = getRegistry()
+  if (!registry.services) return
+  const { [name]: _removed, ...rest } = registry.services
+  registry.services = rest
+}
+
+/** Kept by the module's Nitro plugin at startup (internal). */
+export function setNitroApp(nitroApp: any): void {
+  getRegistry().nitroApp = nitroApp
+}
+
+/**
+ * The Nitro app, for code outside Nitro's bundle that needs its hooks: `getNitroApp()?.hooks.callHook('my:event', …)`.
+ * `undefined` before the server has started (or outside a Nitro server, as in unit tests).
+ */
+export function getNitroApp(): any | undefined {
+  return getRegistry().nitroApp
 }

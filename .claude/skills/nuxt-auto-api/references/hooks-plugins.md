@@ -291,6 +291,11 @@ Plugins shipped inside npm/workspace packages **cannot use Nitro virtual modules
 
 2. **Use explicit package imports** for everything else — no auto-imports.
 
+3. **Need something only a Nitro plugin can reach** (an auto-imported util, `useNitroApp()`)? Don't park it on
+   `globalThis`: the Nitro plugin calls `provideService('name', fn)` and your code calls `useService('name')` (both from
+   `@websideproject/nuxt-auto-api/plugins`; a missing service warns once). Type it by augmenting `AutoApiServices`.
+   `getNitroApp()?.hooks.callHook(…)` reaches Nitro's hooks.
+
 ```ts
 // packages/my-module/runtime/auto-api-plugins/my-plugin.ts
 import { defineAutoApiPlugin } from '@websideproject/nuxt-auto-api/plugins'
@@ -380,7 +385,9 @@ interface PluginRuntimeContext {
   addMiddleware: (middleware: AutoApiMiddleware) => void
   addHook: (resource: string, hooks: ResourceHooks) => void
   addGlobalHook: (hooks: ResourceHooks) => void
-  extendContext: (fn: (ctx: HandlerContext) => void|Promise<void>) => void
+  extendContext: (fn: (ctx: HandlerContext) => void|Promise<void>, opts?: { order?: number, name?: string }) => void
+    // lower `order` first (default 0); `addContextExtender(fn, opts)` from a Nitro plugin takes the same.
+    // Type what you attach: declare module '@websideproject/nuxt-auto-api/plugins' { interface HandlerContext { … } }
   runtimeConfig: any    // Full Nitro runtimeConfig — use this instead of useRuntimeConfig()
   logger: PluginLogger
 }

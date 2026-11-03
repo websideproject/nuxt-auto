@@ -37,7 +37,10 @@ the user (`additionalFields`) and read it in `mapUser` (zero queries).
 org roles (built-in from code, custom from better-auth's `organizationRole`) to `<resource>:<capability>` strings
 there, once, and let resources name capabilities. The api-token plugin's `getPermissions(userRow, tokenRow, ctx)` is
 the same for a key's owner; it runs on every request (cache hits too) and its result is NARROWED by the key's scopes
-(`narrowByScopes`): a key never holds more than its person. A named endpoint also passes a `resource:endpointName` scope.
+(`narrowByScopes`): a key never holds more than its person; a `*` person's key holds its scopes, wildcard ones too
+(`*:read` reads everything). A named endpoint also passes a `resource:endpointName` scope, and
+`createEndpoint({ scope: 'read' })` makes the scope check ask `resource:read` instead of the operation's capability
+(a POST that only reads).
 
 ## Declarative policies (permission objects)
 
