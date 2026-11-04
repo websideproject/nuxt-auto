@@ -294,7 +294,8 @@ Plugins shipped inside npm/workspace packages **cannot use Nitro virtual modules
 3. **Need something only a Nitro plugin can reach** (an auto-imported util, `useNitroApp()`)? Don't park it on
    `globalThis`: the Nitro plugin calls `provideService('name', fn)` and your code calls `useService('name')` (both from
    `@websideproject/nuxt-auto-api/plugins`; a missing service warns once). Type it by augmenting `AutoApiServices`.
-   `getNitroApp()?.hooks.callHook(…)` reaches Nitro's hooks.
+   `getNitroApp()?.hooks.callHook(…)` reaches Nitro's hooks. Code that also runs in the browser imports the same
+   functions from `@websideproject/nuxt-auto-api/services` (no server code), never from `/plugins`.
 
 ```ts
 // packages/my-module/runtime/auto-api-plugins/my-plugin.ts
