@@ -41,6 +41,19 @@ export function resolvePermission(auth: ResourceAuthConfig | undefined, operatio
 }
 
 /**
+ * The rule `createEndpoint({ scope })` is authorized by. A scope with a colon names the whole permission
+ * (`workspace:settings`). Otherwise it's a capability of the resource: the rule its `permissions` declare for that word
+ * (`read`, `create`, `update`, `delete`, or its own, like `publish`). An undeclared CRUD word is `undefined`, a denial,
+ * as on the generated routes; any other undeclared word asks for the string `<resource>:<word>`.
+ */
+export function scopeRule(scope: string, auth: ResourceAuthConfig | undefined, resource?: string): PermissionValue | undefined {
+  if (scope.includes(':')) return scope
+  const declared = resolvePermission(auth, scope as PermissionOperation)
+  if (declared !== undefined) return declared
+  return ['read', 'create', 'update', 'delete'].includes(scope) ? undefined : `${resource}:${scope}`
+}
+
+/**
  * Evaluate one permission value. **Deny by default:** a value that was never declared is `false`.
  *
  *  - `true` / `false`  → allow / deny everyone (`false` is absolute — not even `*` passes it)

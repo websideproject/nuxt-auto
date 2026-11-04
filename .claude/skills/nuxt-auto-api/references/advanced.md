@@ -145,9 +145,13 @@ export default createEndpoint({
 })
 ```
 
-- Resource-bound: auth + plugin middleware + the resource's permission for `operation` + validation, then your handler.
-- `endpointName`: `authorization.custom[name].permissions` decides the ops it declares; undeclared ops fall back to the resource gate.
-- Standalone (no `resource`) and `getAutoApiContext(event)`: caller resolved, **nothing authorized** — gate it yourself.
+- Resource-bound: auth + plugin middleware + the permission check + validation, then your handler.
+- **`scope` is the permission** (person and API token), so there's no permission code in the handler: `read`/`create`/`update`/`delete` = the resource's rule; another word = `permissions[word]` if declared, else the held `<resource>:<word>`; a string with a colon = that permission, whatever the resource. Without it the operation decides, from the HTTP method. Prefer it to `skipAuthorization` + hand-written checks. Every route file needs a method suffix (`x.post.ts`), since a file without one answers every method.
+- **`row: 'id'`** loads the row the route names as `ctx.row` (missing/hidden 404, `objectLevel` 403), after the permission check. `objectLevel` can read `ctx.endpointScope` to judge by the endpoint's permission.
+- **`refusal`** words the 403 a signed-in person gets (permission check and `authorize`); a rule's own thrown error keeps its message.
+- `skipAuthorization` is for endpoints with no permission at all: public ones, webhooks checked by signature.
+- `endpointName`: `authorization.custom[name].permissions` decides the ops it declares; undeclared ops fall back to `scope`, then the resource gate.
+- Standalone (no `resource`) and `getAutoApiContext(event)`: caller resolved, **nothing authorized** but a whole-permission `scope` (`'reports:export'`; a bare word throws at startup) — otherwise gate it yourself.
 - Handlers return the payload; `responseFormat: 'auto'` (default) wraps it in `{ data }`. Never hand-wrap.
 - Resource-bound responses ARE filtered: hidden fields (anywhere in the payload) + `fields[x].read`-denied fields (on the returned row/rows) are removed — `filterResponse: false` opts out, `filterResponse: true` opts a standalone endpoint in. A Response/stream/Blob (`responseFormat: 'raw'`) is sent as is. Filter by hand only what you turn into non-JSON yourself (CSV above).
 - `ctx.params` holds every route segment (`ctx.params.slug` in `[slug].get.ts`), plus `id` / `relation`.
@@ -171,15 +175,10 @@ export default createEndpoint({
 ```ts
 export default createEndpoint({
   resource: 'webhooks',
-  operation: 'get',
   endpointName: 'secret',
-  authorize: async (ctx) => {
-    const hook = await findAuthorizedRow(ctx, 'webhooks', ctx.params.id)  // 404/403 thrown for you
-    ctx.requestMeta ??= {}
-    ctx.requestMeta.webhook = hook   // stash for the handler
-    return hook.userId === ctx.user?.id
-  },
-  handler: async ctx => ({ secret: ctx.requestMeta!.webhook.secretHint }),
+  row: 'id',                                    // 404/403 thrown for you
+  authorize: ctx => ctx.row.userId === ctx.user?.id,
+  handler: async ctx => ({ secret: ctx.row.secretHint }),
 })
 ```
 
@@ -190,9 +189,12 @@ interface EndpointOptions<TBody, TQuery, TResponse> {
   resource?: string
   operation?: HandlerContext['operation']
   endpointName?: string
+  scope?: string                // the permission it's authorized by: person and token
+  row?: string                  // route param naming a row: ctx.row, 404/403 like GET /:id
+  refusal?: string              // what a refused signed-in person is told
   body?: ZodSchema
   query?: ZodSchema
-  skipAuthorization?: boolean   // the resource gate only — you still scope rows
+  skipAuthorization?: boolean   // no permission check (a scope still binds a token) — you still scope rows
   skipValidation?: boolean      // query validation only — a body is never checked against the table; use `body`
   authorize?: (ctx, event) => boolean | Promise<boolean>
   handler: (ctx, event) => Promise<TResponse> | TResponse

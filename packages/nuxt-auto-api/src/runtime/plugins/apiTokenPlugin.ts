@@ -507,19 +507,21 @@ export function createApiTokenPlugin(options: ApiTokenPluginOptions): AutoApiPlu
               ?? ((context.operation === 'list' || context.operation === 'get') ? 'read' : context.operation)
 
             const resource = context.resource
+            // A `scope` with a colon is already the whole permission (`workspace:settings`).
+            const needs = String(op).includes(':') ? String(op) : `${resource}:${op}`
 
             // A scope for the operation, or for the endpoint's named gate (`studioReleases:cut`).
             const allowed = scopes.some(s =>
-              scopeCovers(s, `${resource}:${op}`)
+              scopeCovers(s, needs)
               || (!!context.endpointName && scopeCovers(s, `${resource}:${context.endpointName}`)),
             )
 
-            console.log(`[api-token:scope] ${resource}:${op}${context.endpointName ? ` (${context.endpointName})` : ''} — scopes=${JSON.stringify(scopes)} — ${allowed ? 'ALLOWED' : 'DENIED'}`)
+            console.log(`[api-token:scope] ${needs}${context.endpointName ? ` (${context.endpointName})` : ''} — scopes=${JSON.stringify(scopes)} — ${allowed ? 'ALLOWED' : 'DENIED'}`)
 
             if (!allowed) {
               throw createError({
                 statusCode: 403,
-                message: `Token scope does not allow ${resource}:${op}`,
+                message: `Token scope does not allow ${needs}`,
               })
             }
           },

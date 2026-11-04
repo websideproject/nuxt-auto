@@ -9,6 +9,7 @@ const USERS: Record<string, any> = {
   // An auth layer that puts no organizationId on the user at all.
   bare: { id: 4, permissions: [] },
   root: { id: 5, organizationId: 'org_a', permissions: ['*'] },
+  reader: { id: 6, organizationId: 'org_a', permissions: [] },
 }
 
 export default defineNitroPlugin((nitroApp) => {

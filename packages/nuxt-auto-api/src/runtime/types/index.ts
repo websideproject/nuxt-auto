@@ -450,8 +450,9 @@ export interface HandlerContext {
   endpointName?: string
 
   /**
-   * The capability an API token's scope must cover on a `createEndpoint` route that declares `scope`, in place of the
-   * one its operation implies. Unset on generated routes.
+   * The permission a `createEndpoint` route is authorized by (its `scope`), for the person and for an API token, in place
+   * of the one its operation implies. A `objectLevel` rule can read it to judge the row by the same word. Unset on
+   * generated routes.
    */
   endpointScope?: string
 
