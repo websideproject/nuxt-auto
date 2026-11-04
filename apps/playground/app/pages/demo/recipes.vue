@@ -59,15 +59,15 @@
         </div>
       </UCard>
 
-      <!-- named gate -->
+      <!-- scope + row + refusal -->
       <UCard>
         <template #header>
           <h3 class="font-semibold">
-            A gate of its own — <code>endpointName</code>
+            An action of its own — <code>scope</code>, <code>row</code>, <code>refusal</code>
           </h3>
           <p class="text-sm text-neutral-600 dark:text-neutral-400">
-            Authors may edit only their own posts, but <code>POST /api/recipes/posts/:id/publish</code> is gated by
-            <code>custom.publish</code>: editors and admins publish any draft.
+            Authors may edit only their own posts, but <code>POST /api/recipes/posts/:id/publish</code> asks
+            <code>permissions.publish</code>: editors and admins publish any draft, and everyone else reads the refusal.
           </p>
         </template>
         <div class="flex gap-2">
@@ -91,6 +91,103 @@
           :class="publishResult.ok ? 'text-success' : 'text-error'"
         >
           {{ publishResult.message }}
+        </p>
+      </UCard>
+
+      <!-- the row rule -->
+      <UCard>
+        <template #header>
+          <h3 class="font-semibold">
+            The row rule decides — <code>scope: 'update'</code>
+          </h3>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            <code>POST /api/recipes/posts/:id/unpublish</code> asks what <code>PATCH /api/posts/:id</code> asks, so
+            <code>objectLevel</code> lets an author take back only their own post.
+          </p>
+        </template>
+        <div class="flex gap-2">
+          <USelect
+            v-model="unpublishId"
+            :items="live"
+            placeholder="Pick a published post"
+            class="flex-1"
+          />
+          <UButton
+            :disabled="!unpublishId"
+            color="neutral"
+            icon="i-heroicons-arrow-uturn-left"
+            @click="unpublish"
+          >
+            Unpublish
+          </UButton>
+        </div>
+        <p
+          v-if="unpublishResult"
+          class="mt-3 text-sm"
+          :class="unpublishResult.ok ? 'text-success' : 'text-error'"
+        >
+          {{ unpublishResult.message }}
+        </p>
+      </UCard>
+
+      <!-- a POST that only reads -->
+      <UCard>
+        <template #header>
+          <h3 class="font-semibold">
+            A POST that only reads — <code>scope: 'read'</code>
+          </h3>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            <code>POST /api/recipes/posts/search</code> would need <code>create</code> by its method. Its scope says it
+            only reads, so a signed-out reader and a read-only token may call it.
+          </p>
+        </template>
+        <div class="flex gap-2">
+          <UInput
+            v-model="searchText"
+            placeholder="Search titles"
+            class="flex-1"
+          />
+          <UButton
+            :disabled="!searchText"
+            icon="i-heroicons-magnifying-glass"
+            @click="search"
+          >
+            Search
+          </UButton>
+        </div>
+        <p
+          v-if="searchResult"
+          class="mt-3 text-sm"
+          :class="searchResult.ok ? 'text-success' : 'text-error'"
+        >
+          {{ searchResult.message }}
+        </p>
+      </UCard>
+
+      <!-- a whole permission -->
+      <UCard>
+        <template #header>
+          <h3 class="font-semibold">
+            A permission of no resource — <code>scope: 'reports:export'</code>
+          </h3>
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+            <code>GET /api/recipes/export</code> has no <code>resource</code>. A scope with a colon names the whole
+            permission, and here only admins hold it.
+          </p>
+        </template>
+        <UButton
+          color="neutral"
+          icon="i-heroicons-arrow-down-tray"
+          @click="exportReport"
+        >
+          Export
+        </UButton>
+        <p
+          v-if="exportResult"
+          class="mt-3 text-sm"
+          :class="exportResult.ok ? 'text-success' : 'text-error'"
+        >
+          {{ exportResult.message }}
         </p>
       </UCard>
 
@@ -231,9 +328,10 @@ async function loadPosts() {
   posts.value = (await $fetch<{ data: Post[] }>('/api/posts', { query: { limit: 50, sort: 'id' } })).data
 }
 const drafts = computed(() => posts.value.filter(p => !p.published).map(p => ({ label: `#${p.id} ${p.title}`, value: p.id })))
+const live = computed(() => posts.value.filter(p => p.published).map(p => ({ label: `#${p.id} ${p.title}`, value: p.id })))
 const firstPosts = computed(() => posts.value.slice(0, 5))
 
-// Named gate
+// scope + row + refusal
 const publishId = ref<number | undefined>()
 const publishResult = ref<{ ok: boolean, message: string } | null>(null)
 async function publish() {
@@ -244,6 +342,43 @@ async function publish() {
     await Promise.all([loadPosts(), loadStats()])
   } catch (e) {
     publishResult.value = { ok: false, message: message(e) }
+  }
+}
+
+// The row rule
+const unpublishId = ref<number | undefined>()
+const unpublishResult = ref<{ ok: boolean, message: string } | null>(null)
+async function unpublish() {
+  try {
+    const { data } = await $fetch<{ data: Post }>(`/api/recipes/posts/${unpublishId.value}/unpublish`, { method: 'POST' })
+    unpublishResult.value = { ok: true, message: `Unpublished "${data.title}"` }
+    unpublishId.value = undefined
+    await Promise.all([loadPosts(), loadStats()])
+  } catch (e) {
+    unpublishResult.value = { ok: false, message: message(e) }
+  }
+}
+
+// A POST that only reads
+const searchText = ref('')
+const searchResult = ref<{ ok: boolean, message: string } | null>(null)
+async function search() {
+  try {
+    const { data } = await $fetch<{ data: Post[] }>('/api/recipes/posts/search', { method: 'POST', body: { text: searchText.value } })
+    searchResult.value = { ok: true, message: `${data.length} ${data.length === 1 ? 'post' : 'posts'} found` }
+  } catch (e) {
+    searchResult.value = { ok: false, message: message(e) }
+  }
+}
+
+// A whole permission
+const exportResult = ref<{ ok: boolean, message: string } | null>(null)
+async function exportReport() {
+  try {
+    const { data } = await $fetch<{ data: { users: number, posts: number } }>('/api/recipes/export')
+    exportResult.value = { ok: true, message: `${data.users} users, ${data.posts} posts` }
+  } catch (e) {
+    exportResult.value = { ok: false, message: message(e) }
   }
 }
 

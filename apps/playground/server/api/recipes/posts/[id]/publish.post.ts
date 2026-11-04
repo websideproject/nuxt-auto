@@ -1,20 +1,14 @@
-import { and, eq } from 'drizzle-orm'
 import { posts } from '../../../../database/schema'
 
 /**
- * Recipe: a named gate. `endpointName: 'publish'` is checked against `postsAuth.custom.publish` — editors and admins
- * may publish any post — instead of posts' own `update` rule, which lets authors edit only their own posts.
+ * Recipe: an action of its own. `scope: 'publish'` asks `postsAuth.permissions.publish` (editors and admins), `row: 'id'`
+ * loads the post into `ctx.row` (404 when it's missing or hidden), and `refusal` is what everyone else is told.
  */
 export default createEndpoint({
   resource: 'posts',
-  operation: 'update',
-  endpointName: 'publish',
+  scope: 'publish',
+  row: 'id',
+  refusal: 'Only editors and admins publish posts.',
 
-  async handler(ctx) {
-    // The gate decided who may publish; the row still has to be visible to the caller
-    const id = Number(ctx.params.id)
-    const [post] = await ctx.db.select().from(posts).where(and(eq(posts.id, id), rowScope(ctx, 'posts', posts)))
-    if (!post) throw createError({ statusCode: 404, message: `Post ${ctx.params.id} not found` })
-    return updateReturning(ctx.db, posts, id, { published: true, updatedAt: new Date() })
-  }
+  handler: ctx => updateReturning(ctx.db, posts, ctx.row.id, { published: true, updatedAt: new Date() })
 })

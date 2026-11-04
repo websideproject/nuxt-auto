@@ -6,8 +6,7 @@ import { posts } from '../../database/schema'
  * (tenant, `listFilter`, soft delete) as one SQL condition, so a custom query cannot count past it.
  */
 export default createEndpoint({
-  resource: 'posts',
-  operation: 'list', // gated by posts' `read` permission
+  resource: 'posts', // a GET: posts' `read` permission
 
   async handler(ctx) {
     const rows = await ctx.db
