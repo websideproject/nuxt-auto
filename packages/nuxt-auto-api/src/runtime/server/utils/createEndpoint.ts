@@ -8,7 +8,8 @@ import type { EndpointOptions, EndpointContext } from '../../types/endpoint'
 import type { HandlerContext } from '../../types'
 import type { MiddlewareStage } from '../../types/plugin'
 import { permissionKeyFor } from '../middleware/authz'
-import { evaluatePermission } from './permissions'
+import { evaluatePermission, resolvePermission, scopeRule } from './permissions'
+import { findAuthorizedRow } from './rowAccess'
 import { filterHiddenFields } from './filterHiddenFields'
 import { filterReadableFields } from './fieldPermissions'
 
@@ -22,11 +23,10 @@ import { filterReadableFields } from './fieldPermissions'
  *
  * export default createEndpoint({
  *   resource: 'users',
- *   operation: 'get',
+ *   row: 'id', // loads ctx.row: missing or hidden 404, `objectLevel` 403
  *   query: z.object({ detailed: z.boolean().optional() }),
  *   async handler(ctx) {
- *     const user = await ctx.db.query.users.findFirst({ where: eq(users.id, ctx.params.id) })
- *     return { user, stats: { posts: 42 } }
+ *     return { user: ctx.row, stats: { posts: 42 } }
  *   },
  *   responseFormat: 'auto', // wraps in { data: ... }
  * })
@@ -35,6 +35,18 @@ import { filterReadableFields } from './fieldPermissions'
 export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
   options: EndpointOptions<TBody, TQuery, TResponse>,
 ): EventHandler {
+  // Wrong at the first request of every caller, so wrong at startup instead.
+  if (options.row && !options.resource) throw new Error('createEndpoint: `row` needs a `resource`, the table it loads from')
+  if (options.scope && !options.resource && !options.scope.includes(':')) {
+    throw new Error(`createEndpoint: with no \`resource\`, \`scope\` names the whole permission ("reports:${options.scope}"), not "${options.scope}"`)
+  }
+
+  /** The answer to a caller who failed the permission check. */
+  const refuse = (context: HandlerContext, message: string) => createError({
+    statusCode: context.user ? 403 : 401,
+    message: context.user ? (options.refusal ?? message) : 'Authentication required',
+  })
+
   return defineEventHandler(async (event: H3Event) => {
     let context: HandlerContext
     let runMiddleware: (stage: MiddlewareStage) => Promise<void>
@@ -66,24 +78,34 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
         // A named custom gate (`authorization.custom[endpointName]`) decides the operations it declares —
         // which lets one endpoint open an operation the resource keeps closed (e.g. `create: false` on a
         // resource that exposes a /checkout action). An operation the gate does NOT declare falls back to
-        // the resource's own gate, never to "allowed".
+        // `scope`, then to the resource's own gate, never to "allowed".
         const customGate = options.endpointName
           ? result.effectiveAuth?.custom?.[options.endpointName]?.permissions
           : undefined
         const customPerm = (customGate as any)?.[permissionKeyFor(context.operation)]
 
         if (customPerm !== undefined) {
-          if (!await evaluatePermission(customPerm, context)) {
-            throw createError({
-              statusCode: context.user ? 403 : 401,
-              message: context.user ? 'Forbidden' : 'Authentication required',
-            })
+          if (!await evaluatePermission(customPerm, context)) throw refuse(context, 'Forbidden')
+        }
+        else if (options.scope) {
+          if (!await evaluatePermission(scopeRule(options.scope, result.effectiveAuth, options.resource), context)) {
+            throw refuse(context, `Forbidden: you don't have permission to ${options.scope} ${options.resource}`)
+          }
+        }
+        else if (options.refusal) {
+          const key = permissionKeyFor(context.operation)
+          if (!await evaluatePermission(resolvePermission(result.effectiveAuth, key), context)) {
+            throw refuse(context, 'Forbidden')
           }
         }
         else {
           await result.authorize(context)
         }
       }
+
+      // The resource's row rules, for the handler's own queries, whichever check above ran.
+      if (result.effectiveAuth?.objectLevel) context.objectLevelCheck = result.effectiveAuth.objectLevel
+      if (result.effectiveAuth?.listFilter) context.listFilter = result.effectiveAuth.listFilter
 
       await runMiddleware('post-auth')
 
@@ -96,9 +118,9 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       }
     }
     else {
-      // Standalone endpoint (no `resource`): the caller is resolved (context extenders ran) but NOTHING is
-      // authorized for you — gate it with `authorize`, or inside the handler. `ctx.schema` holds every
-      // registered table.
+      // Standalone endpoint (no `resource`): the caller is resolved (context extenders ran) but nothing is
+      // authorized for you, except a `scope` — gate it with `scope`, `authorize` or inside the handler. `ctx.schema`
+      // holds every registered table.
       context = await createCallerContext(event, options.operation || inferOperation(event))
       if (options.scope) context.endpointScope = options.scope
 
@@ -111,6 +133,9 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       }
 
       await runMiddleware('pre-auth')
+      if (options.scope && !options.skipAuthorization && !await evaluatePermission(options.scope, context)) {
+        throw refuse(context, `Forbidden: you don't have permission for ${options.scope}`)
+      }
       await runMiddleware('post-auth')
     }
 
@@ -152,11 +177,22 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       adapter: context.adapter || getDatabaseAdapter(),
     }
 
+    // The row the route names: the same answers as GET /api/<resource>/:id (not visible or missing 404, `objectLevel` 403).
+    if (options.row) {
+      const id = (context.params as Record<string, string | undefined>)[options.row]
+      if (!id) throw createError({ statusCode: 400, message: `Route parameter "${options.row}" is required` })
+      endpointContext.row = await findAuthorizedRow(context, options.resource!, id).catch((e: any) => {
+        // A person reads these: the resource's name stays out of a 404.
+        if (e?.statusCode === 404) throw createError({ statusCode: 404, message: 'Not found' })
+        throw e?.statusCode === 403 && options.refusal ? createError({ statusCode: 403, message: options.refusal }) : e
+      })
+    }
+
     // Custom object-level authorization (runs after body/query are parsed)
     if (options.authorize) {
       const allowed = await options.authorize(endpointContext, event)
       if (!allowed) {
-        throw createError({ statusCode: 403, message: 'Forbidden' })
+        throw createError({ statusCode: 403, message: options.refusal ?? 'Forbidden' })
       }
     }
 

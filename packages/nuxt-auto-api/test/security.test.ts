@@ -16,7 +16,7 @@ import { setup, fetch } from '@nuxt/test-utils/e2e'
  *  notes   no authorization at all
  *
  *  alice → org_a, perms posts:update users:read labels:read · noorg → signed in, no tenant ·
- *  bare → no organizationId on the user · root → org_a with '*'
+ *  bare → no organizationId on the user · root → org_a with '*' · reader → org_a, no permissions
  */
 
 async function req(path: string, opts: { user?: string, method?: string, body?: any, headers?: Record<string, string> } = {}) {
@@ -293,6 +293,56 @@ describe('security (e2e)', async () => {
     expect((await hit()).status).toBe(200)
     expect((await hit()).status).toBe(429)
     expect((await req('/api/docs')).status).toBe(200)
+  })
+
+  describe('createEndpoint: scope, row and refusal through the real pipeline', () => {
+    const post = (path: string, user?: string) => req(path, { method: 'POST', user, body: {} })
+
+    it('scope authorizes the person: a POST that only reads goes by the read rule', async () => {
+      // posts declares no `create`, so without `scope` this POST would be refused.
+      const seen = titles(await post('/api/scoped/query', 'reader'))
+      expect(seen).toContain('A1')
+      expect(seen, 'and the handler\'s query keeps to the tenant').not.toContain('B1')
+    })
+
+    it('scope refuses a person who lacks the permission, and words it', async () => {
+      const r = await post('/api/scoped/1/rename', 'reader')
+      expect(r.status).toBe(403)
+      expect(r.json.message).toBe('Only editors rename posts.')
+    })
+
+    it('a signed-out caller gets 401', async () => {
+      const r = await post('/api/scoped/1/rename')
+      expect(r.status).toBe(401)
+      expect(r.json.message).toBe('Authentication required')
+    })
+
+    it('row hands the handler the row', async () => {
+      const r = await post('/api/scoped/1/rename', 'alice')
+      expect(r.status).toBe(200)
+      expect(r.json.data.id).toBe(1)
+    })
+
+    it('row answers 404 for another tenant\'s row and for no row', async () => {
+      expect((await post('/api/scoped/2/rename', 'alice')).status).toBe(404)
+      expect((await post('/api/scoped/99999/rename', 'alice')).status).toBe(404)
+    })
+
+    it('a scope with a colon is the whole permission', async () => {
+      expect((await post('/api/scoped/labels', 'alice')).status).toBe(200)
+      expect((await post('/api/scoped/labels', 'reader')).status).toBe(403)
+    })
+
+    it('a standalone endpoint is authorized by its scope', async () => {
+      expect((await post('/api/scoped/standalone', 'alice')).status).toBe(200)
+      expect((await post('/api/scoped/standalone', 'bare')).status).toBe(403)
+      expect((await post('/api/scoped/standalone')).status).toBe(401)
+    })
+
+    it('the wrong method never reaches the endpoint', async () => {
+      // A GET falls through to the app's HTML shell here, not to the handler.
+      expect((await req('/api/scoped/1/rename', { user: 'alice' })).json).toBeNull()
+    })
   })
 
   describe('API tokens from a plugins file', () => {

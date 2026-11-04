@@ -12,6 +12,8 @@ export interface EndpointContext<TBody = any, TQuery = any> extends HandlerConte
   queryParams: TQuery
   /** Database adapter */
   adapter: DatabaseAdapter
+  /** The row named by the route, when the endpoint declares `row` */
+  row?: any
 }
 
 /**
@@ -46,16 +48,30 @@ export interface EndpointOptions<TBody = any, TQuery = any, TResponse = any> {
    */
   endpointName?: string
   /**
-   * The capability an API token's scope must cover for this endpoint (`<resource>:<scope>`), in place of the one its
-   * `operation` implies (`list` / `get` → `read`, otherwise the operation). For an endpoint whose HTTP method and
-   * operation say "write" but which only reads, so a read-only token (`*:read`) may call it:
+   * The permission this endpoint is authorized by, for the person and for an API token, in place of the one its
+   * `operation` implies. So an endpoint needs no permission code of its own.
+   *
+   * - `read`, `create`, `update`, `delete`: the resource's rule for it. A POST that only reads says `scope: 'read'`.
+   * - any other word: the rule the resource's `permissions` declare for it, else the held string `<resource>:<word>`.
+   * - a string with a colon: that permission, whatever the resource (the only form with no `resource`).
+   *
+   * A named gate that declares the operation still decides first. `skipAuthorization` leaves only the token's check.
    * @example
    * ```ts
-   * createEndpoint({ resource: 'reports', operation: 'create', scope: 'read', handler: … }) // POST /api/reports/query
+   * createEndpoint({ resource: 'reports', scope: 'read', handler: … })       // POST /api/reports/query
+   * createEndpoint({ resource: 'posts', scope: 'publish', row: 'id', handler: … }) // needs posts:publish
+   * createEndpoint({ resource: 'apiKeys', scope: 'workspace:settings', handler: … })
    * ```
-   * A scope for the endpoint's named gate (`<resource>:<endpointName>`) still passes as well.
    */
   scope?: string
+  /**
+   * The route parameter that names a row of `resource`. The row is loaded before the handler, as `ctx.row`, with the
+   * answers of `GET /api/<resource>/:id`: missing or not visible (tenant, `listFilter`, soft delete) 404, failing
+   * `objectLevel` 403. `objectLevel` can read `ctx.endpointScope` to judge the row by the endpoint's permission.
+   */
+  row?: string
+  /** What a signed-in caller is told when the permission check, `row`'s `objectLevel` or `authorize` refuses them. */
+  refusal?: string
   /**
    * Custom object-level authorization. Called after the middleware pipeline and Zod
    * validation, but before the handler. Return false (or throw) to reject with 403.

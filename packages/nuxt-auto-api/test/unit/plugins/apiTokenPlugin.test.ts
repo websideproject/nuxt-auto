@@ -299,6 +299,10 @@ describe('token scopes', () => {
     expect(() => check.handler(ctx(['*:read']))).toThrow(/does not allow reports:create/)
     // The declared scope replaces the operation's: a create scope no longer opens it.
     expect(() => check.handler(ctx(['reports:create'], 'read'))).toThrow(/does not allow reports:read/)
+    // A scope with a colon is the whole permission, not a capability of the resource.
+    expect(() => check.handler(ctx(['workspace:settings'], 'workspace:settings'))).not.toThrow()
+    expect(() => check.handler(ctx(['workspace:*'], 'workspace:settings'))).not.toThrow()
+    expect(() => check.handler(ctx(['reports:*'], 'workspace:settings'))).toThrow(/does not allow workspace:settings/)
     log.mockRestore()
   })
 })
