@@ -59,7 +59,7 @@ export default defineNitroPlugin((nitroApp) => {
       // Set permissions based on role
       // The permissions array should contain role names that match the auth configs
       if (demoUser.role === 'admin') {
-        event.context.permissions = ['admin']
+        event.context.permissions = ['admin', 'reports:export']
       } else if (demoUser.role === 'editor') {
         event.context.permissions = ['editor']
       } else {

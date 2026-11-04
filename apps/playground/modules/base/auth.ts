@@ -57,23 +57,26 @@ export const postsAuth: ResourceAuthConfig = {
     // Authenticated users can update (but object-level auth will restrict to own posts)
     update: context => !!context.user,
     // Authenticated users can delete (but object-level auth will restrict to own posts)
-    delete: context => !!context.user
-  },
-  // Named gates for custom endpoints (createEndpoint({ endpointName })): publishing is for editors and admins, on
-  // any post — /api/recipes/posts/:id/publish
-  custom: {
-    publish: { permissions: { update: ['editor', 'admin'] } }
+    delete: context => !!context.user,
+    // An action of its own: createEndpoint({ scope: 'publish' }) — /api/recipes/posts/:id/publish
+    publish: ['editor', 'admin']
   },
   // Object-level: users can only edit their own posts unless they're admin
   objectLevel: async (object, context) => {
+    // What's being done: a custom endpoint's scope, else the generated route's operation
+    const action = context.endpointScope ?? context.operation
+
     // Allow reading all posts
-    if (context.operation === 'get' || context.operation === 'list') return true
+    if (action === 'get' || action === 'list' || action === 'read') return true
 
     // Admins can do anything
     if (context.user?.role === 'admin') return true
 
+    // permissions.publish decided: editors publish anyone's post
+    if (action === 'publish') return true
+
     // For update/delete, must be the owner
-    if (context.operation === 'update' || context.operation === 'delete') {
+    if (action === 'update' || action === 'delete') {
       return context.user && String(object.userId) === String(context.user.id)
     }
 

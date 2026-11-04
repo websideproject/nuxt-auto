@@ -12,8 +12,7 @@ import { posts } from '../../../database/schema'
 const readable = (ctx: Parameters<typeof findAuthorizedRows>[0], ids: number[]) =>
   findAuthorizedRows({ ...ctx, operation: 'get' }, 'posts', ids)
 export default createEndpoint({
-  resource: 'posts',
-  operation: 'create', // gated by posts' `create` permission
+  resource: 'posts', // a POST: posts' `create` permission
   body: z.object({ ids: z.array(z.number().int()).min(1).max(10) }),
 
   authorize: async ctx => (await readable(ctx, ctx.body.ids)).length === new Set(ctx.body.ids).size,
