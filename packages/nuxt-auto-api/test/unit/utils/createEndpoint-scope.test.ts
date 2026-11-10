@@ -172,6 +172,43 @@ describe('createEndpoint row: the row the route names', () => {
   })
 })
 
+describe('createEndpoint requireUser: signed-in callers only', () => {
+  it('answers 401 to an anonymous caller, with or without a resource', async () => {
+    h.context.user = null
+    const handler = vi.fn(ok)
+    await expect(run({ resource: 'orders', skipAuthorization: true, requireUser: true, handler })).rejects.toMatchObject({ statusCode: 401, message: 'Authentication required' })
+    await expect(run({ requireUser: true, handler })).rejects.toMatchObject({ statusCode: 401 })
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('lets a signed-in caller through', async () => {
+    expect(await run({ resource: 'orders', skipAuthorization: true, requireUser: true, handler: ok })).toEqual({ data: { ok: true } })
+  })
+
+  it('adds to the permission check, it does not replace it', async () => {
+    await expect(run({ resource: 'orders', scope: 'read', requireUser: true, handler: ok })).rejects.toMatchObject({ statusCode: 403 })
+  })
+})
+
+describe('createEndpoint: a duplicate unique value', () => {
+  it('is a 409 naming the field, not the driver\'s 500', async () => {
+    const handler = async () => {
+      throw Object.assign(new Error('query failed'), { cause: new Error('UNIQUE constraint failed: orders.slug') })
+    }
+    await expect(run({ resource: 'orders', skipAuthorization: true, handler })).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'A record with this slug already exists',
+    })
+  })
+
+  it('leaves every other error as it is', async () => {
+    const handler = async () => {
+      throw Object.assign(new Error('nope'), { statusCode: 422 })
+    }
+    await expect(run({ resource: 'orders', skipAuthorization: true, handler })).rejects.toMatchObject({ statusCode: 422, message: 'nope' })
+  })
+})
+
 describe('createEndpoint refusal: what a refused person is told', () => {
   const refusal = 'Only an admin can do this.'
 

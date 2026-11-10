@@ -12,6 +12,7 @@ import { evaluatePermission, scopeRule } from './permissions'
 import { findAuthorizedRow } from './rowAccess'
 import { filterHiddenFields } from './filterHiddenFields'
 import { filterReadableFields } from './fieldPermissions'
+import { conflictFromUniqueViolation } from './uniqueViolation'
 
 /**
  * Create a custom API endpoint with the full auto-api pipeline.
@@ -132,6 +133,11 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       await runMiddleware('post-auth')
     }
 
+    // Signed-in callers only, whatever else decides (or with `skipAuthorization`, nothing else).
+    if (options.requireUser && !context.user) {
+      throw createError({ statusCode: 401, message: 'Authentication required' })
+    }
+
     // Custom body validation with Zod
     let body: TBody = undefined as any
     if (options.body) {
@@ -203,8 +209,14 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       return format(context.shortCircuit.data)
     }
 
-    // Execute handler
-    let result = await options.handler(endpointContext, event)
+    // Execute handler. A duplicate unique value is the client's conflict (409), as on the generated routes.
+    let result: any
+    try {
+      result = await options.handler(endpointContext, event)
+    }
+    catch (error) {
+      throw conflictFromUniqueViolation(error, options.resource ? context.schema?.[options.resource] : undefined)
+    }
 
     // Apply transform
     if (options.transform) {

@@ -150,6 +150,8 @@ export default createEndpoint({
 - **`row: 'id'`** loads the row the route names as `ctx.row` (missing/hidden 404, `objectLevel` 403), after the permission check. `objectLevel` can read `ctx.endpointScope` to judge by the endpoint's permission.
 - **`refusal`** words the 403 a signed-in person gets (permission check and `authorize`); a rule's own thrown error keeps its message.
 - `skipAuthorization` is for endpoints with no permission at all: public ones, webhooks checked by signature.
+- **`requireUser: true`** answers 401 to an anonymous caller before the handler: with `skipAuthorization` it is the "any signed-in caller, own rows" endpoint, with no `if (!ctx.user)` in the handler. It adds to the permission check, never replaces it.
+- A unique-constraint violation thrown by the handler is a **409** naming the field, as on the generated routes.
 - `endpointName`: `authorization.custom[name].permissions` decides the ops it declares; undeclared ops fall back to `scope`, then the resource gate.
 - Standalone (no `resource`) and `getAutoApiContext(event)`: caller resolved, **nothing authorized** but a whole-permission `scope` (`'reports:export'`; a bare word throws at startup) — otherwise gate it yourself.
 - Handlers return the payload; `responseFormat: 'auto'` (default) wraps it in `{ data }`. Never hand-wrap.
@@ -195,6 +197,7 @@ interface EndpointOptions<TBody, TQuery, TResponse> {
   body?: ZodSchema
   query?: ZodSchema
   skipAuthorization?: boolean   // no permission check (a scope still binds a token) — you still scope rows
+  requireUser?: boolean         // 401 for an anonymous caller, before the body is read
   skipValidation?: boolean      // query validation only — a body is never checked against the table; use `body`
   authorize?: (ctx, event) => boolean | Promise<boolean>
   handler: (ctx, event) => Promise<TResponse> | TResponse
