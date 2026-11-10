@@ -5,6 +5,7 @@ import type { MaybeRef } from 'vue'
 import { prerenderSafeEnabled } from './prerenderEnabled'
 import { useAutoApiPath } from './autoApiPath'
 import { useAutoApiFetch } from './autoApiFetch'
+import { autoApiKeys } from './queryKeys'
 
 export interface ListQueryParams {
   filter?: Record<string, any>
@@ -74,7 +75,7 @@ export function useAutoApiList<T = any>(
   })
 
   return useTrackedQuery({
-    queryKey: computed(() => ['autoapi', resourceRef.value, 'list', paramsRef.value]),
+    queryKey: computed(() => autoApiKeys.list(resourceRef.value, paramsRef.value)),
     queryFn: async () => {
       const response = await fetcher<ListResponse<T>>(path(resourceRef.value), {
         query: queryParams.value as any,
@@ -107,7 +108,7 @@ export function useAutoApiGet<T = any>(
   const paramsRef = computed(() => unref(params) || {})
 
   return useTrackedQuery({
-    queryKey: computed(() => ['autoapi', resourceRef.value, 'get', idRef.value, paramsRef.value]),
+    queryKey: computed(() => autoApiKeys.get(resourceRef.value, idRef.value, paramsRef.value)),
     queryFn: async () => {
       const response = await fetcher<GetResponse<T>>(
         path(resourceRef.value, idRef.value),
@@ -140,7 +141,7 @@ export function useAutoApiInfinite<T = any>(
   const paramsRef = computed(() => unref(params) || {})
 
   return useTrackedInfiniteQuery({
-    queryKey: computed(() => ['autoapi', resourceRef.value, 'infinite', paramsRef.value]),
+    queryKey: computed(() => autoApiKeys.infinite(resourceRef.value, paramsRef.value)),
     queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       const params = paramsRef.value
       const queryParams: Record<string, any> = { ...params }

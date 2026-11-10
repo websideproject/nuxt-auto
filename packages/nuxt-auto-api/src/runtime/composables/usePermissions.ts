@@ -6,6 +6,7 @@ import type { PermissionQueryResponse, PermissionCheckResult } from '../types'
 import { prerenderSafeEnabled } from './prerenderEnabled'
 import { useAutoApiPath } from './autoApiPath'
 import { useAutoApiFetch } from './autoApiFetch'
+import { autoApiKeys } from './queryKeys'
 
 interface AllPermissionsResponse {
   user: any
@@ -27,7 +28,7 @@ export function useAllPermissions(
   const path = useAutoApiPath()
   const fetcher = useAutoApiFetch()
   return useTrackedQuery<AllPermissionsResponse>({
-    queryKey: ['permissions', 'all'],
+    queryKey: autoApiKeys.allPermissions(),
     queryFn: () => fetcher<AllPermissionsResponse>(path('permissions')),
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     ...options,
@@ -64,7 +65,7 @@ export function usePermissions(
   // Use individual endpoint if requested
   if (options?.individual) {
     const query = useTrackedQuery<PermissionQueryResponse>({
-      queryKey: computed(() => ['permissions', resourceRef.value]),
+      queryKey: computed(() => autoApiKeys.permissions(resourceRef.value)),
       queryFn: () => fetcher<PermissionQueryResponse>(path(resourceRef.value, 'permissions')),
       staleTime: 1000 * 60 * 5, // Cache for 5 minutes
       ...options,
@@ -127,7 +128,7 @@ export function useRecordPermissions(
   const idsRef = computed(() => [...new Set(toValue(ids).map(String))].sort())
 
   const query = useTrackedQuery<PermissionQueryResponse>({
-    queryKey: computed(() => ['permissions', resourceRef.value, 'records', idsRef.value]),
+    queryKey: computed(() => autoApiKeys.recordPermissions(resourceRef.value, idsRef.value)),
     queryFn: () => fetcher<PermissionQueryResponse>(path(resourceRef.value, 'permissions'), { query: { ids: idsRef.value.join(',') } }),
     staleTime: 1000 * 60 * 5,
     ...options,

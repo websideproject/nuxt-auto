@@ -5,6 +5,7 @@ import type { MaybeRef } from 'vue'
 import { prerenderSafeEnabled } from './prerenderEnabled'
 import { useAutoApiPath } from './autoApiPath'
 import { useAutoApiFetch } from './autoApiFetch'
+import { autoApiKeys } from './queryKeys'
 
 export interface AggregateOptions {
   /** `count`, `sum(total)`, … or a list of them. */
@@ -32,12 +33,7 @@ export function useAutoApiAggregate<T = AggregateResponse>(
   const optionsRef = computed(() => unref(aggregateOptions))
 
   return useTrackedQuery({
-    queryKey: computed(() => [
-      'autoapi',
-      resourceRef.value,
-      'aggregate',
-      optionsRef.value,
-    ]),
+    queryKey: computed(() => autoApiKeys.aggregate(resourceRef.value, optionsRef.value)),
     queryFn: async () => {
       const params = new URLSearchParams()
 

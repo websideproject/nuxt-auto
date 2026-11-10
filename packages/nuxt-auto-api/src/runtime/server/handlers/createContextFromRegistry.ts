@@ -61,40 +61,51 @@ function getDb(): { db: any, adapter: any } {
   }
 }
 
-/**
- * A context for a request that is not about one resource (`/api/permissions`, M2M discovery, standalone
- * `createEndpoint`): database, caller (context extenders ran), registry and runtime config — no resource,
- * no tenant resolution.
- */
-export async function createCallerContext(event: H3Event, operation: Operation = 'get'): Promise<HandlerContext> {
-  const { registry } = await import('#nuxt-auto-api-registry') as any
-  let db: any
-  let adapter: any
-  try {
-    ({ db, adapter } = getDb())
-  }
-  catch {
-    db = undefined
-  }
-  const user = (event.context as any).user || null
+/** The part of a request context every entry point shares: database, caller, registry, query and runtime config. */
+function baseContext(
+  event: H3Event,
+  operation: Operation,
+  registry: Record<string, any>,
+  db: { db: any, adapter: any },
+  params: Record<string, string>,
+): HandlerContext {
   const schema: Record<string, any> = {}
   for (const [name, config] of Object.entries(registry)) schema[name] = (config as any).schema
-
-  const context: HandlerContext = {
-    db,
-    adapter,
+  const user = (event.context as any).user || null
+  return {
+    db: db.db,
+    adapter: db.adapter,
     schema,
+    fullSchema: db.db?._?.schema || schema,
     user,
     permissions: (event.context as any).permissions || user?.permissions || [],
-    params: { ...((event.context as any).params || {}) },
+    params,
     query: normalizeQuery(getQuery(event) as Record<string, any>),
     validated: {},
     event,
     runtimeConfig: useRuntimeConfig(),
     resource: '',
     operation,
+    tenant: undefined,
     registry,
   }
+}
+
+/**
+ * A context for a request that is not about one resource (`/api/permissions`, M2M discovery, standalone
+ * `createEndpoint`): database, caller (context extenders ran), registry and runtime config — no resource. A
+ * database that is not initialized yet leaves `db` undefined.
+ */
+export async function createCallerContext(event: H3Event, operation: Operation = 'get'): Promise<HandlerContext> {
+  const { registry } = await import('#nuxt-auto-api-registry') as any
+  let db: { db: any, adapter: any }
+  try {
+    db = getDb()
+  }
+  catch {
+    db = { db: undefined, adapter: undefined }
+  }
+  const context = baseContext(event, operation, registry, db, { ...((event.context as any).params || {}) })
   for (const extender of getContextExtenders()) await extender(context)
   context.tenant = resolveTenant(context, getTenancyConfig(context))
   return context
@@ -116,21 +127,13 @@ export async function createContextFromRegistry(
   effectiveAuth: ResourceAuthConfig | undefined
 }> {
   const { registry } = await import('#nuxt-auto-api-registry') as any
-  const runtimeConfig = useRuntimeConfig()
-  const prefix = (runtimeConfig as any).autoApi?.prefix || '/api'
+  const prefix = (useRuntimeConfig() as any).autoApi?.prefix || '/api'
 
-  const resourceName = opts.resource
-    ?? (event.context.params as any)?.__resource
-    ?? resourceFromPath(event, prefix)
+  const resourceName = opts.resource ?? resourceFromPath(event, prefix)
   const resourceConfig = resourceName ? registry[resourceName] : undefined
   if (!resourceName || !resourceConfig) {
     throw createError({ statusCode: 404, message: `Resource "${resourceName ?? ''}" not found` })
   }
-
-  const { db, adapter } = getDb()
-
-  const schema: Record<string, any> = {}
-  for (const [name, config] of Object.entries(registry)) schema[name] = (config as any).schema
 
   const params: Record<string, string> = {}
   const id = getRouterParam(event, 'id')
@@ -138,25 +141,9 @@ export async function createContextFromRegistry(
   const relation = getRouterParam(event, 'relation')
   if (relation !== undefined) params.relation = relation
 
-  const user = (event.context as any).user || null
-  const context: HandlerContext = {
-    db,
-    adapter,
-    schema,
-    fullSchema: db?._?.schema || schema,
-    user,
-    permissions: (event.context as any).permissions || user?.permissions || [],
-    params,
-    query: normalizeQuery(getQuery(event) as Record<string, any>),
-    validated: {},
-    event,
-    runtimeConfig,
-    resource: resourceName,
-    operation,
-    tenant: undefined,
-    resourceConfig,
-    registry,
-  }
+  const context = baseContext(event, operation, registry, getDb(), params)
+  context.resource = resourceName
+  context.resourceConfig = resourceConfig
   // Merged with the nuxt.config override (data only) — the single source for every gate in this request.
   context.effectiveAuth = getAuthConfig({ ...context, effectiveAuth: undefined })
 

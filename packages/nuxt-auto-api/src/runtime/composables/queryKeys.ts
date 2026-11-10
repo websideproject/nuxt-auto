@@ -55,8 +55,11 @@ export const autoApiKeys = {
     [...autoApiKeys.m2m(resource, id), relation, params] as const,
 
   /**
-   * Permissions queries
+   * Permissions queries. They live outside `['autoapi', resource]`: changing a row does not change what the
+   * caller may do, so a mutation's invalidation leaves them cached.
    */
-  permissions: (resource: string) => [...autoApiKeys.resource(resource), 'permissions'] as const,
-  allPermissions: () => ['autoapi', 'permissions'] as const,
+  permissions: (resource: string) => ['permissions', resource] as const,
+  recordPermissions: (resource: string, ids: Array<string | number>) =>
+    [...autoApiKeys.permissions(resource), 'records', ids] as const,
+  allPermissions: () => ['permissions', 'all'] as const,
 }

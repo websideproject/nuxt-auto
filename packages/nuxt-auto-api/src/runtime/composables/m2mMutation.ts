@@ -4,6 +4,7 @@ import type { QueryKey } from '@tanstack/vue-query'
 import type { MaybeRef } from 'vue'
 import { useAutoApiPath } from './autoApiPath'
 import { useAutoApiFetch } from './autoApiFetch'
+import { autoApiKeys } from './queryKeys'
 import { withAutoApiHandlers } from './mutationHandlers'
 import type { AutoApiMutationOptions } from './mutationHandlers'
 import { invalidateAutoApiResource } from './useAutoApiMutation'
@@ -27,7 +28,7 @@ export function useAutoApiM2MMutation<TData, TVars>(opts: {
   const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(opts.resource))
   const idRef = computed(() => unref(opts.id))
-  const relationKey = (relation: string): QueryKey => ['autoapi', resourceRef.value, idRef.value, 'm2m', relation]
+  const relationKey = (relation: string): QueryKey => [...autoApiKeys.m2m(resourceRef.value, idRef.value), relation]
 
   return useMutation<TData, Error, TVars>({
     ...withAutoApiHandlers(opts.options, {
