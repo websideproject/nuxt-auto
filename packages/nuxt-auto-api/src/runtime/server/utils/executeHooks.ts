@@ -1,6 +1,6 @@
 import { useRuntimeConfig } from 'nitropack/runtime'
 import type { HandlerContext, ResourceHooks } from '../../types'
-import { getPluginHooks } from '../plugins/pluginRegistry'
+import { getNitroApp, getPluginHooks } from '../plugins/pluginRegistry'
 
 /**
  * Wraps an error thrown by an after-hook when `hookConfig.errorHandling` is `'log'` (the default for
@@ -11,6 +11,42 @@ export class HookExecutionError extends Error {
   constructor(message: string, public hookName: string, public override cause?: Error) {
     super(message)
     this.name = 'HookExecutionError'
+  }
+}
+
+/** What `autoApi:hook-error` listeners get: a hook whose error was logged instead of failing the request. */
+export interface HookErrorEvent {
+  resource: string
+  /** `afterCreate`, `afterM2MSync`, … */
+  hook: string
+  /** The row's id, when the hook's context has one. */
+  id?: string | number
+  error: unknown
+  /** The hook passed `hookConfig.timeout` (it may still be running). */
+  timedOut: boolean
+  context: HandlerContext
+}
+
+/**
+ * A hook error that doesn't fail the request: logged, and handed to the Nitro hook `autoApi:hook-error` so an app can
+ * record it (`nitroApp.hooks.hook('autoApi:hook-error', e => …)`). A listener that throws is logged too.
+ */
+function reportHookError(context: HandlerContext, hookName: string, error: unknown): void {
+  console.error(`[nuxt-auto-api]`, new HookExecutionError(`${hookName} hook failed`, hookName, error as Error), error)
+  const event: HookErrorEvent = {
+    resource: context.resource,
+    hook: hookName,
+    id: (context.params as any)?.id,
+    error,
+    timedOut: /timed out after \d+ms$/.test(String((error as Error)?.message ?? '')),
+    context,
+  }
+  try {
+    Promise.resolve(getNitroApp()?.hooks?.callHook('autoApi:hook-error', event))
+      .catch((e: unknown) => console.error('[nuxt-auto-api] autoApi:hook-error listener failed:', e))
+  }
+  catch (e) {
+    console.error('[nuxt-auto-api] autoApi:hook-error listener failed:', e)
   }
 }
 
@@ -95,7 +131,7 @@ export async function executeBeforeHook(operation: Op, context: HandlerContext, 
     }
   }
   catch (error) {
-    if (errorHandling === 'log') console.error(`[nuxt-auto-api] ${hookName} hook failed:`, error)
+    if (errorHandling === 'log') reportHookError(context, hookName, error)
     else throw error
   }
   return current
@@ -115,7 +151,7 @@ export async function executeAfterHook(operation: Op, context: HandlerContext, r
   }
   catch (error) {
     if (errorHandling === 'throw') throw error
-    console.error(`[nuxt-auto-api]`, new HookExecutionError(`${hookName} hook failed`, hookName, error as Error), error)
+    reportHookError(context, hookName, error)
   }
 }
 
@@ -135,7 +171,7 @@ export async function executeAfterHookWithTransform(operation: 'create' | 'updat
   }
   catch (error) {
     if (errorHandling === 'throw') throw error
-    console.error(`[nuxt-auto-api]`, new HookExecutionError(`${hookName} hook failed`, hookName, error as Error), error)
+    reportHookError(context, hookName, error)
   }
   return current
 }
@@ -158,7 +194,7 @@ export async function executeHook(hookName: keyof ResourceHooks, context: Handle
   }
   catch (error) {
     const isAfter = String(hookName).startsWith('after')
-    if (isAfter && errorHandling !== 'throw') console.error(`[nuxt-auto-api] ${hookName} hook failed:`, error)
+    if (isAfter && errorHandling !== 'throw') reportHookError(context, String(hookName), error)
     else throw error
   }
   return last
