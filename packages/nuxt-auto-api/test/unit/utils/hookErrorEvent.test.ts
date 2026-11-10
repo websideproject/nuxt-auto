@@ -24,7 +24,7 @@ describe('autoApi:hook-error', () => {
 
   it('tells the Nitro hook about an after-hook error the request survives', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const callHook = vi.fn(async () => {})
+    const callHook = vi.fn(async (_name: string, _event: unknown) => {})
     setNitroApp({ hooks: { callHook } })
     const boom = new Error('mail is down')
     await executeAfterHook('create', contextWith({ afterCreate: fails(boom) }), { id: '7' })
@@ -35,14 +35,14 @@ describe('autoApi:hook-error', () => {
 
   it('marks a hook that passed the timeout', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const callHook = vi.fn(async () => {})
+    const callHook = vi.fn(async (_name: string, _event: unknown) => {})
     setNitroApp({ hooks: { callHook } })
     await executeAfterHook('update', contextWith({ afterUpdate: () => new Promise(() => {}) }, { timeout: 10 }), { id: '7' })
     expect(callHook.mock.calls[0]![1]).toMatchObject({ hook: 'afterUpdate', timedOut: true })
   })
 
   it('says nothing when the error fails the request', async () => {
-    const callHook = vi.fn(async () => {})
+    const callHook = vi.fn(async (_name: string, _event: unknown) => {})
     setNitroApp({ hooks: { callHook } })
     const ctx = contextWith({ afterCreate: fails('x'), beforeCreate: fails('y') }, { errorHandling: 'throw' })
     await expect(executeAfterHook('create', ctx, {})).rejects.toThrow('x')
