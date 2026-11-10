@@ -23,7 +23,8 @@ interface ListQueryParams {
   filter?: Record<string, any>      // field equality or operator filters
   sort?: string | string[]          // field name, prefix '-' for descending
   page?: number                     // offset pagination page number
-  limit?: number                    // items per page (default: 20, max: 100)
+  limit?: number                    // items per page (default: 20, max: pagination.maxLimit = 100; a larger
+                                    // one is cut to it and the response says `meta.clamped: true`)
   cursor?: string                   // cursor pagination (instead of page)
   include?: string | string[]       // relation names to load
   fields?: string | string[]        // select only these fields

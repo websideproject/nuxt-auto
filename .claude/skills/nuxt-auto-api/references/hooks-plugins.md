@@ -102,6 +102,11 @@ export const postsHooks: ResourceHooks = {
 
 `after*` hooks default to `errorHandling: 'log'` — errors are **silently swallowed** and the original unmodified record is returned. If an `after*` hook appears to not run, it is likely throwing. Check server logs. Set `autoApi.hookConfig.errorHandling: 'throw'` during development to surface them.
 
+A logged hook error is also passed to the Nitro hook `autoApi:hook-error` (`{ resource, hook, id, error, timedOut,
+context }`), so an app can record it: `nitroApp.hooks.hook('autoApi:hook-error', e => …)` in a server plugin.
+`timedOut` marks a hook that passed `hookConfig.timeout` (default 5000 ms; it may still be running). Not called for an
+error that fails the request.
+
 ### Runtime hook registration (Nitro plugin)
 
 `autoApi.hooks` in nuxt.config was removed (functions never survive runtimeConfig serialization; setting it fails
