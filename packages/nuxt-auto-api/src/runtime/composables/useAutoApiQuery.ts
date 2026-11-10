@@ -6,6 +6,7 @@ import { prerenderSafeEnabled } from './prerenderEnabled'
 import { useAutoApiPath } from './autoApiPath'
 import { useAutoApiFetch } from './autoApiFetch'
 import { autoApiKeys } from './queryKeys'
+import type { AutoApiRowOf } from '../types/rows'
 
 export interface ListQueryParams {
   filter?: Record<string, any>
@@ -51,11 +52,12 @@ export interface GetResponse<T> {
  *   include: 'author'
  * })
  */
-export function useAutoApiList<T = any>(
-  resource: MaybeRef<string>,
+export function useAutoApiList<T = never, R extends string = string>(
+  resource: MaybeRef<R>,
   params?: MaybeRef<ListQueryParams | undefined>,
-  options?: Omit<UseQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn'>,
+  options?: Omit<UseQueryOptions<ListResponse<AutoApiRowOf<T, R>>>, 'queryKey' | 'queryFn'>,
 ) {
+  type Row = AutoApiRowOf<T, R>
   const path = useAutoApiPath()
   const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
@@ -79,14 +81,14 @@ export function useAutoApiList<T = any>(
   return useTrackedQuery({
     queryKey: computed(() => autoApiKeys.list(resourceRef.value, paramsRef.value)),
     queryFn: async () => {
-      const response = await fetcher<ListResponse<T>>(path(resourceRef.value), {
+      const response = await fetcher<ListResponse<Row>>(path(resourceRef.value), {
         query: queryParams.value as any,
       })
       return response
     },
     ...options,
     enabled: prerenderSafeEnabled((options as any)?.enabled),
-  } as any) as UseQueryReturnType<ListResponse<T>, Error>
+  } as any) as UseQueryReturnType<ListResponse<Row>, Error>
 }
 
 /**
@@ -97,12 +99,13 @@ export function useAutoApiList<T = any>(
  *   include: 'author,comments'
  * })
  */
-export function useAutoApiGet<T = any>(
-  resource: MaybeRef<string>,
+export function useAutoApiGet<T = never, R extends string = string>(
+  resource: MaybeRef<R>,
   id: MaybeRef<string | number>,
   params?: MaybeRef<Pick<ListQueryParams, 'include' | 'fields'> | undefined>,
-  options?: Omit<UseQueryOptions<GetResponse<T>>, 'queryKey' | 'queryFn'>,
+  options?: Omit<UseQueryOptions<GetResponse<AutoApiRowOf<T, R>>>, 'queryKey' | 'queryFn'>,
 ) {
+  type Row = AutoApiRowOf<T, R>
   const path = useAutoApiPath()
   const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
@@ -112,7 +115,7 @@ export function useAutoApiGet<T = any>(
   return useTrackedQuery({
     queryKey: computed(() => autoApiKeys.get(resourceRef.value, idRef.value, paramsRef.value)),
     queryFn: async () => {
-      const response = await fetcher<GetResponse<T>>(
+      const response = await fetcher<GetResponse<Row>>(
         path(resourceRef.value, idRef.value),
         { query: paramsRef.value as any },
       )
@@ -120,7 +123,7 @@ export function useAutoApiGet<T = any>(
     },
     ...options,
     enabled: prerenderSafeEnabled((options as any)?.enabled, () => !!idRef.value),
-  } as any) as UseQueryReturnType<GetResponse<T>, Error>
+  } as any) as UseQueryReturnType<GetResponse<Row>, Error>
 }
 
 /**
@@ -132,11 +135,12 @@ export function useAutoApiGet<T = any>(
  *   sort: '-createdAt'
  * })
  */
-export function useAutoApiInfinite<T = any>(
-  resource: MaybeRef<string>,
+export function useAutoApiInfinite<T = never, R extends string = string>(
+  resource: MaybeRef<R>,
   params?: MaybeRef<Omit<ListQueryParams, 'cursor'> | undefined>,
-  options?: Omit<UseInfiniteQueryOptions<ListResponse<T>>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>,
+  options?: Omit<UseInfiniteQueryOptions<ListResponse<AutoApiRowOf<T, R>>>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>,
 ) {
+  type Row = AutoApiRowOf<T, R>
   const path = useAutoApiPath()
   const fetcher = useAutoApiFetch()
   const resourceRef = computed(() => unref(resource))
@@ -157,16 +161,16 @@ export function useAutoApiInfinite<T = any>(
       // mode, with no nextCursor, and there is never a second page.
       queryParams.cursor = pageParam ?? ''
 
-      const response = await fetcher<ListResponse<T>>(path(resourceRef.value), {
+      const response = await fetcher<ListResponse<Row>>(path(resourceRef.value), {
         query: queryParams as any,
       })
       return response
     },
-    getNextPageParam: (lastPage: ListResponse<T>) => {
+    getNextPageParam: (lastPage: ListResponse<Row>) => {
       return lastPage.meta?.nextCursor
     },
     initialPageParam: undefined,
     ...options,
     enabled: prerenderSafeEnabled((options as any)?.enabled),
-  } as any) as UseInfiniteQueryReturnType<InfiniteData<ListResponse<T>>, Error>
+  } as any) as UseInfiniteQueryReturnType<InfiniteData<ListResponse<Row>>, Error>
 }

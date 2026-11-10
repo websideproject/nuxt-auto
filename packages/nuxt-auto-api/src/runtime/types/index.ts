@@ -119,6 +119,13 @@ export interface AutoApiOptions {
   debug?: boolean
 
   /**
+   * Type the rows the client composables return from the registered tables: `useAutoApiList('posts')` then needs no
+   * type argument. A row is the table's select model as JSON (dates are strings), without the resource's hidden
+   * fields. An explicit type argument still wins. @default false
+   */
+  typedRows?: boolean
+
+  /**
    * Hidden fields configuration (global)
    * Fields specified here will be filtered from all resources
    */

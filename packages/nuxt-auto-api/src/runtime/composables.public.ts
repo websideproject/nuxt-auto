@@ -38,3 +38,4 @@ export type {
   M2MBatchSyncResponse,
 } from './types'
 export type { AutoApiToastOptions, ToastProvider } from './types/toast'
+export type { AutoApiRow, AutoApiRowOf, AutoApiWire } from './types/rows'
