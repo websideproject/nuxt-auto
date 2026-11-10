@@ -36,6 +36,12 @@ export interface EndpointOptions<TBody = any, TQuery = any, TResponse = any> {
   /** Skip authorization check */
   skipAuthorization?: boolean
   /**
+   * Answer 401 to a caller who is not signed in, before the body is read. For "any signed-in caller" endpoints
+   * that act on the caller's own rows: `skipAuthorization: true, requireUser: true` replaces a hand-written check
+   * in the handler. It adds to the permission check when that runs; it never replaces it.
+   */
+  requireUser?: boolean
+  /**
    * Skip the resource's query validation. The request BODY is never validated against the resource's table
    * schema — declare `body` with your own schema (validated before the handler; result in `ctx.body`).
    */
