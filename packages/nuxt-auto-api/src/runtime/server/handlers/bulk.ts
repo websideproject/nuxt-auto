@@ -159,13 +159,18 @@ export async function bulkUpdateHandler(context: HandlerContext): Promise<BulkOp
     const existing = await findAuthorizedRow(context, resource, items[i]!.id)
     const id = existing[primaryKeyName(table)]
     let data = await prepareUpdateData(context, table, items[i]!.data)
+    context.existing = existing
     data = await executeBeforeHook('update', context, data, id)
     // A body made only of server-owned columns changes nothing (and an empty SET is invalid SQL).
     const set = Object.keys(data).length === 0 ? null : withUpdatedAt(table, data)
     return {
       writes: set ? [tx => updateReturningQuery(tx, table, id, set)] : [],
       // Like PATCH /api/[resource]/:id: an afterUpdate hook may replace the returned row.
-      finish: async ([rows]) => executeAfterHookWithTransform('update', context, parseJsonColumns(rows?.[0] ?? existing, context)),
+      finish: async ([rows]) => {
+        // The after-hooks run once the whole batch is written: point `existing` at this item's row again.
+        context.existing = existing
+        return executeAfterHookWithTransform('update', context, parseJsonColumns(rows?.[0] ?? existing, context))
+      },
     }
   }, i => items[i]?.id)
   return respond(context, results, items.length, errors)
@@ -191,6 +196,7 @@ export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOp
     const existing = await findAuthorizedRow(context, resource, ids[i]!, { softDeleted: purge ? 'include' : 'exclude' })
     const id = existing[primaryKeyName(table)]
     const pkWhere = eq(primaryKeyColumn(table), id)
+    context.existing = existing
     await executeBeforeHook('delete', context, undefined, id)
     const writes: Write[] = []
     if (softCol && !purge) {
@@ -204,6 +210,7 @@ export async function bulkDeleteHandler(context: HandlerContext): Promise<BulkOp
     return {
       writes,
       finish: async () => {
+        context.existing = existing
         await executeAfterHook('delete', context, undefined, id)
         return { id, deleted: true }
       },

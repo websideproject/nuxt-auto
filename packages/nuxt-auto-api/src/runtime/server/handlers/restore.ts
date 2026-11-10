@@ -34,6 +34,7 @@ export async function restoreHandler(context: HandlerContext): Promise<SingleRes
   const existing = await findAuthorizedRow(context, resource, params.id, { softDeleted: 'only' })
   const id = existing[primaryKeyName(table)]
   const pkWhere = eq(primaryKeyColumn(table), id)
+  context.existing = existing
 
   const deletionId = existing.deletionId ?? existing.deletion_id
   if (deletionId) {

@@ -18,6 +18,11 @@ describe('buildPagination', () => {
     expect(result.limit).toBe(10)
   })
 
+  it('says when the limit was cut to maxLimit', () => {
+    expect(buildPagination({ limit: 500 }, { defaultLimit: 20, maxLimit: 100 })).toMatchObject({ limit: 100, clamped: true })
+    expect(buildPagination({ limit: 100 }, { defaultLimit: 20, maxLimit: 100 }).clamped).toBeUndefined()
+  })
+
   it('should calculate offset from page', () => {
     const result = buildPagination(
       { page: 3, limit: 10 },

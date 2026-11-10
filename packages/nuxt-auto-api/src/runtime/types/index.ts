@@ -438,6 +438,13 @@ export interface HandlerContext {
   result?: unknown
 
   /**
+   * The row an update, delete or restore acts on, as it was before the write. The handler loads it to authorize the
+   * request, so a `beforeUpdate` / `afterUpdate` / `beforeDelete` / `afterDelete` hook reads it here instead of
+   * selecting it again. On a bulk route it is the row of the item the hook runs for.
+   */
+  existing?: Record<string, any>
+
+  /**
    * How the current request was authenticated (e.g. 'session', 'api-token').
    * Set by auth plugins/context extenders.
    */
@@ -544,6 +551,8 @@ export interface ListResponse<T = any> {
     total?: number
     page?: number
     limit?: number
+    /** `true` when the request asked for more rows than `pagination.maxLimit`: `limit` is what was applied. */
+    clamped?: boolean
     // Cursor pagination
     cursor?: string
     nextCursor?: string

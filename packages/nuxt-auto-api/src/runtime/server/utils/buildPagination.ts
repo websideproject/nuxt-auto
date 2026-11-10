@@ -12,8 +12,9 @@ export function buildPagination(
 
   let limit = query.limit ? Number.parseInt(String(query.limit), 10) : defaultLimit
 
-  // Enforce max limit
-  if (limit > maxLimit) {
+  // Enforce max limit. The caller is told (`meta.clamped`): a list cut short without a sign reads as "that's all".
+  const clamped = limit > maxLimit
+  if (clamped) {
     limit = maxLimit
   }
 
@@ -26,7 +27,9 @@ export function buildPagination(
     limit: number
     offset?: number
     cursor?: string
+    clamped?: boolean
   } = { limit }
+  if (clamped) result.clamped = true
 
   // Handle offset pagination
   if (query.page !== undefined) {
