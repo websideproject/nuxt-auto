@@ -17,6 +17,8 @@ interface ResourceHooks {
   // Delete
   beforeDelete?: (id: string|number, ctx: HandlerContext) => Promise<void> | void
   afterDelete?:  (id: string|number, ctx: HandlerContext) => Promise<void> | void
+  // In update, delete and restore hooks `ctx.existing` is the row as it was before the write (bulk: per item).
+  // Read it there; don't select the row again.
 
   // List
   beforeList?: (ctx: HandlerContext) => Promise<void> | void
