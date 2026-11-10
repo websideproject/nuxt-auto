@@ -2,6 +2,8 @@
 
 All query composables use **TanStack Query (Vue Query)** under the hood and are auto-imported. They cache responses and revalidate automatically.
 
+**Row types:** with `autoApi.typedRows: true`, `useAutoApiList('posts')` / `useAutoApiGet` / `useAutoApiInfinite` type their rows from the resource's table (JSON shape: dates are strings; hidden fields left out) and need no `<T>`. Pass `<T>` when the request uses `include` or `fields`. A non-literal resource name stays `any`. Without the option, rows are `any` unless `<T>` is given.
+
 ---
 
 ## `useAutoApiList<T>` — Fetch a list

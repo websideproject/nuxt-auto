@@ -298,6 +298,14 @@ export {
         getContents: () => generateVirtualModuleTypes(resources),
       }, { nitro: true, nuxt: true })
 
+      // Row types for the client composables (`typedRows`): one entry per resource in the global AutoApiResourceRows.
+      if (options.typedRows) {
+        addTypeTemplate({
+          filename: 'types/nuxt-auto-api-rows.d.ts',
+          getContents: () => generateRowTypes(resources, resolver.resolve('./runtime/types/rows'), options.hiddenFields),
+        }, { nitro: false, nuxt: true })
+      }
+
       // Register virtual import alias for Nitro
       nuxt.options.alias['#nuxt-auto-api-registry'] = resolver.resolve(nuxt.options.buildDir, 'nuxt-auto-api-registry.mjs')
 
@@ -587,6 +595,33 @@ function generateVirtualModuleTypes(resources: ResourceRegistration[]): string {
   export function getResource(name: ResourceName): ResourceRegistration | undefined
   export function getAllResources(): ResourceRegistration[]
   export const resourceNames: ResourceName[]
+}
+export {}
+`
+}
+
+/**
+ * The declaration that fills the global `AutoApiResourceRows` (see runtime/types/rows.ts): each resource's row is
+ * its table's select model as JSON, without its hidden fields. Exported for tests.
+ */
+export function generateRowTypes(
+  resources: ResourceRegistration[],
+  rowsTypesPath: string,
+  hiddenFields?: { global?: string[], resources?: Record<string, string[]> },
+): string {
+  const noExt = (path: string) => path.replace(/\.[cm]?[jt]s$/, '')
+  const entries = resources.flatMap((resource) => {
+    const schema = resource.schema as any
+    if (!schema?.__modulePath) return []
+    const hidden = [...new Set([...(hiddenFields?.global ?? []), ...(hiddenFields?.resources?.[resource.name] ?? []), ...(resource.hiddenFields ?? [])])]
+    const table = `typeof import(${JSON.stringify(noExt(ensureExtension(schema.__modulePath)))})[${JSON.stringify(schema.__exportName || resource.name)}]`
+    const omit = hidden.length ? `, ${hidden.map(f => JSON.stringify(f)).join(' | ')}` : ''
+    return [`    ${JSON.stringify(resource.name)}: import(${JSON.stringify(noExt(rowsTypesPath))}).AutoApiRow<${table}${omit}>`]
+  })
+  return `declare global {
+  interface AutoApiResourceRows {
+${entries.join('\n')}
+  }
 }
 export {}
 `

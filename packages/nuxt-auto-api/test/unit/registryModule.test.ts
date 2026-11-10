@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateVirtualModule } from '../../src/module'
+import { generateRowTypes, generateVirtualModule } from '../../src/module'
 import { createModuleImport } from '../../src/utils/moduleImport'
 
 // The registry is generated as code at build time, so anything that is not an import reference (a function, a
@@ -31,5 +31,18 @@ describe('generated resource registry', () => {
   ])('refuses an inline %s', (part, reg) => {
     expect(() => generateVirtualModule([{ name: 'posts', ...reg } as any]))
       .toThrow(`Resource "posts" ${part} must use createModuleImport()`)
+  })
+})
+
+describe('generateRowTypes', () => {
+  it('declares a row per resource from its table, without the hidden fields', () => {
+    const code = generateRowTypes([
+      { name: 'users', schema: { __modulePath: '/app/server/database/schema.ts', __exportName: 'users' }, hiddenFields: ['passwordHash'] },
+      { name: 'posts', schema: { __modulePath: '/app/server/database/schema.ts' } },
+    ] as any, '/pkg/runtime/types/rows.ts', { global: ['apiKey'], resources: { posts: ['draft'] } })
+
+    expect(code).toContain('interface AutoApiResourceRows')
+    expect(code).toContain('"users": import("/pkg/runtime/types/rows").AutoApiRow<typeof import("/app/server/database/schema")["users"], "apiKey" | "passwordHash">')
+    expect(code).toContain('"posts": import("/pkg/runtime/types/rows").AutoApiRow<typeof import("/app/server/database/schema")["posts"], "apiKey" | "draft">')
   })
 })
