@@ -8,7 +8,7 @@ import type { EndpointOptions, EndpointContext } from '../../types/endpoint'
 import type { HandlerContext } from '../../types'
 import type { MiddlewareStage } from '../../types/plugin'
 import { permissionKeyFor } from '../middleware/authz'
-import { evaluatePermission, resolvePermission, scopeRule } from './permissions'
+import { evaluatePermission, scopeRule } from './permissions'
 import { findAuthorizedRow } from './rowAccess'
 import { filterHiddenFields } from './filterHiddenFields'
 import { filterReadableFields } from './fieldPermissions'
@@ -55,19 +55,12 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
       // Resource-bound endpoint: use full pipeline
       const operation = options.operation || inferOperation(event)
 
-      // Temporarily set the resource in event context so createContextFromRegistry can find it
-      if (!event.context.params) {
-        event.context.params = {}
-      }
-      (event.context.params as any).__resource = options.resource
-
-      const result = await createContextFromRegistry(event, operation)
+      const result = await createContextFromRegistry(event, operation, { resource: options.resource })
       context = result.context
       runMiddleware = result.runMiddleware
 
       // Every route param (`[slug]`, `[orgId]`, …), not only `id` / `relation`.
-      const { __resource: _resource, ...routeParams } = (event.context.params ?? {}) as Record<string, string>
-      context.params = { ...routeParams, ...context.params }
+      context.params = { ...(event.context.params as Record<string, string> | undefined), ...context.params }
       if (options.endpointName) context.endpointName = options.endpointName
       if (options.scope) context.endpointScope = options.scope
 
@@ -92,14 +85,14 @@ export function createEndpoint<TBody = any, TQuery = any, TResponse = any>(
             throw refuse(context, `Forbidden: you don't have permission to ${options.scope} ${options.resource}`)
           }
         }
-        else if (options.refusal) {
-          const key = permissionKeyFor(context.operation)
-          if (!await evaluatePermission(resolvePermission(result.effectiveAuth, key), context)) {
-            throw refuse(context, 'Forbidden')
-          }
-        }
         else {
-          await result.authorize(context)
+          // The operation's own gate. Its 403 is worded by `refusal` when the endpoint has one.
+          try {
+            await result.authorize(context)
+          }
+          catch (error: any) {
+            throw options.refusal && error?.statusCode === 403 ? refuse(context, 'Forbidden') : error
+          }
         }
       }
 

@@ -6,6 +6,7 @@ import type { GetResponse } from './useAutoApiQuery'
 import { useAutoApiToast } from './useAutoApiToast'
 import { useAutoApiPath } from './autoApiPath'
 import { useAutoApiFetch } from './autoApiFetch'
+import { autoApiKeys } from './queryKeys'
 import { withAutoApiHandlers } from './mutationHandlers'
 import type { AutoApiMutationOptions } from './mutationHandlers'
 
@@ -14,7 +15,7 @@ import type { AutoApiMutationOptions } from './mutationHandlers'
  * matched by prefix, so an id cached as `'12'` and one mutated as `12` cannot miss each other.
  */
 export function invalidateAutoApiResource(queryClient: QueryClient, resource: string) {
-  return queryClient.invalidateQueries({ queryKey: ['autoapi', resource] })
+  return queryClient.invalidateQueries({ queryKey: autoApiKeys.resource(resource) })
 }
 
 /**
@@ -130,7 +131,7 @@ export async function useAutoApiOptimisticUpdate<T = any>(
   id: string | number,
   updates: Partial<T>,
 ) {
-  const queryKey = ['autoapi', resource, 'get', id]
+  const queryKey = [...autoApiKeys.gets(resource), id]
   await queryClient.cancelQueries({ queryKey })
   const previousData = queryClient.getQueryData<GetResponse<T>>(queryKey)
   if (previousData) queryClient.setQueryData<GetResponse<T>>(queryKey, { data: { ...previousData.data, ...updates } })

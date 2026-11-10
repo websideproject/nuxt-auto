@@ -180,9 +180,14 @@ describe('createEndpoint refusal: what a refused person is told', () => {
   })
 
   it('words the operation\'s gate too, with no scope', async () => {
+    h.authorize.mockRejectedValueOnce(Object.assign(new Error('Forbidden: you don\'t have permission to create orders'), { statusCode: 403 }))
     await expect(run({ resource: 'orders', refusal, handler: ok })).rejects.toMatchObject({ statusCode: 403, message: refusal })
-    h.context.permissions = ['orders:create']
     expect(await run({ resource: 'orders', refusal, handler: ok })).toEqual({ data: { ok: true } })
+  })
+
+  it('leaves the gate\'s 401 for an anonymous caller alone', async () => {
+    h.authorize.mockRejectedValueOnce(Object.assign(new Error('Authentication required'), { statusCode: 401 }))
+    await expect(run({ resource: 'orders', refusal, handler: ok })).rejects.toMatchObject({ statusCode: 401, message: 'Authentication required' })
   })
 
   it('words a named gate and authorize', async () => {
