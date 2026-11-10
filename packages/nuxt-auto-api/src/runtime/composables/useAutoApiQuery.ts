@@ -27,6 +27,8 @@ export interface ListResponse<T> {
   meta: {
     page?: number
     limit?: number
+    /** `true` when the request asked for more rows than the server's `pagination.maxLimit`. */
+    clamped?: boolean
     total?: number
     nextCursor?: string
     hasMore?: boolean

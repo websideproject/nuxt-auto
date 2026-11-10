@@ -49,6 +49,7 @@ export async function updateHandler(context: HandlerContext): Promise<SingleResp
     softDeleted: (await canViewSoftDeleted(context)) ? 'include' : 'exclude',
   })
   const id = existing[primaryKeyName(table)]
+  context.existing = existing
 
   let data = await prepareUpdateData(context, table, context.validated.body)
   data = await executeBeforeHook('update', context, data, id)

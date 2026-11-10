@@ -33,6 +33,7 @@ export async function deleteHandler(context: HandlerContext): Promise<{ success:
   const existing = await findAuthorizedRow(context, resource, params.id, { softDeleted: purge ? 'include' : 'exclude' })
   const id = existing[primaryKeyName(table)]
   const pkWhere = eq(primaryKeyColumn(table), id)
+  context.existing = existing
 
   if (softCol && !purge) {
     const deletionId = crypto.randomUUID()

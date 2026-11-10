@@ -1,5 +1,5 @@
 import type { SQL } from 'drizzle-orm'
-import { and, or, eq, ne, gt, gte, lt, lte, like, inArray, notInArray, isNull, isNotNull } from 'drizzle-orm'
+import { and, or, eq, ne, gt, gte, lt, lte, like, inArray, notInArray, isNull, isNotNull, sql } from 'drizzle-orm'
 import { createError } from 'h3'
 import { getColumns } from './table'
 import { getDatabaseAdapter } from '../database'
@@ -22,6 +22,15 @@ function maxInValues(): number {
 export const MAX_OR_BRANCHES = 20
 
 const OPERATORS = new Set(['$eq', '$ne', '$gt', '$gte', '$lt', '$lte', '$like', '$in', '$nin', '$null'])
+
+/**
+ * `column LIKE %text%`, with the text matched literally: a `%` or `_` in it is escaped, so `50%` finds "50%" and not
+ * everything that starts with 50. `!` is the escape character — it needs no quoting in any dialect's string literal.
+ */
+function contains(column: any, text: string): SQL {
+  if (!/[%_!]/.test(text)) return like(column, `%${text}%`)
+  return sql`${column} like ${`%${text.replace(/[%_!]/g, '!$&')}%`} escape '!'`
+}
 
 function badFilter(message: string): never {
   throw createError({ statusCode: 400, message })
@@ -135,7 +144,7 @@ function conditionsOf(filter: Record<string, any>, table: any, columns: Set<stri
         case '$like':
           // A timestamp column cannot bind a pattern string (500); substring search on a date has no meaning.
           if (column.dataType === 'date') badFilter(`Filter '${field}.$like' needs a text column`)
-          conditions.push(like(column, `%${operand}%`))
+          conditions.push(contains(column, String(operand)))
           break
         case '$in':
           conditions.push(inArray(column, toList(operand, field, '$in').map(coerce)))

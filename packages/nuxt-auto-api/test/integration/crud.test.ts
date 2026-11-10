@@ -112,6 +112,35 @@ describe('CRUD Operations Integration', () => {
       expect(result.meta.total).toBeGreaterThanOrEqual(2)
     })
 
+    it('$like finds a literal % or _, not a wildcard', async () => {
+      await PostFactory.create(db, baseSchema, testData.users[0].id, { title: 'Now 50% off' })
+      const titles = async (text: string) => (await listHandler(createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'list',
+        query: { filter: { title: { $like: text } } },
+      }) as any)).data.map((p: any) => p.title)
+
+      expect(await titles('50%')).toEqual(['Now 50% off'])
+      expect(await titles('5_%')).toEqual([])
+      expect(await titles('N_w')).toEqual([])
+    })
+
+    it('flags a limit that was cut to maxLimit, and only then', async () => {
+      const list = (limit: number) => listHandler(createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'list',
+        query: { limit },
+        runtimeConfig: { autoApi: { pagination: { defaultLimit: 20, maxLimit: 100 } } },
+      }) as any)
+
+      expect((await list(500)).meta).toMatchObject({ limit: 100, clamped: true })
+      expect((await list(100)).meta.clamped).toBeUndefined()
+    })
+
     it('should sort results by field', async () => {
       await PostFactory.create(db, baseSchema, testData.users[0].id, { title: 'AAA Post' })
       await PostFactory.create(db, baseSchema, testData.users[0].id, { title: 'ZZZ Post' })

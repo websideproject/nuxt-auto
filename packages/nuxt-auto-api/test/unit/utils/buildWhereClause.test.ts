@@ -151,6 +151,12 @@ describe('buildWhereClause', () => {
     expect(r({ name: { $like: 'oh' } })).toMatchObject({ sql: '"test"."name" like ?', params: ['%oh%'] })
   })
 
+  it('$like matches the text literally: % and _ in it are escaped', () => {
+    const r = (f: any) => dialect.sqlToQuery(buildWhereClause(f, testTable)!)
+    expect(r({ name: { $like: '50%' } })).toMatchObject({ sql: '"test"."name" like ? escape \'!\'', params: ['%50!%%'] })
+    expect(r({ name: { $like: 'a_b!' } })).toMatchObject({ params: ['%a!_b!!%'] })
+  })
+
   it('returns undefined for an absent filter and rejects a non-object', () => {
     expect(buildWhereClause(null as any, testTable)).toBeUndefined()
     expect(buildWhereClause(undefined, testTable)).toBeUndefined()

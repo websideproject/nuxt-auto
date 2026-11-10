@@ -156,6 +156,7 @@ export async function listHandler(context: HandlerContext): Promise<ListResponse
   out = await executeAfterHookWithTransform('list', context, out)
 
   const response: ListResponse = { data: serializeResponse(out), meta: { limit: pageSize } }
+  if (pagination.clamped) response.meta.clamped = true
   if (aggregates) response.meta.aggregates = serializeResponse(aggregates)
   if (useCursor) {
     response.meta.hasMore = hasMore

@@ -295,6 +295,59 @@ describe('Aggregations and Lifecycle Hooks Integration', () => {
     })
   })
 
+  describe('Lifecycle Hooks - the existing row', () => {
+    it('gives update hooks the row as it was before the write', async () => {
+      const post = testData.posts[0]
+      const seen: Record<string, any> = {}
+      const hooks = {
+        beforeUpdate: (_id: any, data: any, ctx: any) => {
+          seen.before = ctx.existing?.title
+          return data
+        },
+        afterUpdate: (row: any, ctx: any) => {
+          seen.after = ctx.existing?.title
+          seen.written = row.title
+        },
+      }
+      const context = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'update',
+        params: { id: String(post.id) },
+        query: {},
+        validated: { body: { title: 'New Title' } },
+        resourceConfig: { name: 'posts', schema: baseSchema.posts, hooks },
+      })
+
+      await updateHandler(context as any)
+
+      expect(seen).toEqual({ before: post.title, after: post.title, written: 'New Title' })
+    })
+
+    it('gives delete hooks the row that is deleted', async () => {
+      const post = testData.posts[0]
+      const seen: Record<string, any> = {}
+      const hooks = {
+        beforeDelete: (_id: any, ctx: any) => { seen.before = ctx.existing?.title },
+        afterDelete: (_id: any, ctx: any) => { seen.after = ctx.existing?.title },
+      }
+      const context = createMockContext({
+        db,
+        schema: baseSchema,
+        resource: 'posts',
+        operation: 'delete',
+        params: { id: String(post.id) },
+        query: {},
+        resourceConfig: { name: 'posts', schema: baseSchema.posts, hooks },
+      })
+
+      await deleteHandler(context as any)
+
+      expect(seen).toEqual({ before: post.title, after: post.title })
+    })
+  })
+
   describe('Lifecycle Hooks - After Hooks', () => {
     it('should execute afterCreate hook', async () => {
       const afterCreate = vi.fn()
